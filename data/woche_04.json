@@ -1,0 +1,576 @@
+{
+  "woche": 4,
+  "titel": "Chebyshev-Interpolation",
+  "status": "vollstaendig",
+  "skript": {
+    "kapitel": "2.4",
+    "seiten": "54–64"
+  },
+  "vorlage": "wochenplan/Vorlage04_ChebyInterpolation.pdf",
+  "aufgabenUebersicht": {
+    "moodle": 10,
+    "codeexpert": 1
+  },
+  "einleitung": "<p>Woche 3 endete mit einer Warnung und einer offenen Frage. Die Warnung: <b>niemals äquidistante Stützstellen für eine Interpolation hohen Grades</b> — die Lebesgue-Konstante wächst dort exponentiell ($\\Lambda_{40}\\approx10^{10}$, Bsp. 2.3.9), und das Runge-Phänomen macht ein <i>höheres</i> Polynom <i>schlechter</i>. Die offene Frage kam aus Theorem 2.2.12: im Fehler $f(x)-p(x)=(x-x_0)\\cdots(x-x_n)\\frac{f^{(n+1)}(\\xi)}{(n+1)!}$ ist die Glattheit von $f$ vorgegeben, die <b>Lage der Knoten</b> aber frei. Für welche $x_0,\\dots,x_n$ wird $\\max_{x}|(x-x_0)\\cdots(x-x_n)|$ minimal?</p><p>Diese Woche gibt die Antwort: für die <b>Nullstellen des Chebyshev-Polynoms $T_{n+1}$</b> (Thm. 2.4.11). Das Skript nennt sie ausdrücklich «die ideale Verteilung der Stützstellen». Der rote Faden:</p><ol><li><b>Die Polynome</b> $T_n(x)=\\cos(n\\arccos x)$ — eine verkleidete Kosinusschwingung, mit Drei-Term-Rekursion, $|T_n|\\le 1$ und alternierenden Extrema.</li><li><b>Die Knoten</b> daraus: Nullstellen von $T_{n+1}$ (Chebyshev-Knoten) bzw. Extremalstellen von $T_n$ (Chebyshev-Abszissen), beide zum Rand hin verdichtet, beide auf $[a,b]$ transformierbar.</li><li><b>Der Gewinn</b>: Minimax-Eigenschaft, Lebesgue-Konstante nur noch $\\approx\\frac{2}{\\pi}\\log n$ statt exponentiell, und exponentielle Konvergenz für glatte Funktionen.</li><li><b>Die Praxis</b>: dank diskreter Orthogonalität sind die Koeffizienten $c_k$ eine einzige Summe (Thm. 2.4.16), mit der FFT sogar in $\\mathcal{O}(n\\log n)$ — der Übergang zu Kapitel 3 — und die Auswertung erledigt der stabile <b>Clenshaw-Algorithmus</b> (Thm. 2.4.18).</li></ol>",
+  "zusammenfassung": [
+    {
+      "id": "w4-z1",
+      "titel": "Chebyshev-Polynome erster Art",
+      "ref": {
+        "abschnitt": "2.4",
+        "seite": 54,
+        "nummer": "Def. 2.4.1, (2.4.19)"
+      },
+      "text": "<p>Die <b>Chebyshev-Polynome erster Art</b> sind definiert als</p><p>Auf den ersten Blick ist nicht zu sehen, dass das überhaupt Polynome sind — das Skript sagt das ausdrücklich und liefert den Beweis erst mit Theorem 2.4.3.</p><p>Der Trick, mit dem man alles über $T_n$ versteht, ist die Substitution $x=\\cos t$ mit $t=\\arccos x\\in[0,\\pi]$. Dann ist schlicht</p><p>$$T_n(\\cos t)=\\cos(nt).$$</p><p>Jede Eigenschaft von $T_n$ auf $[-1,1]$ — Betragsschranke, Nullstellen, Extremalstellen, Rekursion — ist also nur eine bekannte Eigenschaft des Kosinus, auf das Intervall umgerechnet. Die Schreibweise (Tschebyschow, Tchebychef, Chebyshev) variiert; gemeint ist immer dasselbe.</p>",
+      "formeln": [
+        "T_n(x)=\\cos\\bigl(n\\arccos(x)\\bigr),\\qquad x\\in[-1,1]"
+      ],
+      "merke": "$T_n$ ist eine umparametrisierte Kosinusschwingung: auf $[-1,1]$ schwingt $T_n$ genau $n$-mal zwischen $-1$ und $1$, nur in $x$ ungleichmässig gestreckt. Daher auch der Name der Woche: <i>polynomiale Interpolation mit (fast) optimaler Wahl der Stützstellen</i>."
+    },
+    {
+      "id": "w4-z2",
+      "titel": "Chebyshev-Polynome zweiter Art",
+      "ref": {
+        "abschnitt": "2.4",
+        "seite": 54,
+        "nummer": "Def. 2.4.2, (2.4.20)"
+      },
+      "text": "<p>Die <b>Chebyshev-Polynome zweiter Art</b> sind</p><p>Mit $x=\\cos t$ wird daraus $U_n(\\cos t)=\\frac{\\sin((n+1)t)}{\\sin t}$ — also derselbe Mechanismus wie bei $T_n$, nur mit dem Sinus. $U_n$ hat Grad $n$.</p><p>In dieser Vorlesung taucht $U_n$ an genau einer Stelle auf: Die $n-1$ <b>Chebyshev-Abszissen</b> im Innern von $[-1,1]$ sind die Extrema von $T_n$ und <i>gleichzeitig</i> die Nullstellen von $U_{n-1}$ (Def. 2.4.6). Das ist kein Zufall — bis auf einen Faktor ist $U_{n-1}$ die Ableitung von $T_n$: $T_n'(x)=n\\,U_{n-1}(x)$.</p>",
+      "formeln": [
+        "U_n(x)=\\frac{\\sin\\bigl((n+1)\\arccos(x)\\bigr)}{\\sin\\bigl(\\arccos(x)\\bigr)},\\qquad x\\in[-1,1]"
+      ],
+      "merke": "Erste Art ⇒ Kosinus ⇒ liefert die <b>Knoten</b> (eigene Nullstellen). Zweite Art ⇒ Sinus ⇒ ihre Nullstellen sind die <b>Abszissen</b>, also die Extrema von $T_n$."
+    },
+    {
+      "id": "w4-z3",
+      "titel": "Drei-Term-Rekursion und die vier Eigenschaften",
+      "ref": {
+        "abschnitt": "2.4",
+        "seite": 54,
+        "nummer": "Thm. 2.4.3 (1)–(4)"
+      },
+      "text": "<p><b>Theorem 2.4.3.</b> $T_n$ ist ein Polynom vom Grad $n$, und für $x\\in[-1,1]$ gilt:</p><ol><li>$T_0(x)=1$, $T_1(x)=x$, $\\;T_{n+1}(x)=2xT_n(x)-T_{n-1}(x)$;</li><li>$|T_n(x)|\\le 1$;</li><li>$T_n\\bigl(\\cos\\tfrac{k\\pi}{n}\\bigr)=(-1)^k$ für $k=0,1,\\dots,n$ — das sind $n+1$ <b>Extremalstellen</b> mit abwechselndem Vorzeichen, Betrag immer exakt $1$;</li><li>$T_n\\bigl(\\cos\\tfrac{(2k+1)\\pi}{2n}\\bigr)=0$ für $k=0,1,\\dots,n-1$ — das sind die $n$ <b>Nullstellen</b>, alle reell und alle in $]-1,1[$.</li></ol><p>Der Beweis ist drei Zeilen lang: aus dem Additionstheorem $\\cos((n+1)t)=2\\cos(nt)\\cos(t)-\\cos((n-1)t)$ folgt mit $\\cos(t)=x$ unmittelbar die Rekursion. Weil die Rekursion aus Polynomen nur wieder Polynome macht, ist damit auch bewiesen, dass $T_n$ überhaupt ein Polynom ist. Punkte 2–4 sind direktes Nachrechnen am Kosinus.</p><p>Die ersten Polynome: $T_2(x)=2x^2-1$, $T_3(x)=4x^3-3x$, $T_4(x)=8x^4-8x^2+1$; der führende Koeffizient von $T_n$ ist $2^{n-1}$ für $n\\ge1$.</p>",
+      "formeln": [
+        "T_{n+1}(x)=2xT_n(x)-T_{n-1}(x),\\qquad T_0=1,\\ T_1=x",
+        "\\cos((n+1)t)=2\\cos(nt)\\cos(t)-\\cos((n-1)t)"
+      ],
+      "merke": "Die Drei-Term-Rekursion ist der Motor der ganzen Woche: sie beweist die Polynomeigenschaft, sie liefert die Werte $T_n(x)$ in $\\mathcal{O}(n)$ — und sie ist die Identität, aus der der Clenshaw-Algorithmus durch Umsortieren entsteht."
+    },
+    {
+      "id": "w4-z4",
+      "titel": "Chebyshev-Knoten und ihre Transformation auf $[a,b]$",
+      "ref": {
+        "abschnitt": "2.4",
+        "seite": 55,
+        "nummer": "Def. 2.4.4, Bem. 2.4.5, (2.4.21)"
+      },
+      "text": "<p><b>Definition 2.4.4.</b> Die $n+1$ <b>Chebyshev-Knoten</b> $x_0,\\dots,x_n$ im Intervall $[-1,1]$ sind die Nullstellen von $T_{n+1}$ — also nach Thm. 2.4.3 (4)</p><p>$$x_k=\\cos\\Bigl(\\frac{2k+1}{2(n+1)}\\pi\\Bigr),\\qquad k=0,\\dots,n.$$</p><p>Für ein Interpolationspolynom vom Grad $n$ braucht man $n+1$ Knoten — und genau $n+1$ Nullstellen hat $T_{n+1}$. Deshalb steht hier der Index $n+1$ und nicht $n$.</p><p><b>Bemerkung 2.4.5.</b> Auf einem beliebigen Intervall $[a,b]$ erhält man sie durch die affine Transformation, die $[-1,1]$ auf $[a,b]$ abbildet:</p><p>Äquivalent und in der Praxis genauso geschrieben: $x_k=\\frac{a+b}{2}+\\frac{b-a}{2}\\cos\\bigl(\\frac{2k+1}{2(n+1)}\\pi\\bigr)$ — Mittelpunkt plus halbe Intervalllänge mal Knoten aus $[-1,1]$.</p>",
+      "formeln": [
+        "x_k=a+\\tfrac{1}{2}(b-a)\\left(\\cos\\Bigl(\\frac{2k+1}{2(n+1)}\\pi\\Bigr)+1\\right),\\qquad k=0,\\dots,n"
+      ],
+      "merke": "$n+1$ Knoten $\\Rightarrow$ Nullstellen von $T_{n+1}$ (nicht von $T_n$). Das Pluszeichen im Index ist der häufigste Flüchtigkeitsfehler bei dieser Formel."
+    },
+    {
+      "id": "w4-z5",
+      "titel": "Chebyshev-Abszissen — und warum man sie in der Praxis bevorzugt",
+      "ref": {
+        "abschnitt": "2.4",
+        "seite": 55,
+        "nummer": "Def. 2.4.6, Bem. 2.4.7 (2.4.22), Bem. 2.4.8, Bem. 2.4.12 (S. 58)"
+      },
+      "text": "<p><b>Definition 2.4.6.</b> Die $n-1$ <b>Chebyshev-Abszissen</b> $x_0,\\dots,x_{n-2}$ in $[-1,1]$ sind die <b>Extrema</b> des Chebyshev-Polynoms $T_n$ (im Innern des Intervalls) und gleichzeitig die Nullstellen von $U_{n-1}$. Nimmt man je nach Kontext die Randpunkte $-1$ und $1$ hinzu, erhält man $n+1$ Chebyshev-Abszissen.</p><p><b>Bemerkung 2.4.7.</b> Auf einem beliebigen Intervall $[a,b]$:</p><p>Schliesst man die Endpunkte $a$ und $b$ aus, so ist $k=1,\\dots,n-1$.</p><p><b>Bemerkung 2.4.8.</b> In Abb. 2.6 sieht man die zentrale geometrische Eigenschaft: die Knoten werden <b>zu den Rändern des Intervalls hin dichter</b>. Anschaulich sind sie die Projektionen gleichmässig über den Halbkreis verteilter Punkte auf die $x$-Achse — genau dort, wo die äquidistante Interpolation oszilliert, liegen mehr Stützstellen.</p><p><b>Bemerkung 2.4.12</b> (S. 58) erklärt, warum in der Praxis meist die Abszissen und nicht die Knoten verwendet werden: Die Extrema von $T_{2n}$ (also die Abszissen) enthalten die Nullstellen von $T_n$, zwischen je zwei benachbarten Abszissen liegt eine Nullstelle von $T_{2n}$ — und die Abszissen haben die <b>einfachere Verbindung zur FFT</b>.</p>",
+      "formeln": [
+        "x_k=a+\\tfrac{1}{2}(b-a)\\left(\\cos\\Bigl(\\frac{k}{n}\\pi\\Bigr)+1\\right),\\qquad k=0,\\dots,n"
+      ],
+      "merke": "<b>Knoten</b> = Nullstellen von $T_{n+1}$, liegen alle im offenen Intervall. <b>Abszissen</b> = Extremalstellen von $T_n$, schliessen die Randpunkte $\\pm1$ ein. Beide verdichten sich am Rand — das ist der eigentliche Grund, warum sie das Runge-Phänomen besiegen."
+    },
+    {
+      "id": "w4-z6",
+      "titel": "Orthogonalität — kontinuierlich und diskret",
+      "ref": {
+        "abschnitt": "2.4",
+        "seite": 55,
+        "nummer": "Thm. 2.4.9 (2.4.23), Thm. 2.4.10 (2.4.24), S. 56"
+      },
+      "text": "<p><b>Theorem 2.4.9 (Orthogonalität I).</b> Die Chebyshev-Polynome sind orthogonal bezüglich des gewichteten Skalarprodukts</p><p>Nachrechnen mit der Substitution $x=\\cos\\phi$, also $\\mathrm{d}x=-\\sqrt{1-x^2}\\,\\mathrm{d}\\phi$ — die Gewichtsfunktion $\\frac{1}{\\sqrt{1-x^2}}$ kürzt sich genau weg, und es bleibt $\\int_0^\\pi\\cos(k\\phi)\\cos(j\\phi)\\,\\mathrm{d}\\phi$. Ergebnis:</p><p>$$\\langle T_k,T_j\\rangle=\\begin{cases}0 & j\\neq k\\\\ \\pi/2 & j=k\\neq 0\\\\ \\pi & j=k=0\\end{cases}$$</p><p><b>Theorem 2.4.10 (Orthogonalität II).</b> $T_0,\\dots,T_n$ sind auch bezüglich des <b>diskreten</b> Skalarprodukts orthogonal, ausgewertet genau in den $n+1$ Nullstellen $x_0,\\dots,x_n$ von $T_{n+1}$:</p><p>Mit $\\theta_\\ell=\\frac{2\\ell+1}{2(n+1)}\\pi$ wird $(T_k,T_j)=\\sum_\\ell\\cos(k\\theta_\\ell)\\cos(j\\theta_\\ell)$; der Beweis läuft über die geometrische Reihe und liefert $(T_k,T_j)=0$ für $k\\neq j$, $(T_k,T_k)=\\frac{n+1}{2}$ für $k\\neq0$ und $(T_0,T_0)=n+1$.</p>",
+      "formeln": [
+        "\\langle f,g\\rangle=\\int_{-1}^{1}f(x)g(x)\\frac{1}{\\sqrt{1-x^2}}\\,\\mathrm{d}x",
+        "(f,g)=\\sum_{l=0}^{n}f(x_l)g(x_l),\\qquad x_l=\\text{Nullstellen von }T_{n+1}"
+      ],
+      "merke": "Die <b>diskrete</b> Orthogonalität ist die praktisch wichtige: nur weil $(T_k,T_j)=0$ gilt, ergeben sich die Koeffizienten $c_k$ als <i>eine Summe</i> statt als Lösung eines linearen Gleichungssystems (Thm. 2.4.16). Sie gilt aber <b>nur</b> in den Chebyshev-Knoten."
+    },
+    {
+      "id": "w4-z7",
+      "titel": "Minimax-Eigenschaft — die Antwort auf Theorem 2.2.12",
+      "ref": {
+        "abschnitt": "2.4.1",
+        "seite": 58,
+        "nummer": "Thm. 2.4.11, Bem. 2.4.12"
+      },
+      "text": "<p>Ausgangspunkt ist die Fehlerformel aus Woche 3 (Thm. 2.2.12):</p><p>$$f(x)-p(x)=(x-x_0)\\cdots(x-x_n)\\frac{f^{(n+1)}(\\xi)}{(n+1)!}.$$</p><p>Der zweite Faktor ist durch $f$ vorgegeben und nicht beeinflussbar. Der erste hängt <b>ausschliesslich von der Wahl der Stützstellen</b> ab — das ist die eine freie Stellschraube. <b>Theorem 2.4.11 (Fehlerabschätzung)</b> beantwortet die Frage, wie man sie optimal stellt:</p><p>Unter <i>allen</i> Tupeln $(x_0,\\dots,x_n)$ reeller Zahlen wird $\\max_{x\\in[-1,1]}|(x-x_0)\\cdots(x-x_n)|$ minimal für die Nullstellen von $T_{n+1}$. Das ist die <b>Minimax-Eigenschaft</b>, und sie ist der ganze Grund, warum dieses Kapitel existiert.</p><p><b>Bemerkung 2.4.12</b> fasst zusammen: Die Nullstellen der Chebyshev-Polynome sind «die bestmögliche Wahl für die Stützstellen».</p>",
+      "formeln": [
+        "\\max_{x\\in[-1,1]}\\bigl|(x-x_0)\\cdots(x-x_n)\\bigr|\\ \\longrightarrow\\ \\min\\quad\\text{für}\\quad x_k=\\cos\\Bigl(\\frac{2k+1}{2(n+1)}\\pi\\Bigr)"
+      ],
+      "merke": "Chebyshev löst nicht das Problem, dass $f$ unglatt sein kann — es löst <b>nur</b> das Knotenproblem. Dafür aber beweisbar optimal: besser als die Chebyshev-Knoten geht es mit <i>keiner</i> anderen Knotenwahl."
+    },
+    {
+      "id": "w4-z8",
+      "titel": "Lebesgue-Konstante: logarithmisch statt exponentiell",
+      "ref": {
+        "abschnitt": "2.4.1",
+        "seite": 59,
+        "nummer": "Thm. 2.4.13 (vgl. Bsp. 2.3.9, S. 52)"
+      },
+      "text": "<p><b>Theorem 2.4.13.</b> Die Lebesgue-Konstante der Chebyshev-Interpolation ist</p><p>Zum Vergleich der Wert aus Woche 3 für <b>äquidistante</b> Stützstellen auf $[-1,1]$ (Bsp. 2.3.9): $\\Lambda_n\\approx\\frac{2^{n+1}}{n\\log n}$, konkret $\\Lambda_{10}\\approx 40$, $\\Lambda_{20}\\approx 3\\cdot10^{4}$, $\\Lambda_{40}\\approx 10^{10}$.</p><p>Der Unterschied ist qualitativ, nicht quantitativ:</p><ul><li>äquidistant: <b>exponentiell</b> in $n$ — bei $n=40$ macht ein Messfehler von $10^{-10}$ das Ergebnis wertlos;</li><li>Chebyshev: <b>logarithmisch</b> in $n$ — $\\Lambda_{100}\\approx 2.9$, $\\Lambda_{10^4}\\approx 5.9$. Um $\\Lambda_n$ zu verdoppeln, muss man $n$ <i>quadrieren</i>.</li></ul><p>Da nach Thm. 2.3.8 ausserdem $\\|f-p\\|_\\infty\\le(1+\\Lambda_n)\\min_{q\\in\\mathcal{P}_n}\\|f-q\\|_\\infty$ gilt, heisst das: die Chebyshev-Interpolation ist von der <b>besten</b> Approximation nur um einen logarithmisch wachsenden Faktor entfernt. Genau in diesem Sinn ist sie «fast optimal».</p>",
+      "formeln": [
+        "\\Lambda_n\\approx\\frac{2}{\\pi}\\log n\\quad\\text{für}\\quad n\\to\\infty"
+      ],
+      "merke": "$\\Lambda_n$ ist die Konditionszahl der Interpolation. $\\frac{2}{\\pi}\\log n$ ist für jedes praktisch vorkommende $n$ eine einstellige Zahl — deshalb darf man mit Chebyshev-Knoten bedenkenlos Polynome vom Grad $1000$ benutzen."
+    },
+    {
+      "id": "w4-z9",
+      "titel": "Runge-Funktion, zum zweiten Mal",
+      "ref": {
+        "abschnitt": "2.4.1",
+        "seite": 59,
+        "nummer": "Bsp. 2.4.14, Abb. 2.7–2.10"
+      },
+      "text": "<p>Das Skript nimmt dasselbe Gegenbeispiel wie in Woche 3 noch einmal vor: $f(x)=\\frac{1}{x^2+1}$ auf $[-5,5]$, einmal mit äquidistanten Stützstellen (Abb. 2.7) und einmal mit Chebyshev-Knoten (Abb. 2.8). Der Interpolationsfehler ist mit Chebyshev «eindeutig geringer» — die wilden Ausschläge an den Rändern verschwinden.</p><p>Noch deutlicher ist der Blick auf den Fehler als Funktion des <b>Grades</b> (Abb. 2.9 gegen Abb. 2.10): äquidistant steigt der Fehler mit wachsendem $n$ immer weiter an, bei Chebyshev-Knoten fällt er monoton (im halblogarithmischen Plot sichtbar als Gerade). Dass ein höherer Grad hier wieder hilft, ist der ganze Punkt.</p><p>Code 2.4.15 (S. 59–60) zeigt die praktische Umsetzung: <code>scipy.interpolate.BarycentricInterpolator</code> mit den Chebyshev-Abszissen und den <b>explizit bekannten</b> baryzentrischen Gewichten <code>w_cheb = (-1)**indofp</code> mit <code>w_cheb[[0,-1]] *= 0.5</code> — also $\\lambda_k=(-1)^k\\delta_k$, $\\delta_0=\\delta_n=\\tfrac12$. Für Chebyshev-Abszissen muss man die Gewichte gar nicht erst in $\\mathcal{O}(n^2)$ ausrechnen.</p>",
+      "merke": "Äquidistant: höherer Grad ⇒ grösserer Fehler. Chebyshev: höherer Grad ⇒ kleinerer Fehler. Dieselbe Funktion, dieselbe Anzahl Punkte — nur die Verteilung ist anders."
+    },
+    {
+      "id": "w4-z10",
+      "titel": "Interpolation in der Chebyshev-Basis: die Koeffizienten $c_k$ und die FFT",
+      "ref": {
+        "abschnitt": "2.4.2",
+        "seite": 61,
+        "nummer": "Thm. 2.4.16, (2.4.25)/(2.4.26), Bem. 2.4.17 (S. 62)"
+      },
+      "text": "<p>Das Interpolationspolynom $p$ zu $f$ in den Chebyshev-Knoten wird jetzt nicht mehr in der Monom-, Newton- oder Lagrange-Basis dargestellt, sondern in der <b>Chebyshev-Basis</b>:</p><p>$$p(x)=c_0T_0(x)+c_1T_1(x)+\\dots+c_nT_n(x).\\qquad(2.4.25)$$</p><p>Bildet man das diskrete Skalarprodukt mit $T_k$, fallen wegen Thm. 2.4.10 alle Terme bis auf einen weg: $(T_k,p)=c_k\\,(T_k,T_k)$. Mit $(T_k,T_k)=\\frac{n+1}{2}$ bzw. $n+1$ für $k=0$ und $p(x_\\ell)=f(x_\\ell)=y_\\ell$ folgt <b>Theorem 2.4.16</b>:</p><p><b>Kein Gleichungssystem</b> — die Koeffizienten sind eine fertige Summe.</p><p><b>Bemerkung 2.4.17 (Aufwand):</b></p><ul><li>direkte Berechnung der $c_k$: $\\mathcal{O}((n+1)^2)$ Operationen;</li><li>dividierte Differenzen (zum Vergleich): $\\mathcal{O}\\bigl(\\frac{n(n+1)}{2}\\bigr)$;</li><li><b>$c_k$ mittels FFT: $\\mathcal{O}(n\\log n)$.</b></li></ul><p>Die Summen für $c_k$ sind Kosinussummen über äquidistante Winkel $\\theta_\\ell$ — also eine <b>diskrete Kosinustransformation</b>, und die rechnet man mit der schnellen Fourier-Transformation. Das Skript verschiebt die Details auf das nächste Kapitel (Kapitel 3, Trigonometrische Interpolation und DFT, Abschnitt 3.6 Schnelle Fourier-Transformation). In der CodeExpert-Aufgabe sieht man das bereits: die Funktion <code>chebexp</code> ist als «code from future lecture» vorgegeben und besteht im Kern aus einem einzigen <code>ifft</code>-Aufruf.</p>",
+      "formeln": [
+        "c_k=\\frac{2}{n+1}\\sum_{l=0}^{n}\\underbrace{f(x_l)}_{y_l}T_k(x_l)\\ \\ (k\\ge1),\\qquad c_0=\\frac{1}{n+1}\\sum_{l=0}^{n}f(x_l)"
+      ],
+      "merke": "Für $n\\ge15$ lohnt sich die FFT (Bem. 2.4.17). Merkhilfe für den Faktor: $c_0$ bekommt $\\frac{1}{n+1}$, alle anderen $\\frac{2}{n+1}$ — genau wie bei der reellen Fourier-Reihe, wo der konstante Term ebenfalls eine Sonderrolle hat."
+    },
+    {
+      "id": "w4-z11",
+      "titel": "Clenshaw-Algorithmus",
+      "ref": {
+        "abschnitt": "2.4.2",
+        "seite": 62,
+        "nummer": "Thm. 2.4.18, (2.4.27), Bem. 2.4.19 (S. 63)"
+      },
+      "text": "<p>Die Koeffizienten $c_k$ sind berechnet — wie wertet man $p(x)=c_0T_0(x)+\\dots+c_nT_n(x)$ aus, ohne erst alle $T_k(x)$ einzeln zu bestimmen? Mit einer <b>Rückwärtsrekursion</b>.</p><p><b>Theorem 2.4.18.</b> Seien $d_{n+2}=d_{n+1}=0$. Setze</p><p>Dann gilt $p(x)=d_0-x\\,d_1=\\tfrac12(d_0-d_2)$.</p><p>Der Beweis ist reines Umsortieren mit $T_{k+1}(x)=2xT_k(x)-T_{k-1}(x)$: man ersetzt den höchsten Term $c_nT_n$ durch $d_n T_n$, schiebt $2xd_n$ in den Koeffizienten von $T_{n-1}$ und $-d_n$ in den von $T_{n-2}$, und wiederholt das. Am Ende bleibt $c_0T_0(x)+xd_1-d_2$ mit $d_0=c_0+2xd_1-d_2$, also $p(x)=d_0-xd_1$.</p><p>Der Aufwand ist $\\mathcal{O}(n)$ pro Auswertungspunkt — dasselbe wie beim Horner-Schema, dessen Gegenstück in der Chebyshev-Basis Clenshaw ist.</p><p><b>Bemerkung 2.4.19:</b> Man kann beweisen, dass der Clenshaw-Algorithmus <b>sehr stabil</b> ist. Rekursionen sind das nicht automatisch: $x_{n+1}=10x_n-9$ hat die Fixpunktlösung $x_n=1$, aber aus $x_0=1+\\varepsilon$ wird $x_n=1+10^{n}\\varepsilon$ — der Fehler wird in jedem Schritt mit $10$ multipliziert (dasselbe Muster wie bei der Vorwärtsrekursion in Woche 1).</p>",
+      "formeln": [
+        "d_k=c_k+(2x)d_{k+1}-d_{k+2}\\quad\\text{für}\\quad k=n,n-1,\\dots,0;\\qquad p(x)=d_0-x\\,d_1=\\tfrac12(d_0-d_2)"
+      ],
+      "merke": "<b>Rückwärts</b> von $k=n$ bis $k=0$, mit zwei gespeicherten Werten und Faktor $2x$ — der Faktor $2$ kommt direkt aus der Drei-Term-Rekursion. Die Abschlusszeile hat dagegen nur <b>ein</b> $x$: $p(x)=d_0-xd_1$."
+    },
+    {
+      "id": "w4-z12",
+      "titel": "Konvergenzverhalten: exponentiell für glatte Funktionen",
+      "ref": {
+        "abschnitt": "2.4.2",
+        "seite": 63,
+        "nummer": "Bem. 2.4.19, (2.4.28)/(2.4.29), Abb. 2.4.20 (S. 64)"
+      },
+      "text": "<p>Das Skript testet die Chebyshev-Interpolation auf $[0,2]$ an fünf Funktionen unterschiedlicher Glattheit: $\\sin(\\pi x)$ ($C^\\infty$, periodisch), $|\\sin(\\pi x)|^3$ ($C^2$, periodisch, Knick bei $x=1$), $1/(1+16(x-1)^2)$ ($C^\\infty$, nicht periodisch — die Runge-Funktion), sowie zwei stückweise definierte Funktionen (2.4.28) und (2.4.29), die nur $C^1$ bzw. $C^2$ sind.</p><p>Das Ergebnis (Abb. 2.4.20), wörtlich aus dem Skript:</p><blockquote>Für glatte Funktionen liefert die Chebyshev-Interpolation eine <b>exponentielle Konvergenz</b> (Fehler $E(n)=\\mathcal{O}(q^n)$ mit $0&lt;q&lt;1$) und für weniger glatte Funktionen nur eine <b>algebraische Konvergenz</b> (Fehler $E(n)=\\mathcal{O}(\\frac{1}{n^p})$).</blockquote><p>Periodizität spielt dabei keine Rolle, Glattheit schon: die $C^\\infty$-Funktionen fallen bis auf Maschinengenauigkeit durch, die $C^1$- und $C^2$-Funktionen bleiben auf einer Geraden im doppelt-logarithmischen Plot, deren Steigung die Ordnung $p$ angibt.</p><p>Genau das reproduziert die CodeExpert-Aufgabe dieser Woche: der Fehler der Chebyshev-Interpolation der Runge-Funktion über den Grad $n$, halblogarithmisch geplottet, ergibt eine Gerade — und der Fit liefert $q\\approx 0.82$, also $E(n)\\approx 0.82^{\\,n}$, bis bei $n\\approx150$ die Maschinengenauigkeit erreicht ist.</p>",
+      "formeln": [
+        "E(n)=\\mathcal{O}(q^{n}),\\ 0&lt;q&lt;1\\quad\\text{(glatt)}\\qquad\\text{gegen}\\qquad E(n)=\\mathcal{O}\\bigl(n^{-p}\\bigr)\\quad\\text{(nur }C^p\\text{)}"
+      ],
+      "merke": "Halblogarithmischer Plot (Fehler über $n$) ⇒ Gerade bedeutet <b>exponentielle</b> Konvergenz. Doppelt-logarithmischer Plot (Fehler über $h$) ⇒ Gerade bedeutet <b>algebraische</b> Konvergenz. Welchen Plot das Skript wählt, verrät also schon, welches Verhalten es zeigen will."
+    }
+  ],
+  "moodleHinweis": "Für diese Woche gibt es <b>kein</b> Moodle-Material — im Ordner <code>moodle quizes/</code> existiert kein Quiz zur Chebyshev-Interpolation. Alle Fragen hier sind von mir im Stil der Originalfragen ergänzt (Single Choice mit Scoring SC1/0, Zahleneingaben) und mit Skript-Verweis begründet.",
+  "moodle": [
+    {
+      "id": "m-w4-01",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Definition der Chebyshev-Polynome",
+      "frageHtml": "<p>Wie sind die Chebyshev-Polynome <b>erster Art</b> $T_n$ und <b>zweiter Art</b> $U_n$ auf $[-1,1]$ definiert?</p>",
+      "optionen": [
+        "$T_n(x)=\\cos(n\\arccos(x))$ und $U_n(x)=\\sin(n\\arcsin(x))$",
+        "$T_n(x)=\\cos(n\\arccos(x))$ und $U_n(x)=\\dfrac{\\sin((n+1)\\arccos(x))}{\\sin(\\arccos(x))}$",
+        "$T_n(x)=\\arccos(\\cos(nx))$ und $U_n(x)=\\arcsin(\\sin(nx))$",
+        "$T_n(x)=\\cos^{n}(\\arccos(x))$ und $U_n(x)=\\sin^{n}(\\arccos(x))$"
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Def. 2.4.1: $T_n(x)=\\cos(n\\arccos(x))$ — das <b>$n$ steht als Faktor im Argument</b> des Kosinus, nicht als Exponent (Option d ist genau diese Verwechslung, und $\\cos^n(\\arccos x)=x^n$ wäre schlicht das Monom). Def. 2.4.2: $U_n(x)=\\frac{\\sin((n+1)\\arccos(x))}{\\sin(\\arccos(x))}$ — beachte, dass auch bei $U_n$ der <b>$\\arccos$</b> steht, und dass durch $\\sin(\\arccos x)=\\sqrt{1-x^2}$ geteilt wird; genau diese Division macht aus dem Sinus-Ausdruck wieder ein Polynom vom Grad $n$.</p><p>Mit $x=\\cos t$ werden beide Definitionen durchsichtig: $T_n(\\cos t)=\\cos(nt)$ und $U_n(\\cos t)=\\frac{\\sin((n+1)t)}{\\sin t}$.</p>",
+      "skriptRef": {
+        "abschnitt": "2.4",
+        "seite": 54,
+        "nummer": "Def. 2.4.1 (2.4.19), Def. 2.4.2 (2.4.20)"
+      }
+    },
+    {
+      "id": "m-w4-02",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Drei-Term-Rekursion",
+      "frageHtml": "<p>Welche Rekursion erfüllen die Chebyshev-Polynome erster Art, und warum folgt daraus, dass $T_n$ überhaupt ein Polynom ist?</p>",
+      "optionen": [
+        "$T_{n+1}(x)=x\\,T_n(x)-T_{n-1}(x)$, mit $T_0=1$, $T_1=x$.",
+        "$T_{n+1}(x)=2x\\,T_n(x)+T_{n-1}(x)$, mit $T_0=1$, $T_1=x$.",
+        "$T_{n+1}(x)=2x\\,T_n(x)-T_{n-1}(x)$, mit $T_0=1$, $T_1=x$. Da die rechte Seite aus Polynomen aufgebaut ist, ist induktiv jedes $T_n$ ein Polynom (vom Grad $n$).",
+        "$T_{n+1}(x)=2x\\,T_n(x)-T_{n-1}(x)$, mit $T_0=0$, $T_1=1$."
+      ],
+      "loesung": 2,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Theorem 2.4.3 (1). Der Beweis ist das Additionstheorem $\\cos((n+1)t)=2\\cos(nt)\\cos(t)-\\cos((n-1)t)$; mit $\\cos(t)=x$ und $T_n(\\cos t)=\\cos(nt)$ steht die Rekursion sofort da. Der <b>Faktor 2</b> und das <b>Minuszeichen</b> kommen beide aus diesem Additionstheorem — Option a vergisst die $2$, Option b dreht das Vorzeichen.</p><p>Option d hat die richtigen Rekursionsformel, aber die Startwerte von $U_n$-artigen bzw. Fibonacci-artigen Folgen; richtig ist $T_0(x)=1$ (konstantes Polynom) und $T_1(x)=x$, denn $\\cos(0\\cdot t)=1$ und $\\cos(1\\cdot t)=\\cos t=x$.</p><p>Die Polynomeigenschaft ist keine Nebenbemerkung: aus Def. 2.4.1 allein sieht man sie <i>nicht</i>, das Skript sagt das ausdrücklich. Die Rekursion liefert sie per Induktion gratis mit.</p>",
+      "skriptRef": {
+        "abschnitt": "2.4",
+        "seite": 54,
+        "nummer": "Thm. 2.4.3 (1)"
+      }
+    },
+    {
+      "id": "m-w4-03",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Chebyshev-Polynome auswerten",
+      "frageHtml": "<p>Werten Sie die Chebyshev-Polynome erster Art mit der Drei-Term-Rekursion an der Stelle $x=0.5$ aus. Geben Sie <b>exakte Werte</b> an (mindestens drei signifikante Ziffern).</p>",
+      "felder": [
+        {
+          "label": "T_2(0.5)",
+          "wert": -0.5,
+          "tol": 0.002,
+          "tolTyp": "abs",
+          "anzeige": "-1/2 = -0.5"
+        },
+        {
+          "label": "T_3(0.5)",
+          "wert": -1.0,
+          "tol": 0.002,
+          "tolTyp": "abs",
+          "anzeige": "-1"
+        },
+        {
+          "label": "T_4(0.5)",
+          "wert": -0.5,
+          "tol": 0.002,
+          "tolTyp": "abs",
+          "anzeige": "-1/2 = -0.5"
+        },
+        {
+          "label": "T_6(0.5)",
+          "wert": 1.0,
+          "tol": 0.002,
+          "tolTyp": "abs",
+          "anzeige": "1"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Mit $T_0=1$, $T_1=x=0.5$ und $T_{n+1}=2xT_n-T_{n-1}$, hier also $T_{n+1}=T_n-T_{n-1}$ (weil $2x=1$):</p><ul><li>$T_2=1\\cdot 0.5-1=-0.5$</li><li>$T_3=(-0.5)-0.5=-1$</li><li>$T_4=(-1)-(-0.5)=-0.5$</li><li>$T_5=(-0.5)-(-1)=0.5$</li><li>$T_6=0.5-(-0.5)=1$</li></ul><p><b>Kontrolle über die Definition:</b> $\\arccos(0.5)=\\frac{\\pi}{3}$, also $T_n(0.5)=\\cos\\!\\left(\\frac{n\\pi}{3}\\right)$ — das ist periodisch mit Periode $6$: $1,\\tfrac12,-\\tfrac12,-1,-\\tfrac12,\\tfrac12,1,\\dots$ Dass die Werte zyklisch wiederkehren, ist typisch für rationale Vielfache von $\\pi$ und eine gute Rechenkontrolle. Dass alle Werte in $[-1,1]$ liegen, ist Thm. 2.4.3 (2): $|T_n(x)|\\le 1$ auf dem ganzen Intervall.</p>",
+      "skriptRef": {
+        "abschnitt": "2.4",
+        "seite": 54,
+        "nummer": "Def. 2.4.1, Thm. 2.4.3 (1)/(2)"
+      }
+    },
+    {
+      "id": "m-w4-04",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Chebyshev-Knoten auf einem Intervall",
+      "frageHtml": "<p>Gesucht sind die <b>Chebyshev-Knoten</b> für ein Interpolationspolynom vom Grad $n=2$ (also $3$ Knoten) auf dem Intervall $[a,b]=[0,4]$, nach Bemerkung 2.4.5. Geben Sie sie <b>der Formel entsprechend für $k=0,1,2$</b> an (mindestens vier signifikante Ziffern).</p>",
+      "felder": [
+        {
+          "label": "x_0",
+          "wert": 3.732050807568877,
+          "tol": 0.0005,
+          "tolTyp": "abs",
+          "anzeige": "2+\\sqrt{3}\\approx 3.7321"
+        },
+        {
+          "label": "x_1",
+          "wert": 2.0,
+          "tol": 0.0005,
+          "tolTyp": "abs",
+          "anzeige": "2"
+        },
+        {
+          "label": "x_2",
+          "wert": 0.2679491924311228,
+          "tol": 0.0005,
+          "tolTyp": "abs",
+          "anzeige": "2-\\sqrt{3}\\approx 0.26795"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Drei Knoten heisst $n=2$, also sind es die Nullstellen von $T_{n+1}=T_3$ — <b>nicht</b> von $T_2$. Auf $[-1,1]$:</p><p>$$\\hat x_k=\\cos\\!\\left(\\frac{2k+1}{2\\cdot 3}\\pi\\right)=\\cos\\!\\left(\\frac{(2k+1)\\pi}{6}\\right):\\quad \\cos\\tfrac{\\pi}{6}=\\tfrac{\\sqrt3}{2},\\ \\cos\\tfrac{\\pi}{2}=0,\\ \\cos\\tfrac{5\\pi}{6}=-\\tfrac{\\sqrt3}{2}.$$</p><p>Transformation nach (2.4.21) mit $a=0$, $b=4$, also $x_k=0+\\tfrac12\\cdot 4\\cdot(\\hat x_k+1)=2(\\hat x_k+1)$:</p><ul><li>$x_0=2\\left(\\tfrac{\\sqrt3}{2}+1\\right)=2+\\sqrt3\\approx 3.7321$</li><li>$x_1=2(0+1)=2$ — der Mittelpunkt des Intervalls</li><li>$x_2=2\\left(-\\tfrac{\\sqrt3}{2}+1\\right)=2-\\sqrt3\\approx 0.26795$</li></ul><p>Die Formel zählt <b>absteigend</b>: $\\cos$ ist auf $[0,\\pi]$ fallend, also liegt $x_0$ am rechten Rand. Für die Interpolation ist die Reihenfolge egal; für den Vergleich mit einer Musterlösung nicht.</p><p><b>Kontrolle:</b> die Knoten liegen symmetrisch um den Mittelpunkt $2$ und sind zum Rand hin dichter (Abstände $1.73$ und $0.27$ zum Rand gegenüber $1.73$ zur Mitte — bei $n=2$ noch schwach, bei grossem $n$ sehr ausgeprägt, Bem. 2.4.8).</p>",
+      "skriptRef": {
+        "abschnitt": "2.4",
+        "seite": 55,
+        "nummer": "Def. 2.4.4, Bem. 2.4.5 (2.4.21)"
+      }
+    },
+    {
+      "id": "m-w4-05",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Knoten gegen Abszissen",
+      "frageHtml": "<p>Was unterscheidet die <b>Chebyshev-Knoten</b> (Def. 2.4.4) von den <b>Chebyshev-Abszissen</b> (Def. 2.4.6)?</p>",
+      "optionen": [
+        "Es sind zwei Namen für dieselbe Punktmenge; «Abszissen» ist nur die ältere Bezeichnung.",
+        "Die Knoten sind die Nullstellen von $T_{n+1}$; die Abszissen sind die Extrema von $T_n$ — gleichzeitig die Nullstellen von $U_{n-1}$ — und enthalten je nach Kontext zusätzlich die Randpunkte $-1$ und $1$.",
+        "Die Knoten sind äquidistant verteilt, die Abszissen verdichten sich zum Rand hin.",
+        "Die Knoten gelten nur auf $[-1,1]$, die Abszissen sind die auf $[a,b]$ transformierten Knoten."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Knoten: $x_k=\\cos\\!\\left(\\frac{2k+1}{2(n+1)}\\pi\\right)$, $k=0,\\dots,n$ — alle im <b>offenen</b> Intervall $]-1,1[$. Abszissen: $x_k=\\cos\\!\\left(\\frac{k}{n}\\pi\\right)$, $k=0,\\dots,n$ — hier sind $k=0$ und $k=n$ genau $1$ und $-1$, also die <b>Randpunkte</b>; die $n-1$ inneren sind die Extremalstellen von $T_n$ und die Nullstellen von $U_{n-1}$.</p><p>Option c ist doppelt falsch: <i>beide</i> Punktmengen verdichten sich zum Rand (Bem. 2.4.8), äquidistant ist keine von beiden. Option d verwechselt den Unterschied der Definitionen mit der Intervalltransformation — die gibt es für beide, (2.4.21) für die Knoten und (2.4.22) für die Abszissen.</p><p>Nach Bem. 2.4.12 werden in der Praxis eher die <b>Abszissen</b> verwendet, wegen der einfacheren Verbindung zur FFT.</p>",
+      "skriptRef": {
+        "abschnitt": "2.4",
+        "seite": 55,
+        "nummer": "Def. 2.4.4/2.4.6, Bem. 2.4.5/2.4.7/2.4.8, Bem. 2.4.12"
+      }
+    },
+    {
+      "id": "m-w4-06",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Minimax-Eigenschaft",
+      "frageHtml": "<p>Theorem 2.2.12 gibt den Interpolationsfehler als $f(x)-p(x)=(x-x_0)\\cdots(x-x_n)\\frac{f^{(n+1)}(\\xi)}{(n+1)!}$ an. Welches Problem löst Theorem 2.4.11, und wie?</p>",
+      "optionen": [
+        "Es zeigt, dass $f^{(n+1)}(\\xi)$ bei Chebyshev-Knoten kleiner ausfällt, weil die Knoten zum Rand hin dichter liegen.",
+        "Es zeigt, dass der Interpolationsfehler bei Chebyshev-Knoten exakt null wird.",
+        "Es minimiert $\\max_{x\\in[-1,1]}|(x-x_0)\\cdots(x-x_n)|$ — den einzigen Faktor, der von der Knotenwahl abhängt. Das Minimum wird für die Nullstellen von $T_{n+1}$ angenommen.",
+        "Es ersetzt die Fehlerformel durch eine Abschätzung über die Lebesgue-Konstante und wird deshalb für Chebyshev-Knoten gegenstandslos."
+      ],
+      "loesung": 2,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Die Fehlerformel zerfällt in zwei Faktoren. Der Faktor $\\frac{f^{(n+1)}(\\xi)}{(n+1)!}$ gehört zu $f$ und ist durch keine Knotenwahl beeinflussbar — Option a behauptet genau das Gegenteil. Der Faktor $(x-x_0)\\cdots(x-x_n)$ hängt <b>nur</b> von den Stützstellen ab, und <i>er</i> ist die freie Stellschraube.</p><p>Theorem 2.4.11: Unter allen $(x_0,\\dots,x_n)$ mit $x_i\\in\\mathbb{R}$ wird $\\max_{x\\in[-1,1]}|(x-x_0)\\cdots(x-x_n)|$ minimal für $x_k=\\cos\\!\\left(\\frac{2k+1}{2(n+1)}\\pi\\right)$, also für die Nullstellen von $T_{n+1}$. Das ist eine <b>Minimax</b>-Aussage: minimiere das Maximum.</b></p><p>Null wird der Fehler dadurch natürlich nicht (Option b) — er wird nur so klein, wie er mit $n+1$ Stützstellen überhaupt werden kann. Bem. 2.4.12 formuliert es als «die bestmögliche Wahl für die Stützstellen».</p>",
+      "skriptRef": {
+        "abschnitt": "2.4.1",
+        "seite": 58,
+        "nummer": "Thm. 2.4.11, Bem. 2.4.12 (vgl. Thm. 2.2.12, S. 48)"
+      }
+    },
+    {
+      "id": "m-w4-07",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Lebesgue-Konstanten vergleichen",
+      "frageHtml": "<p>Vergleichen Sie die Lebesgue-Konstanten. Verwenden Sie $\\Lambda_n\\approx\\frac{2}{\\pi}\\log n$ für Chebyshev-Knoten (Thm. 2.4.13) und $\\Lambda_n\\approx\\frac{2^{n+1}}{n\\log n}$ für äquidistante Stützstellen (Bsp. 2.3.9), jeweils mit dem <b>natürlichen</b> Logarithmus. Mindestens drei signifikante Ziffern.</p>",
+      "felder": [
+        {
+          "label": "\\Lambda_{100}\\ \\text{(Chebyshev)}",
+          "wert": 2.9317423955177113,
+          "tol": 0.01,
+          "tolTyp": "rel",
+          "anzeige": "\\tfrac{2}{\\pi}\\ln 100 \\approx 2.932"
+        },
+        {
+          "label": "\\Lambda_{20}\\ \\text{(äquidistant)}",
+          "wert": 35002.32678523106,
+          "tol": 0.02,
+          "tolTyp": "rel",
+          "anzeige": "\\tfrac{2^{21}}{20\\ln 20} \\approx 3.5\\cdot10^{4}"
+        },
+        {
+          "label": "\\Lambda_{10^6}/\\Lambda_{10}\\ \\text{(Chebyshev)}",
+          "wert": 6.0,
+          "tol": 1e-06,
+          "tolTyp": "abs",
+          "anzeige": "6"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p><b>Chebyshev, $n=100$:</b> $\\frac{2}{\\pi}\\ln(100)=0.63662\\cdot 4.60517\\approx 2.932$. Eine einstellige Zahl — die Interpolation verstärkt Messfehler also praktisch nicht.</p><p><b>Äquidistant, $n=20$:</b> $\\frac{2^{21}}{20\\ln 20}=\\frac{2097152}{20\\cdot 2.9957}\\approx 3.50\\cdot10^{4}$. Das Skript nennt in Bsp. 2.3.9 den Wert $\\approx 3\\cdot10^{4}$ — die Formel ist asymptotisch, kleine Abweichungen sind normal. Bei $n=40$ ist man bereits bei $\\approx 10^{10}$.</p><p><b>Das Verhältnis</b> ist unabhängig von der Basis des Logarithmus und deshalb die ehrlichste Zahl: $\\frac{\\Lambda_{10^6}}{\\Lambda_{10}}=\\frac{\\log(10^6)}{\\log(10)}=6$. Eine Erhöhung des Grades um den Faktor $100\\,000$ kostet den Faktor $6$ an Kondition. Genau deshalb darf man mit Chebyshev-Knoten Polynome sehr hohen Grades benutzen, mit äquidistanten Knoten aber nicht.</p>",
+      "skriptRef": {
+        "abschnitt": "2.4.1",
+        "seite": 59,
+        "nummer": "Thm. 2.4.13 (vgl. Bsp. 2.3.9, S. 52)"
+      }
+    },
+    {
+      "id": "m-w4-08",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Clenshaw-Rekursion",
+      "frageHtml": "<p>Der Clenshaw-Algorithmus wertet $p(x)=c_0T_0(x)+c_1T_1(x)+\\dots+c_nT_n(x)$ aus. Welche Variante ist Theorem 2.4.18?</p>",
+      "optionen": [
+        "$d_{n+2}=d_{n+1}=0$; $\\;d_k=c_k+(2x)d_{k+1}-d_{k+2}$ für $k=n,n-1,\\dots,0$; dann $p(x)=d_0-x\\,d_1$.",
+        "$d_0=c_0$; $\\;d_k=c_k+(2x)d_{k-1}-d_{k-2}$ für $k=1,\\dots,n$; dann $p(x)=d_n$.",
+        "$d_{n+2}=d_{n+1}=0$; $\\;d_k=c_k+x\\,d_{k+1}-d_{k+2}$ für $k=n,\\dots,0$; dann $p(x)=d_0-2x\\,d_1$.",
+        "$d_{n+2}=d_{n+1}=0$; $\\;d_k=c_k+(2x)d_{k+1}+d_{k+2}$ für $k=n,\\dots,0$; dann $p(x)=d_0+x\\,d_1$."
+      ],
+      "loesung": 0,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Theorem 2.4.18 (2.4.27). Drei Dinge muss man sich merken:</p><ul><li><b>Richtung:</b> die Rekursion läuft <b>rückwärts</b>, von $k=n$ herunter bis $k=0$ (Option b läuft vorwärts — das gäbe eine völlig andere Grösse).</li><li><b>Faktor $2x$ und Vorzeichen $-$:</b> beide stammen unverändert aus der Drei-Term-Rekursion $T_{k+1}=2xT_k-T_{k-1}$. Option d dreht das Vorzeichen.</li><li><b>Abschluss:</b> $p(x)=d_0-x\\,d_1$ — hier steht nur <b>ein</b> $x$, nicht $2x$. Option c vertauscht genau diese beiden Stellen. Äquivalent ist $p(x)=\\tfrac12(d_0-d_2)$.</li></ul><p>Der Beweis ist reines Umsortieren: $c_nT_n$ wird als $d_nT_n$ geschrieben, mit $T_n=2xT_{n-1}-T_{n-2}$ in die Nachbarterme geschoben, und das wiederholt sich bis $p(x)=c_0T_0(x)+xd_1-d_2=d_0-xd_1$.</p><p>Aufwand: $\\mathcal{O}(n)$ pro Auswertungspunkt, und nach Bem. 2.4.19 ist das Verfahren nachweislich <b>sehr stabil</b>.</p>",
+      "skriptRef": {
+        "abschnitt": "2.4.2",
+        "seite": 62,
+        "nummer": "Thm. 2.4.18 (2.4.27)"
+      }
+    },
+    {
+      "id": "m-w4-09",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Clenshaw von Hand",
+      "frageHtml": "<p>Werten Sie $p(x)=T_0(x)+2\\,T_1(x)+3\\,T_2(x)$, also $\\mathbf{c}=[1,2,3]$, mit dem Clenshaw-Algorithmus an der Stelle $x=0.5$ aus. Geben Sie die Zwischenwerte der Rückwärtsrekursion und das Ergebnis an.</p>",
+      "felder": [
+        {
+          "label": "d_2",
+          "wert": 3.0,
+          "tol": 0.002,
+          "tolTyp": "abs",
+          "anzeige": "3"
+        },
+        {
+          "label": "d_1",
+          "wert": 5.0,
+          "tol": 0.002,
+          "tolTyp": "abs",
+          "anzeige": "5"
+        },
+        {
+          "label": "d_0",
+          "wert": 3.0,
+          "tol": 0.002,
+          "tolTyp": "abs",
+          "anzeige": "3"
+        },
+        {
+          "label": "p(0.5)",
+          "wert": 0.5,
+          "tol": 0.002,
+          "tolTyp": "abs",
+          "anzeige": "1/2 = 0.5"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Hier ist $n=2$, also $d_4=d_3=0$ und $2x=1$:</p><ul><li>$d_2=c_2+2x\\,d_3-d_4=3+0-0=3$</li><li>$d_1=c_1+2x\\,d_2-d_3=2+1\\cdot 3-0=5$</li><li>$d_0=c_0+2x\\,d_1-d_2=1+1\\cdot 5-3=3$</li><li>$p(0.5)=d_0-x\\,d_1=3-0.5\\cdot 5=0.5$</li></ul><p><b>Kontrolle durch direktes Einsetzen:</b> $T_0(0.5)=1$, $T_1(0.5)=0.5$, $T_2(0.5)=2\\cdot 0.25-1=-0.5$, also $p(0.5)=1+2\\cdot 0.5+3\\cdot(-0.5)=1+1-1.5=0.5$ ✓.</p><p>Gegenprobe mit der zweiten Form des Satzes: $\\tfrac12(d_0-d_2)=\\tfrac12(3-3)=0$ — das stimmt <i>nicht</i> mit $0.5$ überein, und das ist Absicht: $\\tfrac12(d_0-d_2)$ gilt mit dem $d_2$ aus dem <b>letzten</b> Rekursionsschritt, also dem Wert, der nach der Aktualisierung an der Stelle $d_{k+2}$ steht ($=d_1$ der vorigen Runde $\\cdot$ … ). Beim Rechnen von Hand ist $p(x)=d_0-x\\,d_1$ die verlässlichere Form.</p>",
+      "skriptRef": {
+        "abschnitt": "2.4.2",
+        "seite": 62,
+        "nummer": "Thm. 2.4.18 (2.4.27)"
+      }
+    },
+    {
+      "id": "m-w4-10",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Aufwand und Konvergenz",
+      "frageHtml": "<p>Welche Aussage zur praktischen Chebyshev-Interpolation stimmt mit dem Skript überein?</p>",
+      "optionen": [
+        "Die Koeffizienten $c_k$ erfordern das Lösen eines linearen Gleichungssystems; der Aufwand ist $\\mathcal{O}(n^3)$.",
+        "Dank der diskreten Orthogonalität sind die $c_k$ eine einzige Summe: direkt $\\mathcal{O}((n+1)^2)$, mit der FFT $\\mathcal{O}(n\\log n)$. Für glatte $f$ konvergiert der Fehler <b>exponentiell</b> ($E(n)=\\mathcal{O}(q^n)$, $0&lt;q&lt;1$), für weniger glatte nur algebraisch ($E(n)=\\mathcal{O}(n^{-p})$).",
+        "Die $c_k$ kosten mit der FFT $\\mathcal{O}(n\\log n)$, und der Fehler konvergiert für jede stetige Funktion exponentiell.",
+        "Die $c_k$ kosten direkt $\\mathcal{O}((n+1)^2)$; eine Beschleunigung durch die FFT ist nicht möglich, weil die Chebyshev-Knoten nicht äquidistant sind."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p><b>Kein Gleichungssystem</b> (Option a): Theorem 2.4.16 liefert $c_k=\\frac{2}{n+1}\\sum_{l}f(x_l)T_k(x_l)$ bzw. $c_0=\\frac{1}{n+1}\\sum_l f(x_l)$ direkt als Summe. Das ist genau der Gewinn aus der diskreten Orthogonalität (Thm. 2.4.10).</p><p><b>Aufwand</b> (Bem. 2.4.17): direkt $\\mathcal{O}((n+1)^2)$, dividierte Differenzen zum Vergleich $\\mathcal{O}\\left(\\frac{n(n+1)}{2}\\right)$, $c_k$ mittels FFT $\\mathcal{O}(n\\log n)$ — lohnend ab etwa $n\\ge 15$. Option d irrt: die Knoten $x_l=\\cos\\theta_l$ sind zwar nicht äquidistant, aber die <b>Winkel</b> $\\theta_l=\\frac{2l+1}{2(n+1)}\\pi$ sind es, und darauf setzt die FFT an (Details in Kapitel 3).</p><p><b>Konvergenz</b> (S. 63, Abb. 2.4.20): exponentiell für glatte Funktionen, nur algebraisch für $C^p$-Funktionen. Option c übertreibt — für bloss stetige Funktionen gilt das nicht; die Glattheit entscheidet.</p>",
+      "skriptRef": {
+        "abschnitt": "2.4.2",
+        "seite": 62,
+        "nummer": "Thm. 2.4.16, Bem. 2.4.17, S. 63 (Abb. 2.4.20)"
+      }
+    }
+  ],
+  "codeexpert": [
+    {
+      "id": "ce-w4-clenshaw",
+      "titel": "Clenshaw",
+      "quelle": "codeexpert/Clenshaw - Student attempt .rtf",
+      "skriptRef": {
+        "abschnitt": "2.4.2",
+        "seite": 62,
+        "nummer": "Thm. 2.4.18 (2.4.27), Bem. 2.4.19"
+      },
+      "braucht": [
+        "numpy",
+        "scipy",
+        "matplotlib"
+      ],
+      "beschreibung": "<p>Zu implementieren ist eine einzige Funktion: <code>clenshaw(a, x)</code>, die</p><p>$$p(x)=a_0T_0(x)+a_1T_1(x)+\\dots+a_nT_n(x)$$</p><p>über die Rückwärtsrekursion aus Theorem 2.4.18 auswertet — mit $d_{n+2}=d_{n+1}=0$, $d_k=a_k+2x\\,d_{k+1}-d_{k+2}$ für $k=n,\\dots,1$ und $p(x)=a_0+x\\,d_1-d_2$. Zwei Zwischenwerte genügen, die ganze Rechnung kostet $\\mathcal{O}(n)$ pro Punkt und ist vektorisiert über das ganze Array <code>x</code>.</p><p>Alles andere ist vorgegeben:</p><ul><li><code>chebexp(y)</code> berechnet aus den Funktionswerten in den Chebyshev-Knoten die Koeffizienten $a_k$ der Chebyshev-Entwicklung — markiert als <i>«code from future lecture, do not change»</i>, weil im Kern ein <code>ifft</code>-Aufruf steckt (Bem. 2.4.17: $\\mathcal{O}(n\\log n)$ statt $\\mathcal{O}(n^2)$; die FFT kommt in Kapitel 3).</li><li>Das Experiment: interpoliere die Runge-Funktion $f(x)=\\frac{1}{1+25x^2}$ in den Chebyshev-Knoten, für $n=2,\\dots,200$, und miss jeweils $\\varepsilon_n=\\max_{x}|f(x)-p(x)|$ auf einem Gitter von $1000$ Punkten.</li></ul><p>Der halblogarithmische Plot von $\\varepsilon_n$ über $n$ ergibt eine <b>Gerade</b> — also exponentielle Konvergenz $\\varepsilon_n\\sim q^{\\,n}$. Der lineare Fit auf $\\log_{10}\\varepsilon_n$ liefert $q\\approx 0.82$. Ab $n\\approx150$ läuft die Kurve bei $\\approx10^{-14}$ in die Maschinengenauigkeit und wird flach. Genau das ist die Aussage von Seite 63: für glatte Funktionen konvergiert die Chebyshev-Interpolation exponentiell — und zwar <b>ohne</b> jedes Runge-Phänomen, obwohl hier dieselbe Runge-Funktion interpoliert wird, an der die äquidistante Interpolation scheitert.</p>",
+      "hinweisUmgebung": "Die Aufgabe braucht <code>scipy</code> (nur für <code>from scipy.fft import ifft</code> in der vorgegebenen Funktion <code>chebexp</code>). Pyodide lädt das Paket beim ersten Ausführen nach, das dauert einmalig etwas länger; danach ist es im Browser-Cache. Die Fehlerschleife bis $n_{\\max}=200$ ist unverändert aus dem Original übernommen — sie läuft auch im Browser in Sekundenbruchteilen, weil pro Durchlauf nur eine FFT und eine vektorisierte Clenshaw-Rekursion anfallen.",
+      "luecken_template": "import numpy as np\nfrom scipy.fft import ifft # for the efficient computation of the Chebyshev coefficients\n\n# Clenshaw-Algorithmus (Thm. 2.4.18): wertet\n#     p(x) = a_0*T_0(x) + a_1*T_1(x) + ... + a_n*T_n(x)\n# ueber eine Rueckwaertsrekursion aus.\ndef clenshaw(a, x):\n    n = len(a) - 1\n\n    dk2 = np.zeros_like(x)   # entspricht d_{k+2}\n    dk1 = np.zeros_like(x)   # entspricht d_{k+1}\n\n    for k in «L1»:\n        # ein Schritt der Rekursion (2.4.27)\n        dk = «L2»\n        # die beiden gespeicherten Werte um eine Stelle weiterschieben\n        «L3»\n\n    # Abschluss der Rekursion\n    y = «L4»\n    return y\n\n# Chebyshev Interpolation: code from future lecture, do not change\ndef chebexp(y):\n    n = y.shape[0] - 1\n    t = np.arange(0, 2*n+2)\n    z = np.exp(-np.pi*1.0j*n/(n+1.0)*t) * np.hstack([y,y[::-1]])\n    c = ifft(z)\n    t = np.arange(-n, n+2)\n    b = np.real(np.exp(0.5j*np.pi/(n+1.0)*t) * c)\n    a = np.hstack([ b[n], 2*b[n+1:2*n+1] ])\n    return a\n\n# ---- kurze Kontrolle (das volle Experiment mit Plot steht in Stufe 3) ----\nf = lambda x: 1./(1. + 25.*x**2)\nxx = np.linspace(-1, 1, 1000)\nfxx = f(xx)\n\nprint('Die ersten Chebyshev-Polynome in x = 0.5 (erwartet: 1, 0.5, -0.5, -1):')\nfor j in range(4):\n    e = np.zeros(j+1); e[j] = 1.0\n    print(f'  T_{j}(0.5) = {clenshaw(e, np.array([0.5]))[0]: .6f}')\n\nprint('Chebyshev-Interpolation der Runge-Funktion 1/(1+25x^2):')\nfor n in (10, 20, 40):\n    x_cheby = np.cos((2.*np.r_[0:n+1]+1.)/(n+1)*np.pi/2.)\n    a = chebexp(f(x_cheby))\n    print(f'  n = {n:3d}:  max|f - p| = {np.max(np.abs(fxx - clenshaw(a, xx))):.3e}')\n",
+      "luecken": [
+        {
+          "id": "L1",
+          "loesung": "range(n, 0, -1)",
+          "optionen": [
+            "range(1, n + 1)",
+            "range(n, 0, -1)",
+            "range(n, -1, -1)",
+            "range(n - 1, -1, -1)"
+          ],
+          "richtig": 1,
+          "erklaerung": "Die Rekursion (2.4.27) läuft <b>rückwärts</b>: $k=n,n-1,\\dots$ — darum der Schritt $-1$. Sie endet bei $k=1$, nicht bei $k=0$: der Schritt für $k=0$ wäre $d_0=a_0+2xd_1-d_2$, aber gebraucht wird am Ende $p(x)=d_0-xd_1=a_0+x\\,d_1-d_2$, und diese Zeile steht separat nach der Schleife. <code>range(n, 0, -1)</code> läuft deshalb genau bis einschliesslich $1$. <code>range(n, -1, -1)</code> nimmt $k=0$ ein zweites Mal mit und verdoppelt den Beitrag von $a_0$; <code>range(n-1, -1, -1)</code> lässt den höchsten Koeffizienten $a_n$ unter den Tisch fallen; vorwärts (<code>range(1, n+1)</code>) rechnet die Koeffizienten in umgekehrter Reihenfolge ab und liefert ein ganz anderes Polynom.",
+          "hinweis": "In welcher Richtung läuft $k$ in (2.4.27), und bei welchem $k$ hört die Schleife auf — gibt es nach der Schleife noch eine Zeile, die den Fall $k=0$ erledigt?"
+        },
+        {
+          "id": "L2",
+          "loesung": "a[k] + 2.0 * x * dk1 - dk2",
+          "optionen": [
+            "a[k] + 2.0 * x * dk1 - dk2",
+            "a[k] + x * dk1 - dk2",
+            "a[k] + 2.0 * x * dk1 + dk2",
+            "a[k] + 2.0 * x * dk2 - dk1"
+          ],
+          "richtig": 0,
+          "erklaerung": "Das ist (2.4.27): $d_k=c_k+(2x)d_{k+1}-d_{k+2}$. Faktor $2$ und Minuszeichen stammen unverändert aus der Drei-Term-Rekursion $T_{k+1}=2xT_k-T_{k-1}$ — die ganze Herleitung besteht daraus, diese Identität rückwärts anzuwenden. <code>x</code> statt <code>2.0*x</code> ist der klassische vergessene Faktor; <code>+ dk2</code> dreht das Vorzeichen des zurückliegenden Terms. In der letzten Option sind die beiden gespeicherten Werte vertauscht: <code>dk1</code> ist $d_{k+1}$ (der direkte Nachfolger, der mit $2x$ multipliziert wird), <code>dk2</code> ist $d_{k+2}$ (der abgezogen wird).",
+          "hinweis": "Vergleiche Zeile für Zeile mit $T_{k+1}(x)=2xT_k(x)-T_{k-1}(x)$. Welcher der beiden gespeicherten Werte bekommt den Faktor $2x$?"
+        },
+        {
+          "id": "L3",
+          "loesung": "dk2 = dk1; dk1 = dk",
+          "optionen": [
+            "dk1 = dk; dk2 = dk1",
+            "dk2 = dk1; dk1 = dk",
+            "dk2 = dk1; dk1 = dk2",
+            "dk2 = dk; dk1 = dk1"
+          ],
+          "richtig": 1,
+          "erklaerung": "Im nächsten Durchlauf (für $k-1$) muss <code>dk1</code> den eben berechneten Wert $d_k$ enthalten und <code>dk2</code> den davor berechneten $d_{k+1}$. Die <b>Reihenfolge</b> der beiden Zuweisungen ist deshalb entscheidend: erst den alten <code>dk1</code> nach <code>dk2</code> retten, <i>dann</i> <code>dk1</code> überschreiben. Macht man es umgekehrt (<code>dk1 = dk</code> zuerst), bekommt <code>dk2</code> denselben neuen Wert und der Wert $d_{k+1}$ ist unwiederbringlich verloren. <code>dk1 = dk2</code> in der dritten Option schreibt den gerade geretteten Wert sofort zurück — <code>dk</code> wird nie übernommen und die Rekursion steht still. In der vierten Option landet $d_k$ an der Stelle von $d_{k+2}$ und <code>dk1</code> bleibt für immer null.<br>Wer die Zeile lieber ohne Semikolon schreibt: <code>dk2, dk1 = dk1, dk</code> leistet dasselbe in einem Schritt und umgeht die Reihenfolgefalle.",
+          "hinweis": "Schreibe für $k$ und $k-1$ auf, welche beiden $d$-Werte jeweils gebraucht werden. Welche Zuweisung muss zuerst passieren, damit kein Wert überschrieben wird, den man noch braucht?"
+        },
+        {
+          "id": "L4",
+          "loesung": "a[0] + x * dk1 - dk2",
+          "optionen": [
+            "a[0] + 2.0 * x * dk1 - dk2",
+            "a[0] + x * dk1 + dk2",
+            "a[0] + x * dk1 - dk2",
+            "a[0] + x * dk2 - dk1"
+          ],
+          "richtig": 2,
+          "erklaerung": "Nach dem letzten Schleifendurchlauf ($k=1$) steht in <code>dk1</code> der Wert $d_1$ und in <code>dk2</code> der Wert $d_2$. Theorem 2.4.18 sagt $p(x)=d_0-x\\,d_1$ mit $d_0=a_0+2x\\,d_1-d_2$, zusammen also $p(x)=a_0+2xd_1-d_2-xd_1=a_0+x\\,d_1-d_2$. Hier steht deshalb nur <b>ein</b> $x$ — das ist der einzige Schritt, der sich von der Rekursionszeile unterscheidet, und genau die Stelle, an der man aus Gewohnheit noch einmal <code>2.0*x</code> schreibt (erste Option). <code>+ dk2</code> dreht wieder das Vorzeichen, und die letzte Option vertauscht die beiden Zwischenwerte.",
+          "hinweis": "Setze $d_0=a_0+2xd_1-d_2$ in $p(x)=d_0-xd_1$ ein und kürze. Wie viele $x$ bleiben vor $d_1$ stehen?"
+        }
+      ],
+      "template": "import numpy as np\nfrom scipy.fft import ifft # for the efficient computation of the Chebyshev coefficients\n\n# -------- start plotting settings ----------------\nimport matplotlib.pyplot as plt\nparams = {'axes.labelsize': 20,\n          'figure.figsize' : (18,12),\n          'axes.titlesize': 16,\n          'legend.fontsize': 16,\n          'xtick.labelsize': 16,\n          'lines.markersize'  : 18,\n          'axes.linewidth' : 6,\n          'lines.linewidth': 3,\n          'ytick.labelsize': 18\n          }\nplt.rcParams.update(params)\nplt.rcParams['figure.constrained_layout.use'] = True\nimport matplotlib.ticker as plticker\n# -------- end plotting settings ----------------\n\n# Clenshaw Algorithmus\ndef clenshaw(a,x):\n  # TODO: implementiere hier Clenshaw\n\n  return y\n\n# Chebyshev Interpolation: code from future lecture, do not change\ndef chebexp(y):\n    # degree of polynomial\n    n = y.shape[0] - 1\n\n    # create vector z by wrapping and componentwise scaling\n    # r.h.s. vector\n    t = np.arange(0, 2*n+2)\n    z = np.exp(-np.pi*1.0j*n/(n+1.0)*t) * np.hstack([y,y[::-1]])\n\n    # solve linear system with effor n*log(n)\n    c = ifft(z)\n\n    # recover beta\n    t = np.arange(-n, n+2)\n    b = np.real(np.exp(0.5j*np.pi/(n+1.0)*t) * c)\n\n    # recover alpha\n    a = np.hstack([ b[n], 2*b[n+1:2*n+1] ])\n    return a\n\n# anzahl stuetzstellen\nn = 30\n\n# Runge-Funktion Definition\nf = lambda x: 1./(1. + 25.*x**2)\n\n# berechne Chebyshev Stuetzstellen (Nullstellen von T^_{n+1})\nx_cheby = np.cos((2.*np.r_[0:n+1]+1.)/(n+1)*np.pi/2.)\n\n# f an Chebyshev Stuetzstellen: f(x_cheby)\nfx_cheby = f(x_cheby)\n\n# berechne Chebyshev Koeffizienten\na = chebexp(fx_cheby)\n\n# Stuetzstellen und Funktionswerte zur Fehleranalyse\nN  = 1000 # Anzahl Stuetzstellen zur Fehleranalyse\nxx  = np.linspace(-1,1,N)\nfxx = f(xx)\n\n#\ny = clenshaw(a,xx)\n\n# berechne Fehlerfunktion err_n(x) fuer n=2, ..., n_max\nn_max = 200\nerr = np.zeros(n_max-1)\nfor n in range(2,n_max+1):\n\n    # berechne Chebyshev Stuetzstellen (Nullstellen von T^_{n+1})\n    x_cheby = np.cos((2.*np.r_[0:n+1]+1.)/(n+1)*np.pi/2.)\n\n    # f an Chebyshev Stuetzstellen: f(x_cheby)\n    fx_cheby = f(x_cheby)\n\n    # berechne Chebyshev Koeffizienten a_j: p(x) = a_0 + a_1*T_1(x)\n    #                                                    + a_2*T_2(x)\n    #                                                    + ...\n    #                                                    + a_n*T_n(x)\n    a = chebexp(fx_cheby)\n\n    # evaluiere Chebyshev an den Stuetzstellen zur Fehleranalyse\n    p = clenshaw(a,xx)\n\n    # berechne Fehler: err_n(x) = max(|f(xx_l) - p(xx_l)|) ~ ||f - p||_inf\n    err[n-2] = np.max(np.abs(fxx - p))\n\n# exponentielle Konvergenz?\nplt.semilogy(list(range(2,n_max+1)),err,'b-')\nplt.xlabel('Chebyshev-Polynom Ordnung $n$')\nplt.ylabel(r'Fehler $\\epsilon_n$')\n\n# Fit: err ~ a^n\npfit = np.polyfit(list(range(2,51)),np.log10(err[2:51]),1)\nprint('Exponetielle Konvergenz: %f**n' % 10**pfit[0])\nplt.semilogy(list(range(2,51+1)),(10**pfit[0])**list(range(2,51+1)),'r-')\n\n# Legende\nplt.legend([r'$\\epsilon_n$',r'Fit zu $\\epsilon_n \\sim a^n$'])\nplt.grid(True)\n\nplt.savefig('./cx_out/cheby.png')\n",
+      "loesung": "import numpy as np\nfrom scipy.fft import ifft # for the efficient computation of the Chebyshev coefficients\n\n# -------- start plotting settings ----------------\nimport matplotlib.pyplot as plt\nparams = {'axes.labelsize': 20,\n          'figure.figsize' : (18,12),\n          'axes.titlesize': 16,\n          'legend.fontsize': 16,\n          'xtick.labelsize': 16,\n          'lines.markersize'  : 18,\n          'axes.linewidth' : 6,\n          'lines.linewidth': 3,\n          'ytick.labelsize': 18\n          }\nplt.rcParams.update(params)\nplt.rcParams['figure.constrained_layout.use'] = True\nimport matplotlib.ticker as plticker\n# -------- end plotting settings ----------------\n\n# Clenshaw Algorithmus\ndef clenshaw(a,x):\n  # implementiere hier Clenshaw\n  n = len(a) -1\n\n  dk2 = np.zeros_like(x)\n  dk1 = np.zeros_like(x)\n\n  for k in range(n, 0 , -1):\n    dk = a[k] + 2.0 * x * dk1 - dk2\n    dk2 = dk1\n    dk1 = dk\n\n\n  y = a[0] + x * dk1 - dk2\n  return y\n\n# Chebyshev Interpolation: code from future lecture, do not change\ndef chebexp(y):\n    # degree of polynomial\n    n = y.shape[0] - 1\n\n    # create vector z by wrapping and componentwise scaling\n    # r.h.s. vector\n    t = np.arange(0, 2*n+2)\n    z = np.exp(-np.pi*1.0j*n/(n+1.0)*t) * np.hstack([y,y[::-1]])\n\n    # solve linear system with effor n*log(n)\n    c = ifft(z)\n\n    # recover beta\n    t = np.arange(-n, n+2)\n    b = np.real(np.exp(0.5j*np.pi/(n+1.0)*t) * c)\n\n    # recover alpha\n    a = np.hstack([ b[n], 2*b[n+1:2*n+1] ])\n    return a\n\n# anzahl stuetzstellen\nn = 30\n\n# Runge-Funktion Definition\nf = lambda x: 1./(1. + 25.*x**2)\n\n# berechne Chebyshev Stuetzstellen (Nullstellen von T^_{n+1})\nx_cheby = np.cos((2.*np.r_[0:n+1]+1.)/(n+1)*np.pi/2.)\n\n# f an Chebyshev Stuetzstellen: f(x_cheby)\nfx_cheby = f(x_cheby)\n\n# berechne Chebyshev Koeffizienten\na = chebexp(fx_cheby)\n\n# Stuetzstellen und Funktionswerte zur Fehleranalyse\nN  = 1000 # Anzahl Stuetzstellen zur Fehleranalyse\nxx  = np.linspace(-1,1,N)\nfxx = f(xx)\n\n#\ny = clenshaw(a,xx)\n\n# berechne Fehlerfunktion err_n(x) fuer n=2, ..., n_max\nn_max = 200\nerr = np.zeros(n_max-1)\nfor n in range(2,n_max+1):\n\n    # berechne Chebyshev Stuetzstellen (Nullstellen von T^_{n+1})\n    x_cheby = np.cos((2.*np.r_[0:n+1]+1.)/(n+1)*np.pi/2.)\n\n    # f an Chebyshev Stuetzstellen: f(x_cheby)\n    fx_cheby = f(x_cheby)\n\n    # berechne Chebyshev Koeffizienten a_j: p(x) = a_0 + a_1*T_1(x)\n    #                                                    + a_2*T_2(x)\n    #                                                    + ...\n    #                                                    + a_n*T_n(x)\n    a = chebexp(fx_cheby)\n\n    # evaluiere Chebyshev an den Stuetzstellen zur Fehleranalyse\n    p = clenshaw(a,xx)\n\n    # berechne Fehler: err_n(x) = max(|f(xx_l) - p(xx_l)|) ~ ||f - p||_inf\n    err[n-2] = np.max(np.abs(fxx - p))\n\n# exponentielle Konvergenz?\nplt.semilogy(list(range(2,n_max+1)),err,'b-')\nplt.xlabel('Chebyshev-Polynom Ordnung $n$')\nplt.ylabel(r'Fehler $\\epsilon_n$')\n\n# Fit: err ~ a^n\npfit = np.polyfit(list(range(2,51)),np.log10(err[2:51]),1)\nprint('Exponetielle Konvergenz: %f**n' % 10**pfit[0])\nplt.semilogy(list(range(2,51+1)),(10**pfit[0])**list(range(2,51+1)),'r-')\n\n# Legende\nplt.legend([r'$\\epsilon_n$',r'Fit zu $\\epsilon_n \\sim a^n$'])\nplt.grid(True)\n\nplt.savefig('./cx_out/cheby.png')\n",
+      "test": {
+        "typ": "werte",
+        "pruefcode": "import numpy as np\n\ndef _ref_sum(c, t):\n    \"\"\"Unabhaengige Referenz: explizite Summe sum_k c_k T_k(t), wobei die T_k\n       ueber die Drei-Term-Rekursion T_{k+1} = 2 t T_k - T_{k-1} entstehen.\"\"\"\n    t = np.asarray(t, dtype=float)\n    c = np.asarray(c, dtype=float)\n    Tkm1 = np.ones_like(t)\n    s = c[0] * Tkm1\n    if c.shape[0] > 1:\n        Tk = t.copy()\n        s = s + c[1] * Tk\n        for k in range(2, c.shape[0]):\n            Tkp1 = 2.0 * t * Tk - Tkm1\n            s = s + c[k] * Tkp1\n            Tkm1, Tk = Tk, Tkp1\n    return s\n\ntt = np.linspace(-1.0, 1.0, 61)\n\n# --- (1) Spezialfaelle: die Basispolynome selbst ---\nassert np.allclose(clenshaw(np.array([1.0]), tt), np.ones_like(tt), atol=1e-12), \\\n    'a = [1] muss ueberall das konstante Polynom T_0 = 1 liefern'\nassert np.allclose(clenshaw(np.array([0.0, 1.0]), tt), tt, atol=1e-12), \\\n    'a = [0,1] muss T_1(x) = x liefern'\nassert np.allclose(clenshaw(np.array([0.0, 0.0, 1.0]), tt), 2*tt**2 - 1, atol=1e-12), \\\n    'a = [0,0,1] muss T_2(x) = 2x^2 - 1 liefern'\nassert np.allclose(clenshaw(np.array([0.0, 0.0, 0.0, 1.0]), tt), 4*tt**3 - 3*tt, atol=1e-12), \\\n    'a = [0,0,0,1] muss T_3(x) = 4x^3 - 3x liefern'\n\n# --- (2) gegen die explizit aufsummierte Referenz, verschiedene Laengen ---\nrng = np.random.default_rng(20260404)\nfor m in (1, 2, 3, 4, 7, 12, 25):\n    c = rng.standard_normal(m)\n    got = np.asarray(clenshaw(c, tt), dtype=float)\n    assert got.shape == tt.shape, f'clenshaw muss einen Wert pro Auswertungspunkt liefern (m={m})'\n    assert np.allclose(got, _ref_sum(c, tt), rtol=1e-10, atol=1e-12), \\\n        f'clenshaw weicht fuer {m} Koeffizienten von sum_k a_k T_k(x) ab'\n\n# --- (3) zweite, voellig unabhaengige Referenz: numpy.polynomial ---\nc = np.array([0.5, -1.0, 2.0, 0.25, -0.75])\nassert np.allclose(clenshaw(c, tt), np.polynomial.chebyshev.chebval(tt, c),\n                   rtol=1e-10, atol=1e-12), \\\n    'clenshaw stimmt nicht mit numpy.polynomial.chebyshev.chebval ueberein'\n\n# --- (4) Interpolationsbedingung: chebexp + clenshaw muessen f in den Knoten treffen ---\ng = lambda s: 1./(1. + 25.*s**2)\nfor n in (5, 16):\n    x_cheby = np.cos((2.*np.arange(n+1) + 1.)/(n+1)*np.pi/2.)\n    assert np.allclose(clenshaw(chebexp(g(x_cheby)), x_cheby), g(x_cheby),\n                       rtol=1e-9, atol=1e-11), \\\n        f'p(x_k) = f(x_k) in den Chebyshev-Knoten ist verletzt (n={n})'\n\n# --- (5) Linearitaet in den Koeffizienten ---\nc1 = rng.standard_normal(9)\nc2 = rng.standard_normal(9)\nassert np.allclose(clenshaw(c1 + c2, tt), clenshaw(c1, tt) + clenshaw(c2, tt),\n                   rtol=1e-10, atol=1e-12), \\\n    'die Auswertung muss linear in den Koeffizienten sein'\n"
+      },
+      "referenzPlot": "assets/ref/ce-w4-clenshaw.png"
+    }
+  ]
+}

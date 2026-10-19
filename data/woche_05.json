@@ -1,0 +1,953 @@
+{
+  "woche": 5,
+  "titel": "Trigonometrische Interpolation und DFT",
+  "status": "vollstaendig",
+  "skript": {
+    "kapitel": "3.1–3.6",
+    "seiten": "65–109"
+  },
+  "vorlage": "wochenplan/Vorlage05_TrigonometrischeInterpolation.pdf",
+  "aufgabenUebersicht": {
+    "moodle": 12,
+    "codeexpert": 4
+  },
+  "einleitung": "<p>Bis hierher wurde mit <b>Polynomen</b> interpoliert, und die Lehre aus Kapitel 2 war: bei äquidistanten Stützstellen geht das schief (Runge). Kapitel 3 wechselt die Basis — statt $1,x,x^2,\\dots$ nimmt man die <b>trigonometrischen Polynome</b> $e^{2\\pi i k t}$. Für <i>periodische</i> Funktionen dreht sich damit alles um: äquidistante Stützstellen sind jetzt genau die <b>richtige</b> Wahl.</p><p>Der rote Faden in fünf Schritten:</p><ol><li><b>Fourier-Reihe (3.1):</b> die $e^{2\\pi ikt}$ bilden eine vollständige Orthonormalbasis von $L^2(0,1)$ (Thm. 3.1.9). Jede quadratintegrierbare Funktion ist der $L^2$-Grenzwert ihrer Fourier-Reihe; Parseval verbindet Funktionsnorm und Koeffizienten.</li><li><b>Diskretisierung (3.2):</b> die Koeffizientenintegrale werden mit der Trapezregel auf äquidistanten Punkten genähert. Das Überraschende: die so entstehende <i>Approximation</i> ist in den Abtastpunkten exakt — sie <b>interpoliert</b>. Daraus wird die DFT.</li><li><b>Lineare Algebra (3.2.4):</b> die DFT ist eine Basiswechselmatrix $\\mathbf{F}_N$, $\\tfrac{1}{\\sqrt N}\\mathbf{F}_N$ ist unitär, und die Fourier-Basis diagonalisiert <i>jede</i> zirkulante Matrix — daher das Faltungstheorem.</li><li><b>FFT (3.3):</b> dieselbe Rechnung in $\\mathcal{O}(N\\log N)$ statt $\\mathcal{O}(N^2)$. Erst das macht alles praktisch brauchbar.</li><li><b>Fehler (3.5/3.6):</b> die Konvergenz hängt nicht vom Grad ab, sondern von der <b>Glattheit der periodischen Fortsetzung</b> — exponentiell für glatte Funktionen, nur algebraisch bei Knäcken, und an Sprungstellen bleibt das <b>Gibbs-Phänomen</b>. Zum Schluss schliesst sich der Kreis: die Chebyshev-Interpolation aus Woche 4 ist über $x=\\cos(2\\pi s)$ nichts anderes als eine DFT.</li></ol>",
+  "zusammenfassung": [
+    {
+      "id": "w5-z1",
+      "titel": "Trigonometrische Polynome",
+      "ref": {
+        "abschnitt": "3.1",
+        "seite": 65,
+        "nummer": "Def. 3.1.1, Bem. 3.1.2, (3.1.1)/(3.1.2)"
+      },
+      "text": "<p>Ein <b>trigonometrisches Polynom vom Grad $\\le m$</b> ist (3.1.1)</p><p>mit $\\gamma_j\\in\\mathbb{C}$. Nach Bem. 3.1.2 ist $p_m:\\mathbb{R}\\to\\mathbb{C}$ <b>periodisch mit Periode 1</b> — das ist der entscheidende Unterschied zu algebraischen Polynomen.</p><p>Gilt $\\gamma_{-j}=\\overline{\\gamma_j}$ für alle $j$, so nimmt $p_m$ nur reelle Werte an und lässt sich reell schreiben (3.1.2):</p><p>$$p_m(t)=\\frac{a_0}{2}+\\sum_{j=1}^{m}\\bigl(a_j\\cos(2\\pi jt)+b_j\\sin(2\\pi jt)\\bigr)$$</p><p>mit $a_0=2\\gamma_0$, $a_j=2\\,\\mathrm{Re}(\\gamma_j)$, $b_j=-2\\,\\mathrm{Im}(\\gamma_j)$. In der Physik heisst das «Uberlagerung von Schwingungen».</p>",
+      "formeln": [
+        "p_m(t):=t\\mapsto\\sum_{j=-m}^{m}\\gamma_je^{2\\pi ijt},\\quad \\gamma_j\\in\\mathbb{C},\\ t\\in\\mathbb{R}"
+      ],
+      "merke": "Die komplexe Form hat $2m+1$ Koeffizienten $\\gamma_{-m},\\dots,\\gamma_m$ — genau so viele wie die reelle Form mit $a_0,a_1,\\dots,a_m,b_1,\\dots,b_m$."
+    },
+    {
+      "id": "w5-z2",
+      "titel": "$L^2(0,1)$ und die Orthonormalbasis $e^{2\\pi ikx}$",
+      "ref": {
+        "abschnitt": "3.1",
+        "seite": 66,
+        "nummer": "Def. 3.1.3, (3.1.3)/(3.1.4), Bem. 3.1.6"
+      },
+      "text": "<p>$L^2(0,1):=\\{f:(0,1)\\to\\mathbb{C}:\\|f\\|_{L^2(0,1)}&lt;\\infty\\}$ (3.1.3), mit dem Skalarprodukt (3.1.4)</p><p>und der induzierten Norm $\\|f\\|_{L^2(0,1)}=\\sqrt{\\langle f,f\\rangle}$. Nach Bem. 3.1.5 enthält $L^2(0,1)$ auch nur stückweise stetige und deutlich unglattere Funktionen — genau deshalb ist dieser Raum der richtige Rahmen.</p><p><b>Bemerkung 3.1.6:</b> die Funktionen $\\varphi_k(x)=\\exp(2\\pi ikx)$ sind orthogonal, $\\langle\\varphi_k,\\varphi_j\\rangle=0$ für $k\\neq j$ und $=1$ für $k=j$ — also sogar <b>orthonormal</b> — und bilden eine Basis des Unterraums der trigonometrischen Polynome.</p><p>Bem. 3.1.4: auf $[-\\tfrac T2,\\tfrac T2]$ arbeitet man analog mit $\\exp(i\\tfrac{2\\pi j}{T}t)$ und $\\tfrac1T\\int$; der Einfachheit halber bleibt das Skript bei $T=1$ auf $[0,1]$.</p>",
+      "formeln": [
+        "\\langle g,f\\rangle_{L^2(0,1)}:=\\int_0^1\\overline{g(x)}f(x)\\,dx"
+      ],
+      "merke": "Orthonormalität ist der Grund, weshalb die Koeffizienten einzeln durch ein Integral berechenbar sind — kein Gleichungssystem nötig, anders als bei der Monombasis."
+    },
+    {
+      "id": "w5-z3",
+      "titel": "Theorem 3.1.9: Fourier-Reihe und Parseval",
+      "ref": {
+        "abschnitt": "3.1",
+        "seite": 66,
+        "nummer": "Thm. 3.1.9, (3.1.5)/(3.1.6)/(3.1.7), Bem. 3.1.10"
+      },
+      "text": "<p><b>Theorem 3.1.9.</b> Jede Funktion $f\\in L^2(0,1)$ ist der $L^2$-Grenzwert ihrer Fourier-Reihe (3.1.5), mit den Fourier-Koeffizienten (3.1.6):</p><p>$$f(t)=\\sum_{k=-\\infty}^{\\infty}\\widehat f(k)e^{2\\pi ikt},\\qquad \\widehat f(k)=\\int_0^1f(t)e^{-2\\pi ikt}dt,\\quad k\\in\\mathbb{Z}.$$</p><p>Dabei gilt die <b>Parseval'sche Gleichung</b> (3.1.7):</p><p>Kurzform (Bem. 3.1.10): die $\\varphi_k(t)=\\exp(2\\pi ikt)$ bilden eine <b>vollständige Orthonormalbasis</b> von $L^2(0,1)$. Bem. 3.1.11: man darf eine Funktion deshalb wahlweise im <b>Zeitbereich</b> $t\\mapsto f(t)$ oder im <b>Frequenzbereich</b> $k\\mapsto\\widehat f(k)$ ansehen und zwischen beiden wechseln — NMR, IR-Spektroskopie, Audio.</p><p>Achtung auf den Konvergenzbegriff (Def. 3.1.7, Bem. 3.1.8): $L^2$-Konvergenz ist <b>schwächer</b> als punktweise oder gleichmässige Konvergenz — eine Art Mittelwert.</p>",
+      "formeln": [
+        "\\sum_{k=-\\infty}^{\\infty}|\\widehat f(k)|^2=\\|f\\|^2_{L^2(0,1)}"
+      ],
+      "merke": "Aus Parseval folgt sofort (Bem. 3.1.14): die Fourier-Koeffizienten einer $L^2$-Funktion fallen schneller als $\\tfrac{1}{\\sqrt k}$ ab, sonst könnte die Reihe nicht konvergieren."
+    },
+    {
+      "id": "w5-z4",
+      "titel": "Glattheit $\\Leftrightarrow$ Abfall der Fourier-Koeffizienten",
+      "ref": {
+        "abschnitt": "3.1",
+        "seite": 68,
+        "nummer": "Thm. 3.1.15, Thm. 3.1.16"
+      },
+      "text": "<p>Leitet man (3.1.5) nach $t$ ab, erhält man $f'(t)=\\sum_k 2\\pi ik\\widehat f(k)e^{2\\pi ikt}$. <b>Theorem 3.1.15:</b> sind $f$ und $f'$ integrierbar auf $(0,1)$, so gilt</p><p>und allgemeiner $\\widehat{f^{(n)}}(k)=(2\\pi ik)^n\\widehat f(k)$ sowie $\\|f^{(n)}\\|^2_{L^2}=(2\\pi)^{2n}\\sum_k k^{2n}|\\widehat f(k)|^2$.</p><p><b>Theorem 3.1.16:</b> ist $\\int_0^1|f^{(n)}(t)|dt&lt;\\infty$, dann ist $\\widehat f(k)=\\mathcal{O}(k^{-n})$.</p><p>Das ist die <b>zentrale Verbindung</b> des Kapitels: <i>je glatter die Funktion, desto schneller der Abfall der Fourier-Koeffizienten</i> — und damit desto schneller die Konvergenz der Reihe. In Abb. 3.1.12 sieht man das direkt: <code>smooth</code> fällt bis auf Maschinengenauigkeit ab, <code>hat</code> langsamer, <code>ramp</code> (Sprung durch die Periodisierung) am langsamsten.</p>",
+      "formeln": [
+        "\\widehat{f'}(k)=2\\pi ik\\,\\widehat f(k)\\quad\\text{für }k\\in\\mathbb{Z}"
+      ],
+      "merke": "Ableiten = Multiplikation mit $2\\pi ik$ im Frequenzbereich. Darum ist das Lösen von Differentialgleichungen mit konstanten Koeffizienten per Fourier-Transformation so einfach — und darum steckt genau dieser Faktor in <code>evaliDtrig</code>."
+    },
+    {
+      "id": "w5-z5",
+      "titel": "Gibbs-Phänomen an Sprungstellen",
+      "ref": {
+        "abschnitt": "3.1",
+        "seite": 68,
+        "nummer": "Bsp. 3.1.17, Bem. 3.1.18, Abb. 3.5.3"
+      },
+      "text": "<p>Die Fourier-Reihe der charakteristischen Funktion von $[a,b]\\subset\\,]0,1[$ lässt sich analytisch angeben (Bsp. 3.1.17):</p><p>mit $c=\\pi(a+b)$ und $d=\\pi(b-a)$. Die Koeffizienten fallen nur wie $1/k$ ab, also sehr langsam.</p><p>An den Sprungstellen kommt es zu <b>Überschwingungen</b>, die mit wachsendem $n$ immer näher an den Sprung rücken, aber <b>nicht kleiner werden</b> (rund 9 % der Sprunghöhe) — das <b>Gibbs-Phänomen</b>. In der Sprache der Konvergenz: $L^2$-Konvergenz ja, punktweise Konvergenz an der Sprungstelle nein.</p><p><b>Bemerkung 3.1.18:</b> ist $f$ stetig und stückweise stetig differenzierbar, konvergiert die Fourier-Reihe punktweise <i>und</i> gleichmässig. Bei beschränkter Variation konvergiert sie punktweise, sofern der Funktionswert das Mittel aus linkem und rechtem Grenzwert ist.</p>",
+      "formeln": [
+        "b-a+\\frac{1}{\\pi}\\sum_{k\\neq0}e^{-ikc}\\,\\frac{\\sin kd}{k}\\,e^{i2\\pi kt},\\quad t\\in[0,1]"
+      ],
+      "merke": "Genau an der Sprungstelle liefert die Partialsumme das <b>Mittel</b> der beiden einseitigen Grenzwerte, hier also $\\tfrac12$ — eine bequeme Kontrolle beim Programmieren."
+    },
+    {
+      "id": "w5-z6",
+      "titel": "Von der Fourier-Reihe zur berechenbaren Näherung: Trapezregel",
+      "ref": {
+        "abschnitt": "3.1",
+        "seite": 69,
+        "nummer": "Bem. 3.1.19, (3.1.8)–(3.1.10)"
+      },
+      "text": "<p>Die Integrale $\\widehat f(k)$ kennt man in der Praxis nicht analytisch. Man wertet $f$ an den äquidistanten Knoten $t_\\ell=\\tfrac{\\ell}{N}$, $\\ell=0,\\dots,N-1$, aus und nimmt die <b>Trapezregel</b> (3.1.8); wegen der Periodizität $f(1)=f(0)$ ist das einfach das arithmetische Mittel:</p><p>Zwei Approximationsschritte übereinander:</p><ol><li><b>Abbruch</b> der Reihe: $f(t)\\approx\\sum_{k=-N/2}^{N/2-1}\\widehat f(k)e^{2\\pi ikt}=:p_{N-1}(t)$ — die orthogonale Projektion auf $\\mathcal{T}_N$.</li><li><b>Quadratur</b> der Koeffizienten: $\\widehat f(k)\\approx\\hat f_N(k)$, also $f(t)\\approx\\sum_{k=-N/2}^{N/2-1}\\hat f_N(k)e^{2\\pi ikt}=:\\tilde p_{N-1}(t)$ (3.1.10).</li></ol><p>$N$ wird dabei stets als <b>gerade</b> angenommen; die Basis von $\\mathcal{T}_N$ ist $e^{2\\pi i(-\\frac N2)t},\\dots,e^{2\\pi i(\\frac N2-1)t}$, also $N$ Funktionen.</p>",
+      "formeln": [
+        "\\widehat f(k)\\approx\\frac1N\\sum_{\\ell=0}^{N-1}f(t_\\ell)e^{-2\\pi ikt_\\ell}=:\\hat f_N(k)"
+      ],
+      "merke": "Die Trapezregel ist auf periodischen Funktionen ausserordentlich genau — deshalb kostet dieser zweite Approximationsschritt fast nichts."
+    },
+    {
+      "id": "w5-z7",
+      "titel": "Einheitswurzel und diskrete Orthogonalität",
+      "ref": {
+        "abschnitt": "3.2.1",
+        "seite": 71,
+        "nummer": "Def. 3.2.1, Bem. 3.2.2, (3.2.11)–(3.2.15)"
+      },
+      "text": "<p>Die <b>$N$-te Einheitswurzel</b> ist $\\omega_N:=\\exp\\!\\bigl(\\tfrac{-2\\pi i}{N}\\bigr)=\\cos\\tfrac{2\\pi}{N}-i\\sin\\tfrac{2\\pi}{N}$ (Def. 3.2.1). Bem. 3.2.2 sammelt die Rechenregeln:</p><ul><li>$\\omega_N^{k+jN}=\\omega_N^k$ für alle $j,k\\in\\mathbb{Z}$ (3.2.11) — <b>$N$-periodisch</b>;</li><li>$\\omega_N^{t+kN}=\\omega_N^t$ für $t\\in\\mathbb{R}$ (3.2.12);</li><li>$\\omega_N^N=1$ (3.2.13) und $\\omega_N^{N/2}=-1$ (3.2.14, für gerades $N$);</li><li>die <b>diskrete Orthogonalität</b> (3.2.15).</li></ul><p>Der Beweis von (3.2.15) ist die geometrische Summe: für $j\\not\\equiv0$ ist $\\sum_{k=0}^{N-1}(\\omega_N^j)^k=\\frac{1-(\\omega_N^N)^j}{1-\\omega_N^j}=\\frac{1-1}{1-\\omega_N^j}=0$.</p><p>Diese eine Formel trägt das ganze Kapitel: sie macht die Fourier-Vektoren orthogonal, sie beweist die Interpolationseigenschaft und sie ist die Antwort auf die erste Moodle-Frage.</p>",
+      "formeln": [
+        "\\sum_{k=0}^{N-1}\\omega_N^{kj}=\\begin{cases}N,&\\text{wenn }j\\equiv0\\ (\\mathrm{mod}\\ N)\\\\ 0,&\\text{sonst}\\end{cases}"
+      ],
+      "merke": "Diskrete Orthogonalität liefert $N$ (nicht $1$!), wenn die Frequenzen übereinstimmen — die Normierung $\\tfrac1N$ steckt deshalb in der Koeffizientenformel."
+    },
+    {
+      "id": "w5-z8",
+      "titel": "Das Verblüffende: die Approximation interpoliert",
+      "ref": {
+        "abschnitt": "3.2.1",
+        "seite": 72,
+        "nummer": "(3.2.16)/(3.2.17), S. 72, vgl. Bem. 3.4.1"
+      },
+      "text": "<p>Wertet man die Fourier-Approximation $p_{N-1}$ mit den <i>genäherten</i> Koeffizienten $\\hat f_N(k)$ an der Stelle $t_\\ell=\\tfrac{\\ell}{N}$ aus und vertauscht die beiden Summen, so bleibt wegen (3.2.15) nur der Term $j=\\ell$ übrig:</p><p>$$p_{N-1}(t_\\ell)=\\frac1N\\bigl(0+\\dots+0+f(\\tfrac{\\ell}{N})N+0+\\dots+0\\bigr)=f(t_\\ell).$$</p><p>Also: <b>Fourier-Approximation + zusammengesetzte Trapezregel auf äquidistanten Punkten = trigonometrische Interpolation.</b> Die beiden Fehler (Abbruch der Reihe und Quadratur der Koeffizienten) heben sich in den Knoten exakt auf.</p><p>Damit erfüllt $p_{N-1}(t)=\\sum_{k=-N/2}^{N/2-1}\\hat f_N(k)e^{2\\pi ikt}$ die Interpolationsbedingungen $p_{N-1}(t_\\ell)=f(t_\\ell)$ für $\\ell=0,1,\\dots,N-1$.</p>",
+      "merke": "Das ist der Grund, warum <code>evaliptrig</code> die Daten in den Stützstellen exakt reproduzieren <i>muss</i> — ein scharfer Test für jede Implementierung."
+    },
+    {
+      "id": "w5-z9",
+      "titel": "Trigonometrische Basis, Fouriermatrix und DFT",
+      "ref": {
+        "abschnitt": "3.2.2",
+        "seite": 73,
+        "nummer": "Def. 3.2.3 (3.2.18), Def. 3.2.4 (3.2.20), Def. 3.2.5 (3.2.21), Thm. 3.2.6"
+      },
+      "text": "<p>Mit $w_N=\\exp(\\tfrac{2\\pi i}{N})=\\overline{\\omega_N}$ definiert Def. 3.2.3 die <b>trigonometrische Basis</b> von $\\mathbb{C}^N$ durch $\\mathbf{v}_k=(w_N^{j\\cdot k})_{j=0}^{N-1}$ (3.2.18). Diese Vektoren sind paarweise orthogonal; mit $\\mathbf{V}=[\\mathbf{v}_0\\dots\\mathbf{v}_{N-1}]$ gilt</p><p>$$\\mathbf{V}^H\\mathbf{V}=N\\mathbf{I}_N.$$</p><p>$\\mathbf{V}$ ist symmetrisch, aber <b>nicht</b> hermitesch. Für den Koordinatenwechsel gilt $\\mathbf{y}=\\mathbf{V}\\mathbf{z}$ und $\\mathbf{z}=\\tfrac1N\\mathbf{V}^H\\mathbf{y}=\\tfrac1N\\mathbf{F}_N\\mathbf{y}$ mit der <b>Fouriermatrix</b> $\\mathbf{F}_N:=\\mathbf{V}^H=(\\omega_N^{jk})_{j,k=0}^{N-1}$ (3.2.20).</p><p>Die <b>diskrete Fourier-Transformation</b> (Def. 3.2.5) ist die lineare Abbildung $\\mathcal{F}_N(\\mathbf{y}):=\\mathbf{F}_N\\mathbf{y}$, komponentenweise (3.2.21):</p><p><b>Theorem 3.2.6:</b> die skalierte Fouriermatrix $\\tfrac{1}{\\sqrt N}\\mathbf{F}_N$ ist <b>unitär</b>, also $\\mathbf{F}_N^{-1}=\\tfrac1N\\mathbf{F}_N^H=\\tfrac1N\\overline{\\mathbf{F}_N}$.</p>",
+      "formeln": [
+        "c_k=\\sum_{j=0}^{N-1}y_j\\,\\omega_N^{kj},\\qquad k=0,1,\\dots,N-1"
+      ],
+      "merke": "NumPy folgt genau dieser Konvention: <code>np.fft.fft</code> $=\\mathbf{F}_N\\mathbf{y}$ <b>ohne</b> Vorfaktor, <code>np.fft.ifft</code> $=\\tfrac1N\\mathbf{F}_N^H\\mathbf{c}$. Der Faktor $\\tfrac1N$ sitzt also in der Rücktransformation."
+    },
+    {
+      "id": "w5-z10",
+      "titel": "Zweimal DFT, Eigenwerte, Zeit- und Frequenzbereich",
+      "ref": {
+        "abschnitt": "3.2.2",
+        "seite": 74,
+        "nummer": "Bem. 3.2.7, Bem. 3.2.8"
+      },
+      "text": "<p><b>Bemerkung 3.2.7:</b> wendet man die normierte Transformation <i>zweimal</i> an, erhält man die Ausgangsdaten in <b>umgekehrter Reihenfolge</b>, bis auf das erste Element:</p><p>$$\\tfrac1N\\mathbf{F}_N\\mathbf{F}_N[y_0,y_1,\\dots,y_{N-1}]^T=[y_0,y_{N-1},\\dots,y_2,y_1]^T$$</p><p>(Zeitumkehr modulo $N$). Folglich ist $\\tfrac{1}{N^2}\\mathbf{F}_N^4=\\mathbf{I}$, und die Eigenwerte von $\\tfrac{1}{\\sqrt N}\\mathbf{F}_N$ liegen in $\\{1,-1,i,-i\\}$.</p><p><b>Bemerkung 3.2.8:</b> $\\mathbf{y}$ enthält die Messwerte $f(t_\\ell)$ im <b>Zeit-/Ortsbereich</b>, $\\mathbf{c}$ die genäherten Fourier-Koeffizienten im <b>Frequenzbereich</b>. Je nach Konvention definiert man die DFT mit $w_N$ oder $\\omega_N$; das Skript wählt $\\omega_N$, um mit <code>numpy</code> und <code>FFTW</code> konsistent zu sein.</p><p>Abb. 3.2.10 zeigt die Fourier-Basisvektoren für $N=16$: die <i>mittleren</i> Indizes ($j\\approx8$) oszillieren am stärksten, die ersten <i>und</i> die letzten am wenigsten. Hohe Frequenzen sitzen also in der Mitte des Vektors — im Gegensatz zur Formel (3.1.1).</p>",
+      "merke": "Hohe Frequenzen in der <b>Mitte</b> des Koeffizientenvektors, niedrige an beiden <b>Rändern</b>. Genau deshalb werden beim Zero-Padding die Nullen in der Mitte eingefügt."
+    },
+    {
+      "id": "w5-z11",
+      "titel": "<code>fftshift</code>: Umsortierung auf $\\gamma_{-N/2},\\dots,\\gamma_{N/2-1}$",
+      "ref": {
+        "abschnitt": "3.2.3",
+        "seite": 75,
+        "nummer": "Bem. 3.2.9, Bem. 3.2.11 (3.2.22)/(3.2.23), Bsp. 3.2.12"
+      },
+      "text": "<p>Will man eine Darstellung analog zu (3.1.1) mit Frequenzen von $-\\tfrac N2$ bis $\\tfrac N2-1$, muss man umsortieren. Für gerades $N=2n$ gilt (3.2.23)</p><p>$$z_j=\\begin{cases}\\gamma_j,&0\\le j\\le n-1=\\tfrac N2-1\\\\ \\gamma_{j-N},&n\\le j\\le 2n-1=N-1\\end{cases}\\qquad\\Longleftrightarrow\\qquad \\gamma_k=\\begin{cases}z_k,&0\\le k\\le\\tfrac N2-1\\\\ z_{k+N},&-\\tfrac N2\\le k&lt;0.\\end{cases}$$</p><p>Genau das leistet <code>np.fft.fftshift</code>. Mit $\\mathbf{z}=\\tfrac1N\\mathbf{F}_N\\mathbf{y}$ und $\\zeta=\\texttt{fft.fftshift}(\\mathbf{z})$ wird daraus die kompakte Form</p><p>$$f(x)\\approx\\sum_{k=-N/2}^{N/2-1}\\zeta_ke^{2\\pi ikx}.$$</p><p><b>Beispiel 3.2.12:</b> für $N=8$ liefert <code>fft.fft</code> den Vektor $(c_0,\\dots,c_7)$; <code>fft.fftshift</code> stellt ihn als $(c_4,c_5,c_6,c_7,c_0,c_1,c_2,c_3)$ dar, was den Koeffizienten $(\\gamma_{-4},\\gamma_{-3},\\gamma_{-2},\\gamma_{-1},\\gamma_0,\\gamma_1,\\gamma_2,\\gamma_3)$ entspricht.</p>",
+      "merke": "<code>fftshift</code> verschiebt den Nullpunkt der Frequenzachse in die Mitte. Unverzichtbar, sobald man Koeffizienten <i>plottet</i> oder mit exakt berechneten $\\widehat f(k)$ vergleicht (Bsp. 3.2.14)."
+    },
+    {
+      "id": "w5-z12",
+      "titel": "Energiespektrum und Ableitung im Frequenzbereich",
+      "ref": {
+        "abschnitt": "3.2.3",
+        "seite": 77,
+        "nummer": "Bem. 3.2.13, Bsp. 3.2.14, Code 3.2.15"
+      },
+      "text": "<p>Aus der diskreten Approximation folgt direkt (Bem. 3.2.13)</p><p>$$\\|f\\|^2_{L^2}\\approx\\Bigl\\|\\sum_{k=-N/2}^{N/2-1}\\zeta_ke^{2\\pi ikt}\\Bigr\\|^2_{L^2}=\\sum_{k=-N/2}^{N/2-1}|\\zeta_k|^2=\\|\\mathbf{z}\\|^2_{\\ell^2}$$</p><p>und — für die CodeExpert-Aufgaben zentral — die Ableitung:</p><p>Ohne Shift stehen die Faktoren $(2\\pi ik)$ in der Reihenfolge $k=0,1,\\dots,\\tfrac N2-1,-\\tfrac N2,-\\tfrac N2+1,\\dots,-1$. Die Berechnung der Ableitung reduziert sich also auf eine <b>punktweise Multiplikation im Frequenzbereich</b>.</p><p><b>Beispiel 3.2.14 (Frequenzanalyse):</b> das <b>Energiespektrum</b> / die spektrale Leistungsdichte $p_k=|c_k|^2$ verrät die dominanten Frequenzen eines verrauschten Signals. Anwendungen im Skript: Herzschlag aus EKG-Daten (Bsp. 3.2.17, $84$ bpm), Materialbestimmung im MRI (Bsp. 3.2.19), Eigenfrequenzen eines Motors (Bsp. 3.2.21), Sprachkompression (Bsp. 3.2.23).</p>",
+      "formeln": [
+        "f'(t)\\approx\\sum_{k=-N/2}^{N/2-1}(2\\pi ik)\\,\\zeta_k\\,e^{2\\pi ikt}"
+      ],
+      "merke": "Rauschen ist unglatt und entspricht damit <b>grossen</b> Koeffizienten $|\\widehat f(k)|$ bei <b>grossen</b> $|k|$ — das ist die Rechtfertigung für die Filterung in der CodeExpert-Aufgabe."
+    },
+    {
+      "id": "w5-z13",
+      "titel": "Zirkulanten, Faltung und das Faltungstheorem",
+      "ref": {
+        "abschnitt": "3.2.4",
+        "seite": 82,
+        "nummer": "Def. 3.2.25, Bem. 3.2.26, Thm. 3.2.27, Def. 3.2.28/3.2.29, (3.2.24)"
+      },
+      "text": "<p>Eine <b>zirkulante Matrix</b> $\\mathbf{C}=\\mathrm{circ}[\\mathbf{c}]$ (Def. 3.2.25) entsteht, indem jede Spalte ein zyklischer Shift der vorherigen ist. Die Shift-Matrix $\\mathbf{S}_N$ ist eine Permutationsmatrix, ihre Eigenwerte sind die $N$-ten Einheitswurzeln $\\lambda_k=e^{2\\pi i\\frac{-k}{N}}$, und (Bem. 3.2.26) der $k$-te Fourier-Vektor $\\mathbf{v}_k$ ist Eigenvektor zu $\\lambda_k$.</p><p><b>Theorem 3.2.27 (Gleichzeitige Diagonalisierung):</b> die trigonometrische Basis diagonalisiert <b>jede</b> zirkulante Matrix: $\\mathbf{C}=p(\\mathbf{S}_N)=\\mathbf{U}p(\\mathbf{D})\\mathbf{U}^H$ mit $\\mathbf{U}=\\tfrac{1}{\\sqrt N}\\mathbf{V}$.</p><p>Die <b>zyklische Faltung</b> (Def. 3.2.29) ist $c_k=\\sum_{j=0}^{N-1}a_jb_{(k-j)\\ \\mathrm{mod}\\ N}$; sie entspricht der Multiplikation mit dem Zirkulanten, $\\mathbf{c}=\\mathbf{A}\\mathbf{b}$ (Bem. 3.2.32). Daraus das <b>Faltungstheorem</b> (3.2.24):</p><p><b>Bemerkung 3.2.30:</b> Multiplikation im Zeitbereich $=$ Faltung im Frequenzbereich — und umgekehrt. <b>Bemerkung 3.2.34:</b> weil die DFT in $\\mathcal{O}(N\\log N)$ geht, kostet die zyklische Faltung ebenfalls nur $\\mathcal{O}(N\\log N)$ statt der erwarteten $\\mathcal{O}(N^2)$.</p>",
+      "formeln": [
+        "\\mathbf{F}_N\\mathbf{c}=\\mathrm{diag}(\\mathbf{F}_N\\mathbf{a})\\,\\mathbf{F}_N\\mathbf{b}"
+      ],
+      "merke": "Beispiel aus dem Skript (S. 85): $(1,2,4)*(3,0,5)=(3,6,17,10,20)$ als gewöhnliche Faltung, aber $(1,2,4)\\circledast(3,0,5)=(13,26,17)$ als <b>zyklische</b> Faltung."
+    },
+    {
+      "id": "w5-z14",
+      "titel": "FFT: $\\mathcal{O}(N\\log N)$ statt $\\mathcal{O}(N^2)$",
+      "ref": {
+        "abschnitt": "3.3",
+        "seite": 86,
+        "nummer": "Bsp. 3.3.1, Code 3.3.4, Bem. 3.3.5, Abb. 3.3.3"
+      },
+      "text": "<p>Naiv ist die DFT eine Matrix-Vektor-Multiplikation mit einer vollbesetzten Matrix, also $\\mathcal{O}(N^2)$. Die <b>FFT</b> (Gauss 1805, wiederentdeckt von Cooley und Tukey 1965) schafft dasselbe in $\\mathcal{O}(N\\log N)$ — laut <i>Science</i> einer der 10 wichtigsten Algorithmen des 20. Jahrhunderts.</p><p><b>Divide and Conquer</b>: für $N=2m$ spaltet man die Summe in gerade und ungerade Indizes auf,</p><p>$$c_k=\\sum_{j=0}^{m-1}y_{2j}e^{-\\frac{2\\pi i}{N/2}jk}+e^{-\\frac{2\\pi i}{N}k}\\sum_{j=0}^{m-1}y_{2j+1}e^{-\\frac{2\\pi i}{N/2}jk},$$</p><p>also zwei DFTs halber Länge. Rekursiv angewendet auf $N=2^L$: es gibt <b>$L$ Stufen</b> mit je $\\mathcal{O}(2^L)=\\mathcal{O}(N)$ Operationen, zusammen $\\mathcal{O}(N\\log N)$.</p><p>Als Matrixzerlegung (Bem. 3.3.5): $P_m^{\\mathrm{OE}}\\mathbf{F}_N$ zerfällt in Blöcke $\\mathbf{F}_m$ und $\\mathbf{D}_m\\mathbf{F}_m$. Für $N=pq$ nimmt man den Cooley-Tukey-Algorithmus; am schnellsten sind Zweierpotenzen, am langsamsten Primzahlen.</p>",
+      "merke": "Abb. 3.3.3 ist die Pointe: <code>fft</code> ist bei $n\\approx2000$ rund <b>vier Grössenordnungen</b> schneller als die naive Schleife."
+    },
+    {
+      "id": "w5-z15",
+      "titel": "Trigonometrische Interpolation in der Praxis und Zero-Padding",
+      "ref": {
+        "abschnitt": "3.4",
+        "seite": 93,
+        "nummer": "Abschnitt 3.4.2, Code 3.4.3/3.4.4, Code 3.4.2"
+      },
+      "text": "<p>Die Interpolationsaufgabe in $\\mathcal{T}_N=\\mathrm{span}\\{e^{2\\pi ijt}\\}$ an Punkten $t_\\ell\\in[0,1[$ hat <b>zwei</b> Lösungswege:</p><ol><li>als lineares Gleichungssystem $\\sum_j\\gamma_je^{2\\pi ijt_\\ell}=f(t_\\ell)$ — kostet $\\mathcal{O}(N^3)$, funktioniert aber für <b>beliebige</b> $t_\\ell$;</li><li>mittels <b>FFT</b> in $\\mathcal{O}(N\\log N)$, falls die Punkte äquidistant sind, $t_\\ell=\\tfrac{\\ell}{N}$ — dann ist die Systemmatrix genau $\\mathbf{F}_N^{-1}$.</li></ol><p><b>Zero-Padding (3.4.2):</b> um $p_{N-1}\\in\\mathcal{T}_N$ an $M>N$ äquidistanten Punkten $\\tfrac{k}{M}$ auszuwerten, fasst man $p_{N-1}\\in\\mathcal{T}_N\\subset\\mathcal{T}_M$ auf — das heisst: <b>Nullen in den Koeffizientenvektor einfügen, und zwar in der Mitte</b>, dort, wo die hohen Frequenzen sitzen. Anschliessend eine inverse FFT der Länge $M$.</p><p>Code 3.4.3 (mit <code>ifft</code>) ist etwas schneller, aber <b>nur für reelle</b> $f$ korrekt; Code 3.4.4 (mit <code>fft</code> und Skalierung $1/n$ bzw. $\\cdot N$) ist <b>immer</b> korrekt. Der Nyquist-Koeffizient $c_{n/2}$ muss dabei <b>hälftig auf beide Seiten</b> verteilt werden, sonst stimmt die Symmetrie nicht mehr; ausserdem ist mit $N/n$ zu skalieren, weil <code>ifft</code> durch die neue Länge $N$ teilt.</p>",
+      "merke": "Zero-Padding im Frequenzbereich $=$ ideale (bandbegrenzte) Interpolation im Zeitbereich. Die ursprünglichen Stützstellen müssen danach <b>exakt</b> wieder getroffen werden — jeder $N/n$-te Wert."
+    },
+    {
+      "id": "w5-z16",
+      "titel": "Fehlerabschätzungen: Aliasing, Abtasttheorem, Konvergenzordnung",
+      "ref": {
+        "abschnitt": "3.5",
+        "seite": 95,
+        "nummer": "Def. 3.5.1, Thm. 3.5.6 (3.5.28), Kor. 3.5.7 (3.5.30), Thm. 3.5.8 (3.5.31), Kor. 3.5.9, Thm. 3.5.11 (3.5.35)/(3.5.36)"
+      },
+      "text": "<p><b>Def. 3.5.1:</b> <i>algebraische</i> Konvergenz heisst $E(n)=\\mathcal{O}(n^{-p})$ mit $p>0$, <i>exponentielle</i> Konvergenz $E(n)=\\mathcal{O}(q^n)$ mit $0\\le q&lt;1$. Die drei Testfunktionen des Skripts: Stufenfunktion (3.5.25) und Hutfunktion (3.5.27) konvergieren nur algebraisch, die glatte periodische Funktion (3.5.26) exponentiell (Abb. 3.5.2).</p><p><b>Theorem 3.5.6 (Aliasing):</b> der $k$-te Koeffizient des Interpolanten unterscheidet sich vom wahren um die Summe aller um Vielfache von $N$ verschobenen Koeffizienten (3.5.28):</p><p><b>Korollar 3.5.7:</b> für $f\\in C^p([0,1])$, $p\\ge1$, $1$-periodisch, gilt $|\\widehat p_N(k)-\\widehat f(k)|=\\mathcal{O}(N^{-p})$ für $|k|\\le\\tfrac N2$ (3.5.30).</p><p><b>Theorem 3.5.8:</b> $|p_N(x)-f(x)|\\le 2\\sum_{|k|\\ge N/2}|\\widehat f(k)|$ (3.5.31) — der Fehler wird allein durch die <b>abgeschnittenen</b> Koeffizienten beschränkt.</p><p><b>Korollar 3.5.9 (Abtasttheorem):</b> hat $f$ die maximale Frequenz $m$ ($\\widehat f(k)=0$ für $|k|>m$) und ist $N>2m$, so gilt $p_N\\equiv f$ — <b>perfekte</b> Rekonstruktion. Tastet man zu grob ab, erscheint die hohe Frequenz als niedrige: der <b>Aliasing-Effekt</b> (Abb. 3.5.10 für $f(t)=\\cos(2\\pi\\cdot19t)$), bekannt vom scheinbaren Rückwärtslaufen von Wagenrädern im Film.</p><p><b>Theorem 3.5.11:</b> $\\|f-p_N(f)\\|_{L^2(0,1)}\\le\\sqrt{1+c_k}\\,N^{-k}\\|f^{(k)}\\|_{L^2(0,1)}$ mit $c_k=2\\sum_{l=1}^{\\infty}(2l-1)^{-2k}$ (3.5.35)/(3.5.36). Je mehr Ableitungen in $L^2(0,1)$ liegen, desto kleiner der Fehler.</p><p><b>Beispiel 3.5.4</b> (die CodeExpert-Aufgabe): für $f(t)=\\bigl(1-\\alpha\\sin(2\\pi t)\\bigr)^{-1/2}$ auf $[0,1]$ und $\\alpha\\in[0,1)$ beobachtet man exponentielle Konvergenz in $n$, die für <b>kleineres $\\alpha$ schneller</b> ist — die Funktion ist zwar für jedes $\\alpha&lt;1$ beliebig oft differenzierbar, kommt aber für $\\alpha\\to1$ einer Singularität immer näher.</p>",
+      "formeln": [
+        "\\widehat p_N(k)-\\widehat f(k)=\\sum_{j\\in\\mathbb{Z},\\,j\\neq0}\\widehat f(k+jN)"
+      ],
+      "merke": "Nicht der Grad entscheidet über die Qualität, sondern die <b>Glattheit der periodischen Fortsetzung</b>. Eine glatte, aber nicht periodische Funktion bekommt durch die Periodisierung einen Sprung bei $0$ und $1$ — siehe die Rampenfunktion in Abb. 3.5.15."
+    },
+    {
+      "id": "w5-z17",
+      "titel": "DFT und Chebyshev-Interpolation",
+      "ref": {
+        "abschnitt": "3.6",
+        "seite": 102,
+        "nummer": "(3.6.37), Code 3.6.1, Bem. 3.6.2, Bem. 3.6.3, Code 3.6.4"
+      },
+      "text": "<p>Zum Schluss schliesst sich der Kreis zu Woche 4. Mit den Chebyshev-Knoten $t_k=\\cos\\!\\bigl(\\tfrac{2k+1}{2(n+1)}\\pi\\bigr)$ und den Hilfsfunktionen $g(s):=f(\\cos2\\pi s)$, $q(s):=p(\\cos2\\pi s)$ rechnet man nach:</p><p>$$q(s)=p(\\cos2\\pi s)=\\sum_{j=0}^{n}a_jT_j(\\cos2\\pi s)=\\sum_{j=0}^{n}a_j\\cos(2\\pi js)=\\sum_{j=-n}^{n}c_je^{2\\pi ijs},$$</p><p>mit $c_j=\\tfrac12a_{|j|}$ für $j\\neq0$ und $c_0=a_0$. Also ist $q\\in\\mathcal{T}_n$ ein <b>trigonometrisches Polynom</b>, und die Interpolationsbedingungen werden durch die Symmetrie $q(s)=q(1-s)$ zu (3.6.37) erweitert. Ergebnis:</p><p><b>Die Chebyshev-Interpolation lässt sich durch eine DFT durchführen</b> — in $\\mathcal{O}(n\\log n)$ statt $\\mathcal{O}(n^2)$ —, und die Fehlerabschätzungen der trigonometrischen Interpolation übertragen sich direkt auf die Chebyshev-Interpolation.</p><p>Code 3.6.1 (Chebyshev-<b>Knoten</b>, Nullstellen von $T_{n+1}$) und Code 3.6.4 (Chebyshev-<b>Abszissen</b> $\\zeta_k=\\cos(\\tfrac{k\\pi}{n})$, die Extrema von $T_n$, Bem. 3.6.3) zeigen die Implementierung. Bem. 3.6.2: beides ist im Kern nichts anderes als eine <b>Diskrete Cosinus-Transformation</b> (DCT) — Typ II bei den Knoten, Typ I bei den Abszissen.</p><p>Die Auswertung geht wie oben per Zero-Padding in $\\mathcal{O}(M\\log M)$, allerdings nur auf feineren Chebyshev-Gittern; für beliebige Gitter braucht man Clenshaw mit $\\mathcal{O}(nM)$.</p>",
+      "merke": "Chebyshev-Interpolation auf $[-1,1]$ $=$ trigonometrische Interpolation einer geraden, periodischen Funktion — via $x=\\cos(2\\pi s)$. Deshalb erbt sie Geschwindigkeit <i>und</i> Fehlertheorie der FFT."
+    }
+  ],
+  "moodleHinweis": "Die ersten vier Fragen stammen wörtlich aus <code>moodle quizes/Quiz3/</code>, inklusive der Eigenheiten des Originals — in einer Option steht rohes, nicht gerendertes LaTeX. In <b>keinem</b> Screenshot ist die korrekte Antwort markiert; sichtbar ist nur, was damals angekreuzt wurde. Alle Lösungen sind von mir aus dem Skript erarbeitet und mit Verweis begründet, die damalige Auswahl ist jeweils vermerkt. Danach folgen acht Zusatzfragen im gleichen Stil.",
+  "moodle": [
+    {
+      "id": "m-w5-01",
+      "quelle": {
+        "typ": "original",
+        "datei": "moodle quizes/Quiz3/7b0aad6c-3b31-4c29-be99-3f05ba8c9445.png"
+      },
+      "typ": "mc-single",
+      "thema": "Komplexe Exponentialform des Interpolanten",
+      "frageHtml": "<p>Welche der folgenden Optionen ist die standardmässige komplexe Exponentialform des trigonometrischen Interpolationspolynoms für $M$ Datenpunkte $(t_j,y_j)$ mit $t_j=j/M$?</p>",
+      "optionen": [
+        "$p(t)=\\sum_{k=0}^{M-1}c_k\\cos(2\\pi kt)$",
+        "$p(t)=\\sum_{k=1}^{M}c_ke^{2\\pi ikt}$",
+        "$p(t)=\\sum_{k=-(M-1)}^{M-1}c_ke^{2\\pi ikt}$",
+        "$p(t)=\\sum_{k=0}^{M-1}c_ke^{2\\pi ikt}$"
+      ],
+      "loesung": 3,
+      "damaligeAuswahl": 3,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Bei $M$ Datenpunkten hat man $M$ Bedingungen, also braucht man genau $M$ Freiheitsgrade — und damit $M$ Koeffizienten $c_0,\\dots,c_{M-1}$. Das ist genau die Darstellung, die aus der DFT herausfällt: mit $\\mathbf{c}=\\mathcal{F}_M(\\mathbf{y})$ gilt nach Bem. 3.2.11</p><p>$$y_k=\\sum_{j=0}^{M-1}z_j\\omega_M^{jk},$$</p><p>also $p(t)=\\sum_{k=0}^{M-1}c_ke^{2\\pi ikt}$ mit $p(t_j)=y_j$.</p><ul><li><b>a</b> scheidet aus: mit reinen Kosinustermen bekommt man nur gerade Funktionen (und zu wenige Freiheitsgrade für beliebige Daten).</li><li><b>b</b> hat zwar $M$ Summanden, lässt aber den konstanten Term $k=0$ weg — ein Interpolant könnte dann z. B. konstante Daten nicht treffen.</li><li><b>c</b> hat $2M-1$ Koeffizienten für nur $M$ Bedingungen; das System wäre unterbestimmt.</li></ul><p>Die Darstellung mit Frequenzen von $-\\tfrac M2$ bis $\\tfrac M2-1$ (Form (3.1.1)) ist äquivalent — man kommt per <code>fftshift</code> dorthin, weil $\\omega_M^{k+M}=\\omega_M^k$ gilt (3.2.11). Gefragt ist hier aber die <i>standardmässige</i> Form, so wie <code>np.fft.fft</code> sie liefert.</p><p class=\"faint\">Diese Antwort stimmt mit der damals angekreuzten Option d überein.</p>",
+      "skriptRef": {
+        "abschnitt": "3.2.2/3.2.3",
+        "seite": 76,
+        "nummer": "Def. 3.2.5 (3.2.21), Bem. 3.2.11 (3.2.22)"
+      }
+    },
+    {
+      "id": "m-w5-02",
+      "quelle": {
+        "typ": "original",
+        "datei": "moodle quizes/Quiz3/70c464e6-8aa5-4a5d-a8ec-9ddaaac8a184.png"
+      },
+      "typ": "mc-single",
+      "thema": "Diskrete Orthogonalität der Basisfunktionen",
+      "frageHtml": "<p>Die Formel für die Koeffizienten, $c_k=\\frac{1}{M}\\sum_j y_je^{-2\\pi ikj/M}$, beruht auf der diskreten Orthogonalität der Basisfunktionen. Was ist der Wert der Summe $S=\\sum_{j=0}^{M-1}e^{2\\pi ikt_j}e^{-2\\pi imt_j}$ für ganzzahlige Frequenzen $k,m\\in[0,M-1]$?</p>",
+      "hinweisOriginal": "Im Original-Screenshot steht in Option b rohes, nicht gerendertes LaTeX: «S = 1 falls k = m, und S = 0 falls \\(k \\neq m\\).» — hier wörtlich übernommen.",
+      "optionen": [
+        "$S=M$ falls $k=m$, und $S=0$ falls $k\\neq m$.",
+        "$S=1$ falls $k=m$, und $S=0$ falls \\(k \\neq m\\).",
+        "$S=M$ für alle Werte von $k$ und $m$.",
+        "$S=2\\pi$ falls $k=m$, und $S=0$ falls $k\\neq m$."
+      ],
+      "loesung": 0,
+      "damaligeAuswahl": 0,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Mit $t_j=\\tfrac{j}{M}$ ist $e^{2\\pi ikt_j}e^{-2\\pi imt_j}=e^{2\\pi i(k-m)j/M}=\\omega_M^{-(k-m)j}$, also</p><p>$$S=\\sum_{j=0}^{M-1}\\omega_M^{(m-k)j}.$$</p><p>Das ist genau (3.2.15): die Summe ist $M$, wenn $m-k\\equiv0\\ (\\mathrm{mod}\\ M)$, und sonst $0$. Für $k,m\\in[0,M-1]$ heisst das $k=m$.</p><p><b>Warum $M$ und nicht $1$?</b> Für $k=m$ steht unter der Summe $M$-mal die Zahl $e^{0}=1$. Die Vektoren der trigonometrischen Basis sind orthogonal, aber <b>nicht normiert</b>: $\\mathbf{V}^H\\mathbf{V}=M\\mathbf{I}_M$ — erst $\\tfrac{1}{\\sqrt M}\\mathbf{F}_M$ ist unitär (Thm. 3.2.6). Genau deshalb steht in der Koeffizientenformel der Vorfaktor $\\tfrac1M$; Option b (also $S=1$) würde diesen Vorfaktor überflüssig machen.</p><p>Option c widerspricht der Orthogonalität (für $k\\neq m$ summiert man alle $M$-ten Einheitswurzeln auf, die sich zu null aufheben), Option d verwechselt die Normierung des <i>kontinuierlichen</i> Skalarprodukts auf $[0,2\\pi]$ mit der diskreten Summe.</p><p class=\"faint\">Diese Antwort stimmt mit der damals angekreuzten Option a überein.</p>",
+      "skriptRef": {
+        "abschnitt": "3.2.1",
+        "seite": 71,
+        "nummer": "Bem. 3.2.2, (3.2.15)"
+      }
+    },
+    {
+      "id": "m-w5-03",
+      "quelle": {
+        "typ": "original",
+        "datei": "moodle quizes/Quiz3/fa295179-a623-46e5-81ee-acdc95c81d97.png"
+      },
+      "typ": "mc-single",
+      "thema": "Symmetrie der Koeffizienten bei reellen Daten",
+      "frageHtml": "<p>Wenn die Datenwerte $y_j$ alle reelle Zahlen sind, welche Eigenschaft müssen die komplexen Koeffizienten $c_k$ des trigonometrischen Interpolationspolynoms erfüllen?</p>",
+      "optionen": [
+        "Alle Koeffizienten $c_k$ müssen rein imaginären Zahlen sein.",
+        "$c_k=c_{M-k}$",
+        "Alle Koeffizienten $c_k$ müssen reelle Zahlen sein.",
+        "$c_k=\\overline{c_{M-k}}$ für $k=1,\\dots,M-1$"
+      ],
+      "loesung": 3,
+      "damaligeAuswahl": 3,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Aus (3.2.21), $c_k=\\sum_j y_j\\omega_M^{kj}$ mit $\\omega_M=e^{-2\\pi i/M}$, folgt für <b>reelle</b> $y_j$ durch Konjugation</p><p>$$\\overline{c_k}=\\sum_j y_j\\overline{\\omega_M^{kj}}=\\sum_j y_j\\omega_M^{-kj}=\\sum_j y_j\\omega_M^{(M-k)j}=c_{M-k},$$</p><p>wobei $\\omega_M^{-kj}=\\omega_M^{(M-k)j}$ aus der $M$-Periodizität (3.2.11) kommt. Also $c_k=\\overline{c_{M-k}}$ — <b>konjugierte</b> Symmetrie, nicht einfache.</p><p>Anschaulich: $p(t)=\\sum_kc_ke^{2\\pi ikt}$ ist genau dann reell, wenn sich die Beiträge der Frequenzen $+k$ und $-k$ zu einem Kosinus/Sinus zusammenfassen lassen; das ist die Bedingung $\\gamma_{-j}=\\overline{\\gamma_j}$ aus Bem. 3.1.2.</p><ul><li><b>a</b> und <b>c</b> sind falsch: $c_0=\\sum_jy_j$ ist immer reell, die übrigen $c_k$ sind im Allgemeinen echt komplex.</li><li><b>b</b> ist die Symmetrie ohne Konjugation — die gilt für <b>gerade</b> reelle Daten, nicht allgemein.</li></ul><p>Praktische Folge: man braucht nur die erste Hälfte der Koeffizienten zu speichern (<code>np.fft.rfft</code>) — und beim Zero-Padding muss der Nyquist-Koeffizient $c_{M/2}$ hälftig auf beide Seiten verteilt werden, damit die Symmetrie erhalten bleibt.</p><p class=\"faint\">Diese Antwort stimmt mit der damals angekreuzten Option d überein.</p>",
+      "skriptRef": {
+        "abschnitt": "3.1/3.2.2",
+        "seite": 65,
+        "nummer": "Bem. 3.1.2 (3.1.2), Def. 3.2.5 (3.2.21)"
+      }
+    },
+    {
+      "id": "m-w5-04",
+      "quelle": {
+        "typ": "original",
+        "datei": "moodle quizes/Quiz3/9afde6b0-7ec7-42ab-b884-f06f6a82fddd.png"
+      },
+      "typ": "mc-single",
+      "thema": "Vorteil gegenüber der Polynominterpolation",
+      "frageHtml": "<p>Ein Hauptvorteil der Verwendung eines trigonometrischen Interpolationspolynoms der Form $p(t)=\\sum_kc_ke^{2\\pi ikt}$ gegenüber einem algebraischen Polynom hohen Grades zur Interpolation von Daten einer glatten, periodischen Funktion ist:</p>",
+      "optionen": [
+        "Es liefert eine stabile, nicht-oszillierende Annäherung, die das Runge-Phänomen vermeidet.",
+        "Die Koeffizienten $c_k$ sind immer reelle Zahlen, was ihre Berechnung vereinfacht.",
+        "Es ist nur für Daten anwendbar, die in nicht-uniformen Intervallen abgetastet wurden.",
+        "Es erfordert mehr Datenpunkte als die polynomielle Interpolation, um die gleiche Genauigkeit zu erreichen."
+      ],
+      "loesung": 0,
+      "damaligeAuswahl": 0,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Bei <b>äquidistanten</b> Stützstellen wächst die Lebesgue-Konstante der Polynominterpolation exponentiell ($\\Lambda_{40}\\approx10^{10}$, Bsp. 2.3.9) — das ist das Runge-Phänomen. Bei der trigonometrischen Interpolation sind äquidistante Punkte dagegen genau die <b>richtige</b> Wahl: die Systemmatrix ist $\\mathbf{F}_N^{-1}$, und $\\tfrac{1}{\\sqrt N}\\mathbf{F}_N$ ist <b>unitär</b> (Thm. 3.2.6), hat also Kondition $1$.</p><p>Für glatte periodische Funktionen konvergiert die trigonometrische Interpolation sogar <b>exponentiell</b> (Def. 3.5.1, Abb. 3.5.2, Bsp. 3.5.4) — statt immer schlechter zu werden wie beim Polynom hohen Grades.</p><ul><li><b>b</b> ist falsch: für reelle Daten sind die $c_k$ im Allgemeinen komplex, sie erfüllen nur $c_k=\\overline{c_{M-k}}$.</li><li><b>c</b> ist das Gegenteil der Wahrheit: der schnelle Weg über die FFT setzt <b>äquidistante</b> Punkte voraus; für beliebige $t_\\ell$ müsste man ein volles Gleichungssystem mit $\\mathcal{O}(N^3)$ lösen (Abschnitt 3.4).</li><li><b>d</b> ist ebenfalls falsch: nach dem Abtasttheorem (Kor. 3.5.9) genügen $N>2m$ Punkte für eine <b>perfekte</b> Rekonstruktion bandbegrenzter Signale.</li></ul><p class=\"faint\">Diese Antwort stimmt mit der damals angekreuzten Option a überein.</p>",
+      "skriptRef": {
+        "abschnitt": "3.4/3.5",
+        "seite": 93,
+        "nummer": "Thm. 3.2.6, Def. 3.5.1, Kor. 3.5.9"
+      }
+    },
+    {
+      "id": "m-w5-05",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Komplexität von DFT und FFT",
+      "frageHtml": "<p>Was kostet die diskrete Fourier-Transformation eines Vektors der Länge $N$ — naiv als Matrix-Vektor-Produkt mit $\\mathbf{F}_N$ und mit der FFT —, und welche Folge hat das für die zyklische Faltung zweier Vektoren der Länge $N$?</p>",
+      "optionen": [
+        "$\\mathcal{O}(N^2)$ bzw. $\\mathcal{O}(N\\log N)$; die zyklische Faltung kostet damit $\\mathcal{O}(N\\log N)$ statt der erwarteten $\\mathcal{O}(N^2)$.",
+        "$\\mathcal{O}(N^3)$ bzw. $\\mathcal{O}(N^2)$; die Faltung bleibt bei $\\mathcal{O}(N^2)$.",
+        "$\\mathcal{O}(N^2)$ bzw. $\\mathcal{O}(N)$; die Faltung kostet $\\mathcal{O}(N)$.",
+        "Beides $\\mathcal{O}(N\\log N)$; die FFT ist nur eine stabilere Implementierung derselben Rechnung."
+      ],
+      "loesung": 0,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>$\\mathbf{F}_N$ ist eine <b>vollbesetzte</b> $N\\times N$-Matrix, das Produkt mit einem Vektor kostet also $\\mathcal{O}(N^2)$. Die FFT nutzt die Struktur $\\omega_N^{2j}=\\omega_{N/2}^{j}$ aus und zerlegt die Summe rekursiv in gerade und ungerade Indizes: $L=\\log_2N$ Stufen mit je $\\mathcal{O}(N)$ Operationen, zusammen $\\mathcal{O}(N\\log N)$.</p><p>Nach dem Faltungstheorem (3.2.24) ist $\\mathbf{F}_N\\mathbf{c}=\\mathrm{diag}(\\mathbf{F}_N\\mathbf{a})\\mathbf{F}_N\\mathbf{b}$, die Faltung also: zwei FFTs, eine punktweise Multiplikation ($\\mathcal{O}(N)$), eine inverse FFT — insgesamt $\\mathcal{O}(N\\log N)$ (Bem. 3.2.34).</p><p>Option d ist die häufigste Fehlvorstellung: die FFT ist <i>nicht</i> nur eine numerisch bessere Variante, sondern asymptotisch schneller — Abb. 3.3.3 zeigt bei $n\\approx2000$ rund vier Grössenordnungen Unterschied.</p>",
+      "skriptRef": {
+        "abschnitt": "3.3",
+        "seite": 86,
+        "nummer": "Bem. 3.2.34, Bsp. 3.3.1, Code 3.3.4"
+      }
+    },
+    {
+      "id": "m-w5-06",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "DFT von Hand",
+      "frageHtml": "<p>Berechnen Sie die diskrete Fourier-Transformation $\\mathbf{c}=\\mathbf{F}_4\\mathbf{y}$ des Vektors $\\mathbf{y}=[1,2,3,4]^T$ nach (3.2.21), also $c_k=\\sum_{j=0}^{3}y_j\\omega_4^{kj}$ mit $\\omega_4=e^{-2\\pi i/4}=-i$.</p><p>Geben Sie an (Realteil und Imaginärteil getrennt):</p>",
+      "felder": [
+        {
+          "label": "c_0",
+          "wert": 10,
+          "tol": 0.001,
+          "tolTyp": "abs",
+          "anzeige": "10"
+        },
+        {
+          "label": "\\mathrm{Re}\\,c_1",
+          "wert": -2,
+          "tol": 0.001,
+          "tolTyp": "abs",
+          "anzeige": "-2"
+        },
+        {
+          "label": "\\mathrm{Im}\\,c_1",
+          "wert": 2,
+          "tol": 0.001,
+          "tolTyp": "abs",
+          "anzeige": "+2"
+        },
+        {
+          "label": "c_2",
+          "wert": -2,
+          "tol": 0.001,
+          "tolTyp": "abs",
+          "anzeige": "-2"
+        },
+        {
+          "label": "\\mathrm{Im}\\,c_3",
+          "wert": -2,
+          "tol": 0.001,
+          "tolTyp": "abs",
+          "anzeige": "-2"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Mit $\\omega_4=-i$ gilt $\\omega_4^0=1$, $\\omega_4^1=-i$, $\\omega_4^2=-1$, $\\omega_4^3=i$.</p><ul><li>$c_0=1+2+3+4=10$ — der nullte Koeffizient ist immer die Summe der Daten (das $N$-fache des Mittelwerts).</li><li>$c_1=1+2(-i)+3(-1)+4(i)=(1-3)+(-2+4)i=-2+2i$.</li><li>$c_2=1+2(-1)+3(1)+4(-1)=1-2+3-4=-2$ — der Nyquist-Koeffizient, bei reellen Daten immer <b>reell</b>.</li><li>$c_3=1+2(i)+3(-1)+4(-i)=-2-2i$.</li></ul><p><b>Kontrolle ohne Rechnen:</b> für reelle Daten gilt $c_k=\\overline{c_{M-k}}$, hier also $c_3=\\overline{c_1}=-2-2i$ ✓ — man muss nur die Hälfte wirklich ausrechnen.</p><p>Zweite Kontrolle über Parseval/Thm. 3.2.6: $\\sum_k|c_k|^2=100+8+4+8=120=4\\cdot(1+4+9+16)=N\\sum_j|y_j|^2$ ✓.</p>",
+      "skriptRef": {
+        "abschnitt": "3.2.2",
+        "seite": 74,
+        "nummer": "Def. 3.2.5, (3.2.21), Thm. 3.2.6"
+      }
+    },
+    {
+      "id": "m-w5-07",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "<code>fftshift</code>",
+      "frageHtml": "<p><code>np.fft.fft</code> liefert für einen Vektor der Länge $N=8$ die Koeffizienten $(c_0,c_1,\\dots,c_7)$. In welcher Reihenfolge stellt <code>np.fft.fftshift</code> diese Einträge dar, und welchen Frequenzen $\\gamma_k$ entsprechen sie?</p>",
+      "optionen": [
+        "$(c_4,c_5,c_6,c_7,c_0,c_1,c_2,c_3)$, entsprechend $(\\gamma_{-4},\\gamma_{-3},\\gamma_{-2},\\gamma_{-1},\\gamma_0,\\gamma_1,\\gamma_2,\\gamma_3)$.",
+        "$(c_7,c_6,c_5,c_4,c_3,c_2,c_1,c_0)$, also einfach die umgekehrte Reihenfolge.",
+        "$(c_0,c_1,c_2,c_3,c_4,c_5,c_6,c_7)$ — <code>fftshift</code> ändert nur die Skalierung, nicht die Reihenfolge.",
+        "$(c_3,c_2,c_1,c_0,c_7,c_6,c_5,c_4)$, entsprechend $(\\gamma_0,\\gamma_1,\\gamma_2,\\gamma_3,\\gamma_{-4},\\gamma_{-3},\\gamma_{-2},\\gamma_{-1})$."
+      ],
+      "loesung": 0,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Das ist wörtlich Beispiel 3.2.12. Die DFT liefert die Frequenzen in der Reihenfolge $k=0,1,\\dots,\\tfrac N2-1$ und danach $k=-\\tfrac N2,\\dots,-1$ — wegen $\\omega_N^{k+N}=\\omega_N^k$ (3.2.11) ist Index $N+k$ dasselbe wie Frequenz $k&lt;0$. Formal (3.2.23):</p><p>$$\\gamma_k=\\begin{cases}z_k,&0\\le k\\le\\tfrac N2-1\\\\ z_{k+N},&-\\tfrac N2\\le k&lt;0\\end{cases}$$</p><p><code>fftshift</code> rotiert den Vektor also um $N/2$ Positionen und legt damit die Frequenz $0$ in die Mitte. Die hohen Frequenzen, die vorher in der Mitte des Vektors sassen (Abb. 3.2.10), liegen danach an den Rändern — so, wie man ein Spektrum plottet.</p><p>Option b verwechselt <code>fftshift</code> mit <code>flip</code>; eine Umkehrung ist es nicht, sondern eine <b>zyklische Verschiebung</b>.</p>",
+      "skriptRef": {
+        "abschnitt": "3.2.3",
+        "seite": 76,
+        "nummer": "Bem. 3.2.11 (3.2.23), Bsp. 3.2.12"
+      }
+    },
+    {
+      "id": "m-w5-08",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Konvergenz und Glattheit",
+      "frageHtml": "<p>Das Skript interpoliert drei $1$-periodische Testfunktionen trigonometrisch: die Stufenfunktion (3.5.25), die glatte Funktion $h(t)=\\bigl(1+\\tfrac12\\sin(2\\pi t)\\bigr)^{-1/2}$ (3.5.26) und die Hutfunktion $g(t)=|t-\\tfrac12|$ (3.5.27). Welche Aussage über das Konvergenzverhalten ist <b>korrekt</b>?</p>",
+      "optionen": [
+        "Alle drei konvergieren exponentiell, weil die Funktionen periodisch sind.",
+        "Nur $h$ konvergiert exponentiell; Stufen- und Hutfunktion konvergieren lediglich algebraisch, weil sie unglatt sind — bei der Stufenfunktion tritt zusätzlich das Gibbs-Phänomen auf.",
+        "Alle drei konvergieren algebraisch mit derselben Ordnung $p=1$, da die Stützstellen äquidistant sind.",
+        "Die Hutfunktion konvergiert am schnellsten, weil sie stückweise linear und damit «einfacher» ist."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Abb. 3.5.2 fasst es zusammen: <b>Fall (1) und (3) algebraische, Fall (2) exponentielle Konvergenz.</b> Der Grund steht in Thm. 3.1.16 und Thm. 3.5.11: der Fehler wird durch die abgeschnittenen Koeffizienten beschränkt (3.5.31), und die fallen umso schneller, je mehr Ableitungen die Funktion hat.</p><ul><li>$h$ ist beliebig oft differenzierbar <i>und</i> periodisch $\\Rightarrow$ $|\\widehat h(k)|$ fällt schneller als jede Potenz $\\Rightarrow$ exponentielle Konvergenz (Abb. 3.5.13: bis $10^{-15}$ bei $n\\approx64$).</li><li>Die Hutfunktion hat einen <b>Knick</b>; $\\widehat g(k)=\\mathcal{O}(k^{-2})$, also nur algebraische Konvergenz (Abb. 3.5.14).</li><li>Die Stufenfunktion hat einen <b>Sprung</b>; $\\widehat f(k)=\\mathcal{O}(k^{-1})$, die Maximumsnorm des Fehlers geht wegen des Gibbs-Phänomens überhaupt nicht gegen null (Abb. 3.5.12, grüne Kurve) — nur weg von der Sprungstelle wird es besser.</li></ul><p>Wichtig: entscheidend ist die Glattheit der <b>periodischen Fortsetzung</b>. Eine auf $[0,1]$ glatte, aber nicht periodische Funktion bekommt durch das Periodisieren einen Sprung bei $0$ und $1$ — siehe die Rampenfunktion in Abb. 3.5.15.</p>",
+      "skriptRef": {
+        "abschnitt": "3.5",
+        "seite": 96,
+        "nummer": "Def. 3.5.1, (3.5.25)–(3.5.27), Abb. 3.5.2, Thm. 3.5.11"
+      }
+    },
+    {
+      "id": "m-w5-09",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Aliasing und Abtasttheorem",
+      "frageHtml": "<p>Wir tasten $f(t)=\\cos(2\\pi\\cdot19\\,t)$ an $n$ äquidistanten Punkten $t_j=\\tfrac jn$ ab (Abb. 3.5.10). Weil $e^{2\\pi iMt}=e^{2\\pi i(M-n)t}$ für alle $t\\in\\mathcal{T}=\\{\\tfrac jn\\}$ gilt (3.5.33), erscheint die Frequenz $19$ als eine andere, betragsmässig kleinere Frequenz.</p><p>Geben Sie an (ganze Zahlen):</p>",
+      "felder": [
+        {
+          "label": "\\text{scheinbare Frequenz bei } n=36",
+          "wert": 17,
+          "tol": 1e-09,
+          "tolTyp": "abs",
+          "anzeige": "17"
+        },
+        {
+          "label": "\\text{scheinbare Frequenz bei } n=32",
+          "wert": 13,
+          "tol": 1e-09,
+          "tolTyp": "abs",
+          "anzeige": "13"
+        },
+        {
+          "label": "\\text{kleinstes } N \\text{ mit perfekter Rekonstruktion nach Kor. 3.5.9}",
+          "wert": 39,
+          "tol": 1e-09,
+          "tolTyp": "abs",
+          "anzeige": "39"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Auf dem Gitter $t_j=\\tfrac jn$ ist $e^{2\\pi i\\cdot19t_j}=e^{2\\pi i(19-n)t_j}$, denn $e^{2\\pi i n t_j}=e^{2\\pi i j}=1$. Die Frequenz $19$ ist also ununterscheidbar von $19-n$.</p><ul><li>$n=36$: $19-36=-17$, also erscheint $|{-17}|=17$. Der Kosinus ist gerade, $\\cos(2\\pi\\cdot(-17)t)=\\cos(2\\pi\\cdot17t)$.</li><li>$n=32$: $19-32=-13$, also erscheint $13$.</li></ul><p>Korollar 3.5.9 verlangt $N>2m$ mit der maximalen Frequenz $m=19$, also $N>38$ und damit $N=39$ als kleinste ganze Zahl. Erst dann ist $p_N\\equiv f$ garantiert.</p><p class=\"faint\">In Abb. 3.5.10 sieht $n=38$ bereits perfekt aus — das ist der Grenzfall: bei $n=38$ ist $19=\\tfrac n2$ genau die Nyquist-Frequenz, und der Kosinus trifft an allen Knoten $(-1)^j$. Die Garantie des Korollars gilt aber erst ab $N=39$; für $\\sin(2\\pi\\cdot19t)$ würde $n=38$ nur Nullen liefern.</p>",
+      "skriptRef": {
+        "abschnitt": "3.5",
+        "seite": 99,
+        "nummer": "Kor. 3.5.9, (3.5.32)–(3.5.34), Abb. 3.5.10"
+      }
+    },
+    {
+      "id": "m-w5-10",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Zero-Padding",
+      "frageHtml": "<p>Ein trigonometrisches Polynom $p_{N-1}\\in\\mathcal{T}_N$ soll an $M>N$ äquidistanten Punkten $\\tfrac kM$ ausgewertet werden. Wie geht man vor?</p>",
+      "optionen": [
+        "Man hängt $M-N$ Nullen <b>hinten</b> an den Koeffizientenvektor an und transformiert zurück.",
+        "Man fügt die $M-N$ Nullen in der <b>Mitte</b> des Koeffizientenvektors ein — dort, wo die hohen Frequenzen stehen —, verteilt dabei den Nyquist-Koeffizienten hälftig auf beide Seiten und skaliert mit $M/N$; die Rücktransformation kostet dann $\\mathcal{O}(M\\log M)$.",
+        "Man wertet $p_{N-1}$ direkt in jedem der $M$ Punkte mit dem Horner-Schema aus, Aufwand $\\mathcal{O}(NM)$ — schneller geht es nicht.",
+        "Man interpoliert die Daten neu an den $M$ Punkten, was ein Gleichungssystem der Grösse $M$ und damit $\\mathcal{O}(M^3)$ kostet."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Abschnitt 3.4.2: man fasst $p_{N-1}\\in\\mathcal{T}_N\\subset\\mathcal{T}_M$ in der grösseren Basis auf. Das heisst, die Koeffizienten zu den Frequenzen $\\pm\\tfrac N2,\\dots,\\pm\\tfrac M2$ sind <b>null</b>. Im Speicherlayout von <code>fft</code> stehen die hohen Frequenzen in der <b>Mitte</b> des Vektors (Abb. 3.2.10), also müssen die Nullen genau dort eingefügt werden — «direkt nach der Anwendung von <code>fft</code> in der Mitte des Koeffizientenvektors».</p><p>Zwei Feinheiten, die in der CodeExpert-Aufgabe genau abgefragt werden:</p><ul><li>Der <b>Nyquist-Koeffizient</b> $c_{N/2}$ gehört zu $e^{\\pm2\\pi i\\frac N2t}$, die auf dem groben Gitter nicht unterscheidbar sind. Er wird hälftig auf beide Seiten verteilt ($\\tfrac12c_{N/2}$ nach vorn, $\\tfrac12c_{N/2}$ nach hinten), damit die konjugierte Symmetrie erhalten bleibt und das Resultat reell wird.</li><li>Die <b>Skalierung</b> $M/N$ ist nötig, weil <code>ifft</code> der Länge $M$ durch $M$ teilt, die Koeffizienten aber auf $N$ normiert waren.</li></ul><p>Option a ist der klassische Fehler: hängt man die Nullen hinten an, landen die negativen Frequenzen an falschen Positionen, und das Ergebnis trifft nicht einmal mehr die ursprünglichen Stützstellen.</p>",
+      "skriptRef": {
+        "abschnitt": "3.4.2",
+        "seite": 94,
+        "nummer": "Abschnitt 3.4.2, Code 3.4.3/3.4.4"
+      }
+    },
+    {
+      "id": "m-w5-11",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Faltungstheorem und zirkulante Matrizen",
+      "frageHtml": "<p>Welche Aussage über zirkulante Matrizen und die zyklische Faltung ist <b>korrekt</b>?</p>",
+      "optionen": [
+        "Die Fourier-Basis diagonalisiert jede zirkulante Matrix; die Fouriertransformierte der zyklischen Faltung ist die punktweise Multiplikation der Fouriertransformierten, $\\mathbf{F}_N\\mathbf{c}=\\mathrm{diag}(\\mathbf{F}_N\\mathbf{a})\\,\\mathbf{F}_N\\mathbf{b}$.",
+        "Die Fouriertransformierte der zyklischen Faltung ist die Faltung der Fouriertransformierten.",
+        "Zirkulante Matrizen sind im Allgemeinen nicht diagonalisierbar; deshalb braucht die Faltung $\\mathcal{O}(N^2)$ Operationen.",
+        "Die Eigenvektoren einer zirkulanten Matrix hängen von ihren Einträgen ab und müssen für jede Matrix neu berechnet werden."
+      ],
+      "loesung": 0,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Thm. 3.2.27: die Elemente der trigonometrischen Basis sind Eigenvektoren der Shift-Matrix $\\mathbf{S}_N$ und diagonalisieren damit <b>jede</b> zirkulante Matrix $\\mathbf{C}=p(\\mathbf{S}_N)=\\mathbf{U}p(\\mathbf{D})\\mathbf{U}^H$ — die Eigenvektoren sind für alle Zirkulanten <i>dieselben</i>, nur die Eigenwerte $p(\\lambda_k)$ hängen von den Einträgen ab. Das widerlegt Optionen c und d.</p><p>Da die zyklische Faltung $\\mathbf{c}=\\mathbf{a}\\circledast\\mathbf{b}$ gerade $\\mathbf{c}=\\mathbf{A}\\mathbf{b}$ mit dem Zirkulanten $\\mathbf{A}$ ist (Bem. 3.2.32), folgt daraus (3.2.24) — das <b>Faltungstheorem</b>.</p><p>Option b verwechselt die Richtungen: <b>Multiplikation</b> im Zeit-/Ortsbereich entspricht der <b>Faltung</b> im Frequenzbereich (Bem. 3.2.30) — und umgekehrt entspricht die Faltung im Ortsbereich der punktweisen Multiplikation im Frequenzbereich. Genau diese zweite Richtung ist (3.2.24).</p>",
+      "skriptRef": {
+        "abschnitt": "3.2.4",
+        "seite": 86,
+        "nummer": "Thm. 3.2.27, Bem. 3.2.30/3.2.32/3.2.33, (3.2.24)"
+      }
+    },
+    {
+      "id": "m-w5-12",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Zyklische Faltung",
+      "frageHtml": "<p>Berechnen Sie die <b>zyklische</b> Faltung $\\mathbf{c}=\\mathbf{a}\\circledast\\mathbf{b}$ der Vektoren $\\mathbf{a}=(1,2,4)$ und $\\mathbf{b}=(3,0,5)$ nach Def. 3.2.29, also $c_k=\\sum_{j=0}^{2}a_jb_{(k-j)\\ \\mathrm{mod}\\ 3}$.</p>",
+      "felder": [
+        {
+          "label": "c_0",
+          "wert": 13,
+          "tol": 0.001,
+          "tolTyp": "abs",
+          "anzeige": "13"
+        },
+        {
+          "label": "c_1",
+          "wert": 26,
+          "tol": 0.001,
+          "tolTyp": "abs",
+          "anzeige": "26"
+        },
+        {
+          "label": "c_2",
+          "wert": 17,
+          "tol": 0.001,
+          "tolTyp": "abs",
+          "anzeige": "17"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Direkt nach Definition:</p><ul><li>$c_0=a_0b_0+a_1b_2+a_2b_1=1\\cdot3+2\\cdot5+4\\cdot0=13$</li><li>$c_1=a_0b_1+a_1b_0+a_2b_2=1\\cdot0+2\\cdot3+4\\cdot5=26$</li><li>$c_2=a_0b_2+a_1b_1+a_2b_0=1\\cdot5+2\\cdot0+4\\cdot3=17$</li></ul><p>Das Skript rechnet es (S. 85) über Polynome: $(1+2x+4x^2)(3+0x+5x^2)=3+6x+17x^2+10x^3+20x^4$ ist die <b>gewöhnliche</b> Faltung $(3,6,17,10,20)$. Setzt man $x^3=1$ (das ist genau $x=\\omega_3$), so klappen die Terme $10x^3$ und $20x^4$ auf $x^0$ bzw. $x^1$ zurück:</p><p>$$(3+10)+(6+20)x+17x^2=13+26x+17x^2.$$</p><p><b>Kontrolle:</b> $\\sum_kc_k=(\\sum_ja_j)(\\sum_jb_j)=7\\cdot8=56=13+26+17$ ✓. In NumPy: <code>np.real(np.fft.ifft(np.fft.fft(a)*np.fft.fft(b)))</code> — genau das Faltungstheorem (3.2.24).</p>",
+      "skriptRef": {
+        "abschnitt": "3.2.4",
+        "seite": 85,
+        "nummer": "Def. 3.2.28/3.2.29"
+      }
+    }
+  ],
+  "codeexpert": [
+    {
+      "id": "ce-w5-gibbs",
+      "titel": "Gibbs-Phänomen",
+      "quelle": "codeexpert/Gibbs-Phänomen (Kopie) - Student attempt .rtf",
+      "skriptRef": {
+        "abschnitt": "3.1",
+        "seite": 68,
+        "nummer": "Bsp. 3.1.17, Bem. 3.1.18, Abb. 3.5.3"
+      },
+      "braucht": [
+        "numpy",
+        "matplotlib"
+      ],
+      "beschreibung": "<p>Beispiel 3.1.17 des Skripts gibt die Fourier-Reihe der charakteristischen Funktion des Intervalls $[a,b]\\subset\\,]0,1[$ <b>analytisch</b> an:</p><p>$$b-a+\\frac{1}{\\pi}\\sum_{k\\neq0}e^{-ikc}\\,\\frac{\\sin kd}{k}\\,e^{i2\\pi kt},\\qquad c=\\pi(a+b),\\ d=\\pi(b-a).$$</p><p>Zu implementieren ist die abgeschnittene Reihe mit den $2n+1$ Moden $k=-n,\\dots,n$ — vektorisiert, also ohne Schleife über $k$: ein Array mit einer Zeile pro Mode und einer Spalte pro Auswertungspunkt, danach Summation über die Moden.</p><p>Geplottet werden $f$ und die Partialsumme auf $2^{12}+1$ Punkten; das Bild wird als <code>Gibbs01.png</code> gespeichert. Zu sehen ist das <b>Gibbs-Phänomen</b>: an den Sprungstellen überschwingt die Partialsumme um rund 9 % der Sprunghöhe, und dieser Überschwinger wird mit wachsendem $n$ <b>nicht kleiner</b> — er rückt nur näher an den Sprung. Das ist die Illustration dazu, dass hier nur $L^2$-Konvergenz vorliegt, keine punktweise an der Sprungstelle (Bem. 3.1.18).</p><p>Zwei nützliche Kontrollwerte: der Mittelwert der Partialsumme ist exakt $b-a$ (nur der Term $k=0$ trägt dazu bei), und <b>genau an</b> der Sprungstelle liefert sie $\\tfrac12$, also das Mittel der beiden einseitigen Grenzwerte.</p>",
+      "hinweisUmgebung": "<p>Drei kleine Abweichungen vom Original, alle dokumentiert:</p><ul><li>Im Original waren $a$ und $b$ zwar Parameter von <code>plotFAchar</code>, in <code>step1</code>/<code>step2</code> standen aber fest $0.25$ und $0.75$. Hier benutzen beide Stufen tatsächlich $a$ und $b$ — sonst lässt sich nicht prüfen, ob die Vorzeichen in $e^{-ikc}$ und $e^{i2\\pi kt}$ stimmen (bei $[0{,}25;0{,}75]$ ist die Funktion symmetrisch, und ein Vorzeichenfehler fällt schlicht nicht auf).</li><li><code>exactFourierSeries</code> steht auf Modulebene statt verschachtelt in <code>plotFAchar</code>, damit der Test die Reihe direkt aufrufen kann, ohne jedes Mal eine neue Grafik zu erzeugen. <code>plotFAchar</code> gibt zusätzlich <code>(x, f(x), Partialsumme)</code> zurück.</li><li><code>from pylab import ...</code> bleibt wie im Original — <code>pylab</code> ist in Pyodide über <code>matplotlib</code> verfügbar und nur ein dünner Mantel um <code>matplotlib.pyplot</code>. Die Grösse <code>lev = 12</code> ($N=4096$) ist unverändert; das Produkt aus $200$ Moden und $4097$ Punkten läuft im Browser problemlos.</li></ul>",
+      "luecken_template": "from numpy import sin, cos, pi, arange, exp, real, zeros\nimport numpy as np\n\n\ndef exactFourierSeries(x, n, a, b):\n    \"\"\"Abgeschnittene Fourier-Reihe (Bsp. 3.1.17) der charakteristischen\n    Funktion von [a,b], ausgewertet in den Punkten x.\"\"\"\n    c = pi * (a + b)\n    d = pi * (b - a)\n\n    result = 1.j\n    result *= zeros(x.size)\n\n    # der Term k = 0 ist genau der Mittelwert der Funktion auf [0,1]\n    result += «L1»\n\n    # ueber alle Moden k = -n .. n summieren, ausser ...\n    k = arange(-n, n + 1)\n    k = «L2»\n\n    # ein Summand pro Mode (Zeilen) und Auswertungspunkt (Spalten)\n    term = «L3»\n\n    result += «L4» * term.sum(axis=0)\n\n    return result\n\n\n# ---- kurze Kontrolle (das volle Bild entsteht in Stufe 3) ----\nx = np.linspace(0, 1, 1025)\np = exactFourierSeries(x, 100, 0.25, 0.75)\nprint('Mittelwert (muss b-a = 0.5 sein):', p.real.mean())\nprint('Maximum    (Gibbs: rund 1.0895) :', p.real.max())\nprint('in t = 0.5 (muss nahe 1 sein)   :', exactFourierSeries(np.array([0.5]), 100, 0.25, 0.75)[0].real)\nprint('in t = 0.25 (Sprungstelle, 0.5) :', exactFourierSeries(np.array([0.25]), 100, 0.25, 0.75)[0].real)\n",
+      "luecken": [
+        {
+          "id": "L1",
+          "loesung": "(b - a)",
+          "optionen": [
+            "(a - b)",
+            "(b - a)",
+            "(b - a) / 2",
+            "(b + a) / 2"
+          ],
+          "richtig": 1,
+          "erklaerung": "Der Koeffizient zur Frequenz $k=0$ ist $\\widehat f(0)=\\int_0^1f(t)\\,dt$, also das Integral über die charakteristische Funktion — und das ist die <b>Länge</b> des Intervalls, $b-a$. Da alle anderen Moden $e^{2\\pi ikt}$ Mittelwert null haben, ist $b-a$ zugleich der Mittelwert der ganzen Partialsumme: eine bequeme Kontrolle. $(a+b)/2$ wäre der <i>Mittelpunkt</i> des Intervalls — genau die Grösse, aus der $c=\\pi(a+b)$ gebildet wird, hier aber die falsche.",
+          "hinweis": "Was liefert $\\widehat f(0)=\\int_0^1f(t)\\,dt$ für die charakteristische Funktion von $[a,b]$?"
+        },
+        {
+          "id": "L2",
+          "loesung": "k[k != 0]",
+          "optionen": [
+            "k[k != 0]",
+            "k[k > 0]",
+            "k[k >= 0]",
+            "k[abs(k) > 1]"
+          ],
+          "richtig": 0,
+          "erklaerung": "In der Formel steht $\\sum_{k\\neq0}$: der Term $k=0$ ist bereits separat als $b-a$ addiert worden, und im Summanden steht $k$ im <b>Nenner</b> — mit $k=0$ gäbe es eine Division durch null (<code>nan</code>). Die negativen Moden dürfen ebenfalls nicht wegfallen: erst $k$ und $-k$ zusammen ergeben einen reellen Beitrag $\\propto\\cos$ bzw. $\\sin$. Lässt man sie weg, wird das Ergebnis komplex.",
+          "hinweis": "Zwei Gründe sprechen gegen $k=0$ — einer mathematisch, einer numerisch. Und warum braucht man die negativen $k$?"
+        },
+        {
+          "id": "L3",
+          "loesung": "exp(-1.j * k[:, None] * c) * (sin(k[:, None] * d) / k[:, None]) * exp(1.j * 2 * pi * k[:, None] * x[None, :])",
+          "optionen": [
+            "exp(1.j * k[:, None] * c) * (sin(k[:, None] * d) / k[:, None]) * exp(1.j * 2 * pi * k[:, None] * x[None, :])",
+            "exp(-1.j * k[:, None] * c) * (cos(k[:, None] * d) / k[:, None]) * exp(1.j * 2 * pi * k[:, None] * x[None, :])",
+            "exp(-1.j * k[:, None] * c) * (sin(k[:, None] * d) / k[:, None]) * exp(1.j * 2 * pi * k[:, None] * x[None, :])",
+            "exp(-1.j * k[:, None] * c) * (sin(k[:, None] * d) / k[:, None]) * exp(1.j * pi * k[:, None] * x[None, :])"
+          ],
+          "richtig": 2,
+          "erklaerung": "Eins zu eins die Formel aus Bsp. 3.1.17: der Phasenfaktor $e^{-ikc}$ verschiebt die Reihe an die richtige Stelle, $\\sin(kd)/k$ ist der Betrag des Koeffizienten (Abfall wie $1/k$ — daher die langsame Konvergenz), und $e^{i2\\pi kt}$ ist die Basisfunktion. Mit <code>k[:, None]</code> und <code>x[None, :]</code> entsteht per Broadcasting eine Matrix der Form (Moden, Punkte). Typische Fehler: Vorzeichen in $e^{-ikc}$ (spiegelt das Intervall), $\\cos$ statt $\\sin$ (das Ergebnis wird rein imaginär, weil $\\cos(kd)/k$ ungerade in $k$ ist) und $\\pi$ statt $2\\pi$ im Exponenten (falsche Periode).",
+          "hinweis": "Vergleiche Zeichen für Zeichen mit Beispiel 3.1.17. Welche Periode haben die Basisfunktionen $e^{2\\pi ikt}$?"
+        },
+        {
+          "id": "L4",
+          "loesung": "(1 / pi)",
+          "optionen": [
+            "(1 / pi)",
+            "(1 / (2 * pi))",
+            "(2 / pi)",
+            "1.0"
+          ],
+          "richtig": 0,
+          "erklaerung": "Der Vorfaktor der Summe in Bsp. 3.1.17 ist $\\tfrac1\\pi$. Er lässt sich herleiten: $\\widehat f(k)=\\int_a^be^{-2\\pi ikt}dt=\\frac{e^{-2\\pi ika}-e^{-2\\pi ikb}}{2\\pi ik}=e^{-ikc}\\frac{\\sin(kd)}{\\pi k}$ mit $c=\\pi(a+b)$, $d=\\pi(b-a)$ — das $2\\pi i$ aus der Stammfunktion und die Umrechnung in den Sinus ergeben zusammen genau $\\tfrac1\\pi$. Ein falscher Vorfaktor ändert zwar den Mittelwert nicht (der steckt im Term $k=0$), verfälscht aber alle Amplituden — die Partialsumme erreicht dann innerhalb des Intervalls nicht mehr den Wert $1$.",
+          "hinweis": "Integriere $e^{-2\\pi ikt}$ über $[a,b]$ und schreibe das Resultat mit $\\sin$. Welcher Faktor bleibt vor der Summe stehen?"
+        }
+      ],
+      "template": "# hier sollten Sie Ihren Code angeben\n# das Bild soll unter dem Namen Gibbs01.png gespeichert werden\n\nfrom numpy import sin, pi, arange, where, exp, real, zeros\nfrom pylab import figure, plot, title, savefig, grid, legend, xlabel\n\n\ndef exactFourierSeries(x, n, a, b):\n    \"\"\"Fourier series: charakteristische Funktion von [a,b], Moden -n .. n\"\"\"\n    c = pi * (a + b)\n    d = pi * (b - a)\n\n    result = 1.j\n    result *= zeros(x.size)\n    # TODO: complete the code here\n\n    return result\n\n\ndef plotFAchar(a=0.25, b=0.75, n=100):\n    print(n)\n    step1 = lambda x: where(x > a, 1., 0.)\n    step2 = lambda x: where(x < b, 1., 0.)\n\n    f = lambda x: step1(x) * step2(x)\n\n    lev = 12\n    N = 2**lev\n    x = arange(0, N + 1) * 1.\n    x = x / N\n\n    p = exactFourierSeries(x, n, a, b)\n\n    figure()\n    plot(x, real(f(x)), label='f')\n    plot(x, real(p), label='Fourier-Reihe')\n    txt = 'n = ' + str(n) + ' (2n+1 summation terms)'\n    title(txt)\n    xlabel('t')\n    grid(True)\n    legend()\n    savefig(\"./cx_out/Gibbs01.png\")\n    return x, real(f(x)), real(p)\n\n\n# Main Code\nxx, fxx, pxx = plotFAchar(n=100)\n",
+      "loesung": "# Gibbs-Phaenomen: Fourier-Reihe der charakteristischen Funktion eines\n# Intervalls [a,b]. Das Bild wird unter dem Namen Gibbs01.png gespeichert.\n\nfrom numpy import sin, pi, arange, where, exp, real, zeros\nfrom pylab import figure, plot, title, savefig, grid, legend, xlabel\n\n\ndef exactFourierSeries(x, n, a, b):\n    \"\"\"Abgeschnittene Fourier-Reihe (Bsp. 3.1.17) der charakteristischen\n    Funktion des Intervalls [a,b], ausgewertet in den Punkten x.\n    Summiert wird ueber die 2n+1 Moden k = -n, ..., n.\"\"\"\n    c = pi * (a + b)\n    d = pi * (b - a)\n\n    result = 1.j\n    result *= zeros(x.size)\n\n    # der Term k = 0 ist genau der Mittelwert der Funktion\n    result += (b - a)\n\n    k = arange(-n, n + 1)\n    k = k[k != 0]\n    term = exp(-1.j * k[:, None] * c) * (sin(k[:, None] * d) / k[:, None]) * exp(1.j * 2 * pi * k[:, None] * x[None, :])\n\n    result += (1 / pi) * term.sum(axis=0)\n\n    return result\n\n\ndef plotFAchar(a=0.25, b=0.75, n=100):\n    print(n)\n    step1 = lambda x: where(x > a, 1., 0.)\n    step2 = lambda x: where(x < b, 1., 0.)\n\n    f = lambda x: step1(x) * step2(x)\n\n    lev = 12\n    N = 2**lev\n    x = arange(0, N + 1) * 1.\n    x = x / N\n\n    p = exactFourierSeries(x, n, a, b)\n\n    figure()\n    plot(x, real(f(x)), label='f')\n    plot(x, real(p), label='Fourier-Reihe')\n    txt = 'n = ' + str(n) + ' (2n+1 summation terms)'\n    title(txt)\n    xlabel('t')\n    grid(True)\n    legend()\n    savefig(\"./cx_out/Gibbs01.png\")\n    return x, real(f(x)), real(p)\n\n\n# Main Code\nxx, fxx, pxx = plotFAchar(n=100)\nprint('Maximum der Partialsumme:', pxx.max(), '(Gibbs: rund 1.0895)')\nprint('Minimum der Partialsumme:', pxx.min())\n",
+      "test": {
+        "typ": "werte",
+        "pruefcode": "import numpy as np\n\nxs = np.linspace(0, 1, 1025)\nval = lambda t, n, a, b: float(np.real(np.asarray(exactFourierSeries(np.array([t]), n, a, b))[0]))\n\n# --- (1) symmetrisches Intervall: Realitaet, Mittelwert, Gibbs-Ueberschwinger ---\np = np.asarray(exactFourierSeries(xs, 100, 0.25, 0.75))\nassert np.max(np.abs(np.imag(p))) < 1e-8, \\\n    'die Fourier-Reihe einer reellen Funktion muss reell sein (Bem. 3.1.2)'\npr = np.real(p)\nassert abs(np.mean(pr[:-1]) - 0.5) < 1e-6, \\\n    f'der Mittelwert muss b-a sein, ist aber {np.mean(pr[:-1]):.6f}'\nassert 1.05 < pr.max() < 1.15, \\\n    f'der Gibbs-Ueberschwinger betraegt rund 9 Prozent, hier ist max = {pr.max():.4f}'\nassert -0.15 < pr.min() < -0.05, \\\n    f'unterhalb der Sprungstelle muss es ebenso stark unterschwingen, hier min = {pr.min():.4f}'\n\n# --- (2) asymmetrisches Intervall: deckt Vorzeichen- und Periodenfehler auf ---\na, b, n = 0.1, 0.4, 80\nq = np.asarray(exactFourierSeries(xs, n, a, b))\nassert np.max(np.abs(np.imag(q))) < 1e-8, 'auch hier muss das Ergebnis reell sein'\nqr = np.real(q)\nassert abs(np.mean(qr[:-1]) - (b - a)) < 1e-6, \\\n    f'Mittelwert muss b-a = {b-a} sein, ist aber {np.mean(qr[:-1]):.6f}'\nassert abs(val(0.25, n, a, b) - 1.0) < 0.02, 'innerhalb von [a,b] muss die Reihe gegen 1 gehen'\nassert abs(val(0.70, n, a, b)) < 0.02, 'ausserhalb von [a,b] muss die Reihe gegen 0 gehen'\nassert abs(val(a, n, a, b) - 0.5) < 0.02, \\\n    'an der Sprungstelle liefert die Fourier-Reihe das Mittel der beiden Grenzwerte'\nassert abs(val(b, n, a, b) - 0.5) < 0.02, 'dasselbe an der rechten Sprungstelle'\nassert 1.05 < qr.max() < 1.15, 'auch hier rund 9 Prozent Ueberschwingen'\n"
+      },
+      "referenzPlot": "assets/ref/ce-w5-gibbs.png"
+    },
+    {
+      "id": "ce-w5-fourierinterp",
+      "titel": "Fourier-Interpolation (Beispiel 3.5.4)",
+      "quelle": "codeexpert/Fourier-Interpolation (HS 2025) - Student attempt .rtf",
+      "skriptRef": {
+        "abschnitt": "3.4.2/3.5",
+        "seite": 97,
+        "nummer": "Bsp. 3.5.4, Abb. 3.5.5, Code 3.4.4"
+      },
+      "braucht": [
+        "numpy",
+        "matplotlib"
+      ],
+      "beschreibung": "<p>Die Aufgabe soll das Experiment aus <b>Beispiel 3.5.4</b> des Skripts reproduzieren. Dort wird für $\\alpha\\in[0,1)$ die Funktion</p><p>$$f(t)=\\frac{1}{\\sqrt{1-\\alpha\\sin(2\\pi t)}}\\quad\\text{auf }I=[0,1]$$</p><p>trigonometrisch interpoliert. Die Funktion ist für jedes $\\alpha&lt;1$ beliebig oft differenzierbar und $1$-periodisch, man beobachtet also <b>exponentielle Konvergenz</b> in $n$ — und zwar umso schneller, je <b>kleiner</b> $\\alpha$ ist. Für $\\alpha\\to1$ rückt die Funktion einer Singularität immer näher, die Fourier-Koeffizienten fallen langsamer ab und die Konvergenz wird entsprechend träger (Abb. 3.5.5).</p><p>Drei Teile:</p><ol type=\"a\"><li><code>evaliptrig(y, N)</code> — das trigonometrische Interpolationspolynom zu $n$ (gerade) Abtastwerten an $N>n$ äquidistanten Punkten auswerten, per <b>Zero-Padding</b> (Abschnitt 3.4.2): <code>fft</code>, Nullen in der Mitte einfügen, Nyquist-Koeffizient hälftig auf beide Seiten, <code>ifft</code> und Skalierung mit $N/n$.</li><li><code>convtrig(f, N_eval, max_lev)</code> — für $n=2^{lev+1}$, $lev=1,\\dots,max\\_lev$, je den Fehler $\\max_t|f(t)-p(t)|$ auf einem festen feinen Gitter messen.</li><li>Zwei Figuren nebeneinander, gespeichert als <code>SmoothAlpha.png</code>: links die Fehlerkurven für $\\alpha\\in\\{0.5,\\,0.9,\\,0.95,\\,0.99\\}$ (halblogarithmisch), rechts die Beträge $|c_k|$ der Fourier-Koeffizienten, mit <code>fftshift</code> auf die Frequenzachse $-\\tfrac N2,\\dots,\\tfrac N2-1$ umsortiert.</li></ol><p>Die beiden Bilder erzählen dieselbe Geschichte von zwei Seiten: links die Konvergenz, rechts der Grund dafür — der Abfall der Koeffizienten (Thm. 3.1.16, Thm. 3.5.8).</p>",
+      "hinweisUmgebung": "<p>Eine Korrektur gegenüber dem Original: dort stand <code>raise(TypeError, 'odd length')</code>, was in Python 3 keine Ausnahme wirft, sondern ein Tupel «aufruft». Hier steht <code>raise TypeError('odd length')</code>. Sonst ist der Code unverändert; Grössen und Parameter ($N_{\\mathrm{eval}}=1000$, $max\\_lev=8$, $N=2^{10}$ für das Spektrum) sind dieselben wie im Original und laufen im Browser in Sekundenbruchteilen.</p>",
+      "luecken_template": "import numpy as np\n\n\ndef evaliptrig(y, N):\n    \"\"\"Wertet das trigonometrische Interpolationspolynom zu den n (gerade)\n    Abtastwerten y an N > n aequidistanten Punkten aus -- per Zero-Padding\n    (Abschnitt 3.4.2, Code 3.4.4).\"\"\"\n    n = len(y)\n    if (n % 2) == 0:\n        # Koeffizienten im Frequenzbereich\n        c = «L1»\n\n        C = np.zeros(N, dtype=complex)\n\n        # positive Frequenzen k = 0 .. n/2-1 bleiben vorne stehen\n        C[:n//2] = «L2»\n        # der Nyquist-Koeffizient wird auf beide Enden verteilt\n        C[n//2] = C[N - n//2] = «L3»\n        # negative Frequenzen k = -n/2+1 .. -1 wandern ans Ende\n        C[N - n//2 + 1:] = «L4»\n\n        # zurueck in den Zeitbereich, mit der richtigen Skalierung\n        v = «L5»\n        return v\n    else:\n        raise TypeError('odd length')\n\n\ndef convtrig(f_name, N_eval, max_lev):\n    \"\"\"Interpolationsfehler in der Maximumsnorm fuer n = 4, 8, ..., 2**(max_lev+1).\"\"\"\n    tt = np.linspace(0, 1, N_eval, endpoint=False)\n    fv = f_name(tt)\n\n    vn = []\n    vlinf = []\n\n    for lev in range(1, max_lev + 1):\n        n = 2 ** (lev + 1)\n        t_samples = np.linspace(0, 1, n, endpoint=False)\n        y = f_name(t_samples)\n        p_eval = evaliptrig(y, N_eval)\n        vn.append(n)\n        vlinf.append(np.max(np.abs(fv - p_eval)))\n\n    return np.array(vn), np.array(vlinf)\n\n\n# ---- kurze Kontrolle (das volle Experiment steht in Stufe 3) ----\ny = np.array([1., -2., 0.5, 3., -1., 0., 2., -0.5])\nv = evaliptrig(y, 64)\nprint('in den Stuetzstellen (muss y sein):', v[::8])\nprint('y                                 :', y)\n\nf = lambda t: 1.0 / np.sqrt(1.0 - 0.5 * np.sin(2 * np.pi * t))\nvn, vlinf = convtrig(f, 1000, 7)\nprint('n     :', vn)\nprint('Fehler:', vlinf)\n",
+      "luecken": [
+        {
+          "id": "L1",
+          "loesung": "np.fft.fft(y)",
+          "optionen": [
+            "np.fft.fft(y)",
+            "np.fft.ifft(y)",
+            "np.fft.fft(y) / n",
+            "np.fft.rfft(y)"
+          ],
+          "richtig": 0,
+          "erklaerung": "Der Weg ist: Daten $\\to$ Frequenzbereich $\\to$ auffüllen $\\to$ zurück. Nach vorn geht es mit <code>fft</code> ($=\\mathbf{F}_n\\mathbf{y}$, ohne Vorfaktor), zurück mit <code>ifft</code> ($=\\tfrac1N\\mathbf{F}_N^H$). Mit <code>ifft</code> an dieser Stelle bekäme man die konjugierten Koeffizienten in falscher Skalierung; ein zusätzliches $1/n$ hier wäre doppelt normiert, weil <code>ifft</code> am Ende ohnehin durch $N$ teilt — genau das kompensiert der Faktor $N/n$. <code>rfft</code> liefert nur $n/2+1$ Koeffizienten und passt nicht zum Zero-Padding-Schema.",
+          "hinweis": "Welche der beiden NumPy-Funktionen enthält den Vorfaktor $1/N$, und in welche Richtung transformiert sie?"
+        },
+        {
+          "id": "L2",
+          "loesung": "c[:n//2]",
+          "optionen": [
+            "c[1:n//2 + 1]",
+            "np.conj(c[:n//2])",
+            "c[:n//2]",
+            "c[n//2 - 1::-1]"
+          ],
+          "richtig": 2,
+          "erklaerung": "Im Speicherlayout von <code>fft</code> stehen vorne die Frequenzen $k=0,1,\\dots,\\tfrac n2-1$ (Bem. 3.2.11). Diese $n/2$ Einträge wandern unverändert an den Anfang des längeren Vektors, denn im grösseren Raum $\\mathcal{T}_N$ bezeichnen dieselben Indizes dieselben Frequenzen. Ein Versatz um eins verschiebt alle Frequenzen, das Konjugieren zerstört die Symmetrie $c_k=\\overline{c_{n-k}}$ (das Resultat wäre nicht mehr reell), und Umdrehen vertauscht hohe mit niedrigen Frequenzen.",
+          "hinweis": "Welche Frequenzen stehen bei <code>np.fft.fft</code> am Anfang des Vektors — und ändern sie ihre Bedeutung, wenn der Vektor länger wird?"
+        },
+        {
+          "id": "L3",
+          "loesung": "c[n//2] / 2.0",
+          "optionen": [
+            "c[n//2]",
+            "c[n//2] / 2.0",
+            "c[n//2] / 2.0j",
+            "0.0"
+          ],
+          "richtig": 1,
+          "erklaerung": "Der Index $n/2$ ist die <b>Nyquist-Frequenz</b>. Auf dem groben Gitter sind $e^{+2\\pi i\\frac n2t}$ und $e^{-2\\pi i\\frac n2t}$ nicht unterscheidbar — beide liefern in den Knoten $(-1)^j$ —, auf dem feinen Gitter aber schon. Deshalb wird der eine Koeffizient <b>hälftig</b> auf die Frequenzen $+\\tfrac n2$ und $-\\tfrac n2$ aufgeteilt; nur so bleibt die konjugierte Symmetrie $C_k=\\overline{C_{N-k}}$ und damit die Reellwertigkeit erhalten. Ohne Halbierung zählt dieser Anteil doppelt, mit $0$ fällt er ganz weg — in beiden Fällen werden die ursprünglichen Stützstellen nicht mehr getroffen.",
+          "hinweis": "Welche beiden Basisfunktionen lassen sich auf dem groben Gitter nicht unterscheiden — und wie verteilt man ihren gemeinsamen Koeffizienten fair?"
+        },
+        {
+          "id": "L4",
+          "loesung": "c[n//2 + 1:]",
+          "optionen": [
+            "np.conj(c[n//2 + 1:])",
+            "c[n//2 + 1:][::-1]",
+            "c[1:n//2]",
+            "c[n//2 + 1:]"
+          ],
+          "richtig": 3,
+          "erklaerung": "Die hinteren Einträge von <code>c</code> gehören wegen $\\omega_n^{k+n}=\\omega_n^{k}$ zu den <b>negativen</b> Frequenzen $k=-\\tfrac n2+1,\\dots,-1$ (3.2.23). Sie müssen deshalb ans <b>Ende</b> des langen Vektors, in derselben Reihenfolge — dort bezeichnen sie wieder dieselben negativen Frequenzen. Genau dadurch entsteht die Lücke in der Mitte, in der die Nullen stehen: das ist das Zero-Padding. Konjugieren oder Umdrehen zerstört die Zuordnung Frequenz $\\leftrightarrow$ Koeffizient, <code>c[1:n//2]</code> würde die positiven Frequenzen ein zweites Mal einsetzen.",
+          "hinweis": "Zu welchen Frequenzen gehören die Indizes $n/2+1,\\dots,n-1$? An welchem Ende des langen Vektors stehen diese Frequenzen?"
+        },
+        {
+          "id": "L5",
+          "loesung": "np.real(np.fft.ifft(C) * (N / n))",
+          "optionen": [
+            "np.real(np.fft.ifft(C))",
+            "np.real(np.fft.ifft(C) * (N / n))",
+            "np.real(np.fft.fft(C) * (N / n))",
+            "np.real(np.fft.ifft(C) * (n / N))"
+          ],
+          "richtig": 1,
+          "erklaerung": "<code>np.fft.ifft</code> der Länge $N$ teilt intern durch $N$, die Koeffizienten in <code>C</code> stammen aber aus einer <code>fft</code> der Länge $n$ und sind deshalb auf $n$ normiert. Der Faktor $N/n$ gleicht genau das aus — ohne ihn kämen alle Werte um den Faktor $n/N$ zu klein heraus. <code>np.real</code> schneidet nur den Rundungsrest des Imaginärteils ab; ist das Zero-Padding korrekt, ist das Ergebnis ohnehin reell.",
+          "hinweis": "Welche der beiden Transformationen enthält einen Vorfaktor — und auf welche Länge bezieht er sich hier jeweils?"
+        }
+      ],
+      "template": "# Ihr Code soll das Experiment aus dem Beispiel 3.5.4 reproduzieren.\n# Erzeugen und speichern Sie ein Bild mit dem Namen SmoothAlpha mit zwei Figuren:\n# links sollte das Bild aus dem Beispiel 3.5.4 und\n# rechts sollte das Bild mit den Betraegen der Fourier Koeffizienten stehen.\n\nimport numpy as np\nimport matplotlib.pyplot as plt\n\n# correct the following function\n# starting from an even number of samples in y,\n# it should evaluate the\n# trigonometric interpolant in N > n points\ndef evaliptrig(y, N):\n    n = len(y)\n    if (n % 2) == 0:\n        # correct/complete the following code\n        c = None\n        C = np.zeros(N, dtype=complex)\n\n        # TODO: Zero-Padding -- positive Frequenzen, Nyquist-Koeffizient,\n        #       negative Frequenzen; danach zuruecktransformieren und skalieren\n        v = None\n        return v\n    else:\n        raise TypeError('odd length')\n\n# TODO: correct the following function\n# it should get the function name,\n# the number of points where to measure the error\n# and the maximal number of levels of 2**(lev+1) sample points\n# it should return the array of number of samples used and\n# an array with the corresponding errors\ndef convtrig(f_name, N_eval, max_lev):\n    tt = np.linspace(0, 1, N_eval, endpoint=False)  # reference points to evaluate\n    fv = f_name(tt)\n\n    vn = []\n    vlinf = []\n\n    # TODO: Schleife ueber die Stufen lev = 1 .. max_lev\n\n    return np.array(vn), np.array(vlinf)\n\n\nparams = [0.5, 0.9, 0.95, 0.99]\n\nfig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))\n\nfor alpha in params:\n    lab = str(alpha)\n    print(f\"Calculating error for alpha={lab}....\")\n    # TODO: complete/correct the following code\n    f = None\n\n    vn, vlinf = convtrig(f, N_eval=1000, max_lev=8)\n\n    ax1.semilogy(vn, vlinf, '.-', label=rf'$\\alpha={lab}$')\n\nax1.set_ylabel(r'$L^{\\infty}$ error', fontsize=16)\nax1.set_xlabel('Number of samples (n)', fontsize=16)\nax1.set_title('Fehler der trigonometrischen Interpolation', fontsize=14)\nax1.legend()\nax1.grid(True)\n\nfor alpha in params:\n    lab = str(alpha)\n    print(f\"Calculating Fourier coefficients for alpha={lab}...\")\n\n    f = lambda t: 1.0 / np.sqrt(1.0 - alpha * np.sin(2 * np.pi * t))\n    N = 2**10\n    tt = np.linspace(0, 1, N, endpoint=False)\n    fv = f(tt)\n\n    # TODO: Fourier-Koeffizienten berechnen, normieren und mit fftshift umsortieren\n    c_shifted = None\n    freqs = np.arange(-N//2, N//2)\n\n    ax2.semilogy(freqs, np.abs(c_shifted), label=rf'$\\alpha={lab}$')\n\nax2.set_xlabel('Frequency', fontsize=16)\nax2.set_ylabel('|Fourier Coefficient|', fontsize=16)\nax2.set_title('Betraege der Fourier-Koeffizienten', fontsize=14)\nax2.legend()\nax2.grid(True)\n\nplt.tight_layout()\nplt.savefig('./cx_out/SmoothAlpha.png')\n",
+      "loesung": "# Das Experiment aus Beispiel 3.5.4 des Skripts.\n# Erzeugt wird ein Bild 'SmoothAlpha.png' mit zwei Figuren:\n# links die Konvergenz des Interpolationsfehlers,\n# rechts die Betraege der Fourier-Koeffizienten.\n\nimport numpy as np\nimport matplotlib.pyplot as plt\n\n\n# Ausgehend von einer GERADEN Anzahl n von Abtastwerten in y wird das\n# trigonometrische Interpolationspolynom in N > n Punkten ausgewertet.\ndef evaliptrig(y, N):\n    n = len(y)\n    if (n % 2) == 0:\n        c = np.fft.fft(y)\n\n        C = np.zeros(N, dtype=complex)\n\n        C[:n//2] = c[:n//2]\n        C[n//2] = C[N - n//2] = c[n//2] / 2.0\n        C[N - n//2 + 1:] = c[n//2 + 1:]\n\n        v = np.real(np.fft.ifft(C) * (N / n))\n        return v\n    else:\n        raise TypeError('odd length')\n\n\n# Liefert zu einer Funktion, der Zahl der Auswertungspunkte und der maximalen\n# Stufenzahl die Arrays der benutzten Stuetzstellenzahlen und der zugehoerigen\n# L-unendlich-Fehler.\ndef convtrig(f_name, N_eval, max_lev):\n    tt = np.linspace(0, 1, N_eval, endpoint=False)   # Referenzpunkte\n    fv = f_name(tt)\n\n    vn = []\n    vlinf = []\n\n    for lev in range(1, max_lev + 1):\n        n = 2 ** (lev + 1)\n\n        t_samples = np.linspace(0, 1, n, endpoint=False)\n        y = f_name(t_samples)\n\n        p_eval = evaliptrig(y, N_eval)\n        err = np.max(np.abs(fv - p_eval))\n\n        vn.append(n)\n        vlinf.append(err)\n\n    return np.array(vn), np.array(vlinf)\n\n\nparams = [0.5, 0.9, 0.95, 0.99]\n\nfig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))\n\nfor alpha in params:\n    lab = str(alpha)\n    print(f\"Calculating error for alpha={lab}....\")\n\n    f = lambda t: 1.0 / np.sqrt(1.0 - alpha * np.sin(2 * np.pi * t))\n\n    vn, vlinf = convtrig(f, N_eval=1000, max_lev=8)\n\n    ax1.semilogy(vn, vlinf, '.-', label=rf'$\\alpha={lab}$')\n\nax1.set_ylabel(r'$L^{\\infty}$ error', fontsize=16)\nax1.set_xlabel('Number of samples (n)', fontsize=16)\nax1.set_title('Fehler der trigonometrischen Interpolation', fontsize=14)\nax1.legend()\nax1.grid(True)\n\nfor alpha in params:\n    lab = str(alpha)\n    print(f\"Calculating Fourier coefficients for alpha={lab}...\")\n\n    f = lambda t: 1.0 / np.sqrt(1.0 - alpha * np.sin(2 * np.pi * t))\n    N = 2**10\n    tt = np.linspace(0, 1, N, endpoint=False)\n    fv = f(tt)\n\n    c = np.fft.fft(fv) / N\n    c_shifted = np.fft.fftshift(c)\n    freqs = np.arange(-N//2, N//2)\n\n    ax2.semilogy(freqs, np.abs(c_shifted), label=rf'$\\alpha={lab}$')\n\nax2.set_xlabel('Frequency', fontsize=16)\nax2.set_ylabel('|Fourier Coefficient|', fontsize=16)\nax2.set_title('Betraege der Fourier-Koeffizienten', fontsize=14)\nax2.legend()\nax2.grid(True)\n\nplt.tight_layout()\nplt.savefig('./cx_out/SmoothAlpha.png')\n",
+      "test": {
+        "typ": "werte",
+        "pruefcode": "import numpy as np\n\n# --- (1) die Stuetzstellen muessen exakt reproduziert werden ---\ny = np.array([1., -2., 0.5, 3., -1., 0., 2., -0.5])\nn = len(y)\nassert abs(np.fft.fft(y)[n//2]) > 1e-3, 'Testdaten mit nichttrivialem Nyquist-Anteil'\nfor N in (24, 40, 64, 1000):\n    v = np.asarray(evaliptrig(y, N))\n    assert v.shape == (N,), f'evaliptrig muss N Werte liefern, hier {v.shape}'\n    assert np.max(np.abs(np.imag(v))) < 1e-10, 'fuer reelle Daten muss der Interpolant reell sein'\n    vr = np.real(v)\n    assert np.allclose(vr[::N//n], y, rtol=1e-9, atol=1e-9), (\n        f'bei N={N} werden die urspruenglichen Stuetzstellen nicht mehr getroffen: '\n        f'{vr[::N//n]} statt {y}')\n\n# --- (2) reine Harmonische muessen exakt reproduziert werden (Kor. 3.5.9) ---\nn2 = 16\nt = np.linspace(0., 1., n2, endpoint=False)\nN = 128\ntt = np.linspace(0., 1., N, endpoint=False)\ng = lambda s: np.cos(2*np.pi*3*s) + 0.5*np.sin(2*np.pi*2*s) - 0.25*np.cos(2*np.pi*5*s)\nassert np.allclose(np.real(np.asarray(evaliptrig(g(t), N))), g(tt), rtol=1e-8, atol=1e-9), \\\n    'ein bandbegrenztes Signal muss exakt getroffen werden'\n\n# --- (3) Konvergenz aus Beispiel 3.5.4 ---\nf05 = lambda s: 1.0 / np.sqrt(1.0 - 0.5 * np.sin(2 * np.pi * s))\nvn, ve = convtrig(f05, 1000, 7)\nvn = np.asarray(vn); ve = np.asarray(ve)\nassert vn.shape == (7,) and ve.shape == (7,), 'convtrig muss max_lev Werte liefern'\nassert list(vn) == [4, 8, 16, 32, 64, 128, 256], f'die Stuetzstellenzahlen stimmen nicht: {list(vn)}'\nassert ve[0] > 1e-3, 'bei n=4 darf der Fehler noch nicht winzig sein'\nassert ve[-1] < 1e-10, f'fuer alpha=0.5 muss der Fehler exponentiell fallen, hier ve[-1]={ve[-1]:.3e}'\nassert np.all(np.diff(ve[:5]) < 0), 'der Fehler muss zunaechst monoton fallen'\n\nf99 = lambda s: 1.0 / np.sqrt(1.0 - 0.99 * np.sin(2 * np.pi * s))\n_, ve99 = convtrig(f99, 1000, 7)\nassert np.asarray(ve99)[-1] > np.asarray(ve)[-1], \\\n    'fuer alpha=0.99 muss die Konvergenz deutlich langsamer sein als fuer alpha=0.5'\n"
+      },
+      "referenzPlot": "assets/ref/ce-w5-fourierinterp.png"
+    },
+    {
+      "id": "ce-w5-filterung",
+      "titel": "Filterung eines verrauschten Signals",
+      "quelle": "codeexpert/Filterung - Student attempt .rtf",
+      "skriptRef": {
+        "abschnitt": "3.2.3",
+        "seite": 77,
+        "nummer": "Bsp. 3.2.14, Code 3.2.15, Bsp. 3.2.23"
+      },
+      "braucht": [
+        "numpy",
+        "matplotlib"
+      ],
+      "beschreibung": "<p>Ein Signal $f(x)=\\sin\\!\\bigl((x/200)^2\\bigr)\\,e^{-((x-1000)/400)^2}$ wird an $N=2^{11}$ äquidistanten Stellen abgetastet und mit gleichverteiltem Rauschen aus $[-1,1]$ gestört. Gesucht ist das reine Signal zurück.</p><p>Die Idee steht in Bem. 3.1.14 und Bsp. 3.2.14: <b>Rauschen ist unglatt</b> und verteilt seine Energie gleichmässig über alle Frequenzen, während ein glattes Signal seine Energie auf wenige niedrige Frequenzen konzentriert. Im <b>Energiespektrum</b> $p_k=|c_k|^2$ ragen deshalb genau die Koeffizienten des Nutzsignals heraus.</p><p>Der Filter ist denkbar einfach: alle Koeffizienten, deren Energie unter $25\\,\\%$ der grössten auftretenden Energie liegt, werden auf null gesetzt; der Rest bleibt stehen. Danach zurück in den Zeitbereich mit <code>ifft</code> und Realteil nehmen.</p><p>Die vier Teilbilder zeigen: gestörtes und reines Signal, das Energiespektrum beider, das bereinigte Spektrum und schliesslich das rekonstruierte neben dem reinen Signal. Die Ausgabe nennt zusätzlich die Fehlernorm vorher und nachher.</p><p>Das ist dieselbe Technik wie die Sprachkompression in Bsp. 3.2.23 — nur dass dort nach Frequenz, hier nach Energie ausgewählt wird.</p>",
+      "hinweisUmgebung": "<p>Zwei Punkte zur Umgebung:</p><ul><li>Der Zufallsgenerator wird mit <code>seed(5)</code> festgenagelt. Im Original stand kein Seed; ohne ihn wäre der Test nicht reproduzierbar. An der Aufgabe ändert das nichts.</li><li>Die Stern-Importe <code>from numpy import *</code> und <code>from matplotlib.pyplot import *</code> des Originals bleiben stehen — sie laufen in Pyodide genauso wie in CodeExpert. Im Lückencode wird <code>matplotlib</code> weggelassen, weil dort nur gerechnet und nicht geplottet wird.</li></ul>",
+      "luecken_template": "from numpy import *\nfrom numpy.random import random, seed\nimport numpy.fft as fft\n\nseed(5)\n\n# reines Signal und Abtastpunkte\nf = lambda x: sin((x / 200) ** 2) * exp(-((x - 1E3) / 400) ** 2)\nN = 2 ** 11\nx = linspace(0, 2000, N, endpoint=False)\nfx = f(x)\n\n# gestoerte Messung: gleichverteiltes Rauschen in [-1,1]\ny = fx + 2 * random(N) - 1\n\n# Fourier-Koeffizienten des gestoerten und des reinen Signals\ncy = «L1»\ncfx = fft.fft(fx)\n\n# Energiespektrum (power spectrum, spektrale Leistungsdichte)\npy = «L2»\npf = abs(cfx)**2\n\n# Schwelle: r = 25 Prozent der groessten auftretenden Energie\nr = 0.25\nthreshold = «L3»\n\n# nur die energiereichen Koeffizienten behalten, der Rest wird null\ncy_filtered = cy.copy()\ncy_filtered[«L4»] = 0\n\n# zurueck in den Zeitbereich\nfy = «L5»\npfy = abs(cy_filtered)**2\n\nprint('behaltene Koeffizienten:', int(sum(py > threshold)), 'von', N)\nprint('Fehler des gestoerten Signals :', sqrt(sum((y - fx)**2)))\nprint('Fehler des bereinigten Signals:', sqrt(sum((fy - fx)**2)))\n",
+      "luecken": [
+        {
+          "id": "L1",
+          "loesung": "fft.fft(y)",
+          "optionen": [
+            "fft.ifft(y)",
+            "fft.fft(fx)",
+            "fft.fft(y)",
+            "fft.fft(y) / N"
+          ],
+          "richtig": 2,
+          "erklaerung": "Gefiltert werden sollen die <b>Messdaten</b> <code>y</code>, nicht das reine Signal <code>fx</code> — das kennt man in der Praxis ja gerade nicht, es dient hier nur zum Vergleich. Vorwärts geht es mit <code>fft</code>; <code>ifft</code> enthält den Vorfaktor $1/N$ und transformiert in die andere Richtung. Eine zusätzliche Normierung $1/N$ wäre hier harmlos für die <i>Auswahl</i> der Koeffizienten, bräche aber die Parseval-Identität, auf der die Interpretation als Energie beruht.",
+          "hinweis": "Welches der beiden Signale steht in der Praxis überhaupt zur Verfügung?"
+        },
+        {
+          "id": "L2",
+          "loesung": "abs(cy)**2",
+          "optionen": [
+            "abs(cy)",
+            "abs(cy)**2",
+            "cy**2",
+            "real(cy)**2"
+          ],
+          "richtig": 1,
+          "erklaerung": "Das <b>Energiespektrum</b> (spektrale Leistungsdichte) ist das Betragsquadrat $p_k=|c_k|^2$ — so steht es in Code 3.2.15 und so greift Parseval: $\\sum_k|c_k|^2=N\\sum_j|y_j|^2$. <code>cy**2</code> quadriert die komplexe Zahl selbst und liefert etwas Komplexes, <code>real(cy)**2</code> wirft den Imaginärteil weg (und damit die halbe Information über die Phase), und der reine Betrag ist die Amplitude, nicht die Energie. Nach Bem. 3.2.31 ist das Energiespektrum ausserdem genau die Fouriertransformierte der Autokorrelation.",
+          "hinweis": "Welche Grösse taucht in der Parseval'schen Gleichung (3.1.7) auf?"
+        },
+        {
+          "id": "L3",
+          "loesung": "r * py.max()",
+          "optionen": [
+            "r * py.mean()",
+            "r * py.max()",
+            "r * py.min()",
+            "r * abs(cy).max()"
+          ],
+          "richtig": 1,
+          "erklaerung": "Die Schwelle wird <b>relativ zur grössten</b> auftretenden Energie gesetzt: $25\\,\\%$ des Maximums. Das macht den Filter unabhängig davon, wie laut das Signal insgesamt ist. Mit dem <i>Mittelwert</i> hängt die Schwelle von der Länge des Signals und vom Rauschpegel ab und lässt viel zu viele Rauschkoeffizienten durch; das Minimum ist praktisch null. <code>abs(cy).max()</code> vergleicht Äpfel mit Birnen — eine Amplitude mit Energien.",
+          "hinweis": "Woran soll sich die Schwelle orientieren, damit der Filter nicht von der Lautstärke des Signals abhängt?"
+        },
+        {
+          "id": "L4",
+          "loesung": "py <= threshold",
+          "optionen": [
+            "py <= r",
+            "py >= threshold",
+            "py <= threshold",
+            "cy <= threshold"
+          ],
+          "richtig": 2,
+          "erklaerung": "Auf <b>null gesetzt</b> wird alles, was <i>unter</i> der Schwelle liegt — das Rauschen. Die drei Fehloptionen sind drei verschiedene Fehler: <code>py &lt;= r</code> vergisst die Skalierung mit <code>py.max()</code>; <code>r</code> ist nur der Bruchteil 0.25, das Energiespektrum liegt um viele Grössenordnungen darüber, also wird praktisch nichts gelöscht und das Rauschen bleibt. <code>py &gt;= threshold</code> dreht den Vergleich um und löscht genau das Signal statt des Rauschens. <code>cy &lt;= threshold</code> vergleicht die <b>komplexen</b> Koeffizienten mit einer reellen Zahl — NumPy wirft dafür einen <code>TypeError</code>; verglichen werden muss die reelle Energie <code>py</code>.",
+          "hinweis": "Welche Grösse wird mit der Schwelle verglichen — und in welche Richtung muss der Vergleich zeigen, wenn die Einträge auf null gesetzt (nicht behalten) werden?"
+        },
+        {
+          "id": "L5",
+          "loesung": "real(fft.ifft(cy_filtered))",
+          "optionen": [
+            "fft.ifft(cy_filtered)",
+            "real(fft.fft(cy_filtered))",
+            "real(fft.ifft(cy))",
+            "real(fft.ifft(cy_filtered))"
+          ],
+          "richtig": 3,
+          "erklaerung": "Zurück in den Zeitbereich geht es mit <code>ifft</code> — und zwar mit den <b>gefilterten</b> Koeffizienten, sonst hätte man nichts getan. <code>real</code> ist nötig, weil <code>ifft</code> formal einen komplexen Vektor liefert; da die Filterung die konjugierte Symmetrie $c_k=\\overline{c_{N-k}}$ respektiert (die Energie $|c_k|^2$ ist ja symmetrisch), ist der Imaginärteil nur Rundungsrauschen. Ohne <code>real</code> rechnet man ab hier mit komplexen Zahlen weiter, was spätestens beim Plotten Probleme macht.",
+          "hinweis": "Welche Richtung, welcher Vektor — und warum ist das Ergebnis mathematisch reell, numerisch aber komplex?"
+        }
+      ],
+      "template": "from numpy import *\nfrom numpy.random import random, seed\nfrom matplotlib.pyplot import *\nimport numpy.fft as fft\n\nseed(5)\n\n# signal\nf = lambda x: sin((x / 200) ** 2) * exp(-((x - 1E3) / 400) ** 2)\n# where we sample:\nN = 2 ** 11\nx = linspace(0, 2000, N, endpoint=False)\n# samples:\nfx = f(x)\n# add the random numbers to get the signal\ny = fx + 2 * random(N) - 1\n\n# TODO: implementieren/ersetzen Sie ab hier:\n# - Fourier-Koeffizienten cy von y und cfx von fx\n# - Energiespektren py und pf\n# - Schwelle threshold bei r = 0.25 der groessten Energie\n# - cy_filtered: alles unterhalb der Schwelle ausloeschen\n# - fy: das bereinigte Signal im Zeitbereich, pfy sein Energiespektrum\n\ncy = None\ncfx = None\npy = None\npf = None\nr = 0.25\nthreshold = None\ncy_filtered = None\nfy = None\npfy = None\n\n# plots\nfigure(figsize=(8, 8))\nsubplot(221)\nplot(x, y, label='gestoertes...')\nplot(x, fx, 'r', label='reines...')\nxlim(0, N)\ngrid(True)\nlegend(loc='lower left')\n\nsubplot(222)\nplot(py, '.', label='Energiespektrum')\nplot(pf, 'r.', label='urspruengliches Energiespektrum')\nxlim(0, N)\ngrid(True)\nlegend(loc='upper left')\n\nsubplot(224)\nplot(pfy, 'k.', label='bereinigtes Energiespektrum')\nxlim(0, N)\ngrid(True)\nlegend(loc='upper left')\n\nsubplot(223)\nplot(x, fx, 'r-', label='reines Signal')\nplot(x, fy, 'k-', label='bereinigtes...')\nxlim(0, N)\ngrid(True)\nlegend(loc='lower left')\n\ntight_layout()\nsavefig('./cx_out/filtering.png')\n",
+      "loesung": "from numpy import *\nfrom numpy.random import random, seed\nfrom matplotlib.pyplot import *\nimport numpy.fft as fft\n\nseed(5)\n\n# Signal\nf = lambda x: sin((x / 200) ** 2) * exp(-((x - 1E3) / 400) ** 2)\n# wo abgetastet wird:\nN = 2 ** 11\nx = linspace(0, 2000, N, endpoint=False)\n# Abtastwerte:\nfx = f(x)\n# Zufallszahlen addieren, das ergibt das gestoerte Signal\ny = fx + 2 * random(N) - 1\n\n# ab hier implementiert:\n\ncy = fft.fft(y)\ncfx = fft.fft(fx)\n\npy = abs(cy)**2\npf = abs(cfx)**2\n\nr = 0.25\nthreshold = r * py.max()\n\ncy_filtered = cy.copy()\ncy_filtered[py <= threshold] = 0\n\nfy = real(fft.ifft(cy_filtered))\npfy = abs(cy_filtered)**2\n\nprint('behaltene Koeffizienten:', int(sum(py > threshold)), 'von', N)\nprint('Fehler des gestoerten Signals :', sqrt(sum((y - fx)**2)))\nprint('Fehler des bereinigten Signals:', sqrt(sum((fy - fx)**2)))\n\n# plots\nfigure(figsize=(8, 8))\nsubplot(221)\nplot(x, y, label='gestoertes...')   # original noisy signal\nplot(x, fx, 'r', label='reines...')  # pure signal\nxlim(0, N)\ngrid(True)\nlegend(loc='lower left')\n\nsubplot(222)\nplot(py, '.', label='Energiespektrum')\nplot(pf, 'r.', label='urspruengliches Energiespektrum')\nxlim(0, N)\ngrid(True)\nlegend(loc='upper left')\n\nsubplot(224)\nplot(pfy, 'k.', label='bereinigtes Energiespektrum')\nxlim(0, N)\ngrid(True)\nlegend(loc='upper left')\n\nsubplot(223)\nplot(x, fx, 'r-', label='reines Signal')\nplot(x, fy, 'k-', label='bereinigtes...')\nxlim(0, N)\ngrid(True)\nlegend(loc='lower left')\n\ntight_layout()\nsavefig('./cx_out/filtering.png')\n",
+      "test": {
+        "typ": "werte",
+        "pruefcode": "import numpy as np\n\n# --- (1) cy ist wirklich die DFT der gestoerten Daten ---\nassert np.allclose(np.fft.ifft(np.asarray(cy)), y, rtol=1e-9, atol=1e-9), \\\n    'cy muss die diskrete Fouriertransformierte des GESTOERTEN Signals y sein'\n\n# --- (2) Energiespektrum: nichtnegativ und Parseval (Thm. 3.2.6) ---\npyv = np.asarray(py)\nassert not np.iscomplexobj(pyv), 'das Energiespektrum |c_k|^2 ist reell'\nassert np.all(pyv >= 0), 'das Energiespektrum ist nichtnegativ'\n_lhs, _rhs = float(np.sum(pyv)), float(N * np.sum(y**2))\nassert abs(_lhs - _rhs) < 1e-6 * _rhs, \\\n    f'Parseval verletzt: sum|c_k|^2 = {_lhs:.4e}, erwartet N*sum y_j^2 = {_rhs:.4e}'\n\n# --- (3) Schwelle ---\nassert abs(float(threshold) - 0.25 * float(pyv.max())) < 1e-9 * float(pyv.max()), \\\n    'die Schwelle ist 25 Prozent der groessten Energie im Spektrum'\n\n# --- (4) genau die Koeffizienten unterhalb der Schwelle sind geloescht ---\ncyv = np.asarray(cy); cfv = np.asarray(cy_filtered)\nassert np.all(cfv[pyv <= threshold] == 0), \\\n    'alle Koeffizienten mit Energie unterhalb der Schwelle muessen null sein'\nassert np.all(cfv[pyv > threshold] == cyv[pyv > threshold]), \\\n    'die Koeffizienten oberhalb der Schwelle muessen unveraendert bleiben'\nassert 0 < int(np.sum(pyv > threshold)) < N // 4, \\\n    'es darf nur ein kleiner Teil des Spektrums uebrig bleiben'\n\n# --- (5) das bereinigte Signal ist reell und naeher am reinen Signal ---\nfyv = np.asarray(fy)\nassert not np.iscomplexobj(fyv), 'fy muss reell sein -- real(...) nicht vergessen'\ne_noisy = float(np.linalg.norm(y - fx))\ne_filt = float(np.linalg.norm(fyv - fx))\nassert e_filt < 0.5 * e_noisy, \\\n    f'die Filterung muss den Fehler deutlich senken: {e_filt:.3f} gegenueber {e_noisy:.3f}'\n"
+      },
+      "referenzPlot": "assets/ref/ce-w5-filterung.png"
+    },
+    {
+      "id": "ce-w5-approxfdf",
+      "titel": "Approximation von $f$ und $f'$",
+      "quelle": "codeexpert/Approximation von f und f' - Student attempt.rtf",
+      "skriptRef": {
+        "abschnitt": "3.4.2/3.5",
+        "seite": 94,
+        "nummer": "Bem. 3.2.13, Thm. 3.1.15, Thm. 3.5.11"
+      },
+      "braucht": [
+        "numpy",
+        "matplotlib"
+      ],
+      "beschreibung": "<p>Drei Funktionen rund um Zero-Padding und Ableitung im Frequenzbereich:</p><ol type=\"a\"><li><code>evaliptrig(y, N)</code> — das trigonometrische Interpolationspolynom zu $n$ (gerade) Abtastwerten an $N\\ge n$ Punkten auswerten. Zero-Padding wie in Abschnitt 3.4.2: positive Frequenzen nach vorn, negative ans Ende, der Nyquist-Koeffizient hälftig auf beide Seiten, zum Schluss <code>ifft</code> und Skalierung mit $N/n$.</li><li><code>evaliDtrig(y, N)</code> — dasselbe für die <b>Ableitung</b>. Nach Thm. 3.1.15 und Bem. 3.2.13 ist das bloss eine punktweise Multiplikation im Frequenzbereich: $\\widehat{f'}(k)=2\\pi ik\\,\\widehat f(k)$. Der Knackpunkt ist, zu jedem Koeffizienten die <b>richtige</b> Frequenz $k$ zu finden — vorne $k=0,\\dots,\\tfrac n2-1$, hinten $k=-\\tfrac n2+1,\\dots,-1$.</li><li><code>compute_convergence(a, b, fn, dfn, n_eval, n_convergence)</code> — misst für $n=2,4,\\dots,2^{n_{\\mathrm{conv}}}$ den Fehler in der diskreten $L^2$-Norm $\\|v-f\\|_2/\\sqrt{n_{\\mathrm{eval}}}$ auf einem festen feinen Gitter. Mit <code>dfn=None</code> gegen die Funktion, sonst gegen die exakte Ableitung.</li></ol><p>Zwei Proben, die die Implementierung festnageln: für $y=\\sin(2\\pi t)$ muss <code>evaliptrig</code> wieder exakt $\\sin(2\\pi t)$ liefern (das Signal ist bandbegrenzt, Kor. 3.5.9) und <code>evaliDtrig</code> exakt $2\\pi\\cos(2\\pi t)$.</p><p>Im Konvergenzplot sieht man den Kern von Abschnitt 3.5: für die glatte periodische Funktion $f(t)=e^{\\sin(2\\pi t)}$ fällt der Fehler exponentiell bis auf Maschinengenauigkeit — für $f$ <i>und</i> für $f'$ —, während die Hutfunktion $g(t)=|t-\\tfrac12|$ wegen ihres Knicks nur algebraisch konvergiert.</p>",
+      "hinweisUmgebung": "<p>Die Original-Datei enthält <b>nur</b> die drei Funktionen — weder Treiber- noch Plotcode. Der Abschnitt unter <code>if __name__ == \"__main__\":</code> (Testfunktionen $f(t)=e^{\\sin(2\\pi t)}$, deren exakte Ableitung und die Hutfunktion, dazu der doppeltlogarithmische Konvergenzplot nach <code>./cx_out/convApproxFdF.png</code>) ist von mir ergänzt, damit die Aufgabe ein sichtbares Ergebnis hat. Die Funktionen selbst sind unverändert; lediglich der unbenutzte Import <code>from collections.abc import Callable, Awaitable</code> ist weggelassen.</p><p>Der Lückencode zeigt nur den allgemeinen Fall $N>n$; die Sonderfälle $N=n$ aus dem Original stehen in der Musterlösung. Im Plot werden Fehler unter $10^{-17}$ auf $10^{-17}$ angehoben, damit die logarithmische Achse mit exakten Nullen umgehen kann.</p>",
+      "luecken_template": "import numpy as np\n\n\ndef evaliptrig(y, N):\n    \"\"\"Trigonometrisches Interpolationspolynom zu y, ausgewertet in N > n\n    aequidistanten Punkten (Zero-Padding, Abschnitt 3.4.2).\"\"\"\n    n = len(y)\n    c = np.fft.fft(y)\n    c_padded = np.zeros(N, dtype=complex)\n    half_n = n // 2\n\n    # positive Frequenzen k = 0 .. n/2-1\n    c_padded[:half_n] = c[:half_n]\n    # negative Frequenzen k = -n/2+1 .. -1 ans Ende\n    c_padded[N - half_n + 1:] = «L1»\n    # Nyquist-Koeffizient auf beide Enden verteilen\n    c_padded[half_n] = c_padded[N - half_n] = «L2»\n\n    return np.fft.ifft(c_padded) * (N / n)\n\n\ndef evaliDtrig(y, N):\n    \"\"\"Dasselbe fuer die ABLEITUNG: im Frequenzbereich wird jeder Koeffizient\n    mit 2*pi*i*k multipliziert (Thm. 3.1.15, Bem. 3.2.13).\"\"\"\n    n = len(y)\n    c = np.fft.fft(y)\n    c_padded = np.zeros(N, dtype=complex)\n    half_n = n // 2\n\n    # die Frequenzen, die zu den Koeffizienten gehoeren\n    k_pos = np.arange(half_n)\n    k_neg = «L3»\n\n    c_padded[:half_n] = «L4»\n    c_padded[N - half_n + 1:] = «L5»\n\n    # Nyquist: die beiden Haelften heben sich in den Stuetzstellen auf\n    c_padded[half_n] = (c[half_n] / 2) * (2j * np.pi * half_n)\n    c_padded[N - half_n] = (c[half_n] / 2) * (-2j * np.pi * half_n)\n\n    return «L6»\n\n\ndef compute_convergence(a, b, fn, dfn, n_eval, n_convergence):\n    \"\"\"l2-Norm des Fehlers fuer n = 2, 4, ..., 2**n_convergence Stuetzstellen.\"\"\"\n    if (n_eval < 2**n_convergence):\n        raise ValueError(\"Eval must be large enough\")\n\n    xx = np.linspace(a, b, n_eval, endpoint=False)\n    fv = fn(xx) if dfn is None else dfn(xx)\n\n    ns = 2 ** np.arange(1, n_convergence + 1)\n    norms = np.zeros(n_convergence)\n    for i, n in enumerate(ns):\n        t = np.linspace(a, b, n, endpoint=False)\n        y = fn(t)\n        v = np.real(evaliptrig(y, n_eval)) if dfn is None else np.real(evaliDtrig(y, n_eval))\n        norms[i] = np.linalg.norm(v - fv) / np.sqrt(n_eval)\n    return norms\n\n\n# ---- kurze Kontrolle ----\nn = 16\nt = np.linspace(0, 1, n, endpoint=False)\nN = 128\ntt = np.linspace(0, 1, N, endpoint=False)\ny = np.sin(2 * np.pi * t)\nprint('max|p - sin(2 pi t)|      :', np.max(np.abs(np.real(evaliptrig(y, N)) - np.sin(2 * np.pi * tt))))\nprint('max|Dp - 2 pi cos(2 pi t)|:', np.max(np.abs(np.real(evaliDtrig(y, N)) - 2 * np.pi * np.cos(2 * np.pi * tt))))\n",
+      "luecken": [
+        {
+          "id": "L1",
+          "loesung": "c[half_n + 1:]",
+          "optionen": [
+            "c[1:half_n]",
+            "c[half_n + 1:]",
+            "np.conj(c[half_n + 1:])",
+            "c[half_n + 1:][::-1]"
+          ],
+          "richtig": 1,
+          "erklaerung": "Wegen $\\omega_n^{k+n}=\\omega_n^k$ (3.2.11) gehören die hinteren Indizes $n/2+1,\\dots,n-1$ zu den <b>negativen</b> Frequenzen $-n/2+1,\\dots,-1$ (3.2.23). Im längeren Vektor stehen dieselben negativen Frequenzen wieder ganz hinten, also wird der Block unverändert und in derselben Reihenfolge ans Ende kopiert. Dazwischen bleibt die Null-Lücke stehen — das ist genau das Zero-Padding. Konjugieren oder Umdrehen zerstört die Zuordnung und damit die Symmetrie $C_k=\\overline{C_{N-k}}$.",
+          "hinweis": "Zu welcher Frequenz gehört der Index $n-1$ im Vektor der Länge $n$ — und an welcher Stelle steht dieselbe Frequenz im Vektor der Länge $N$?"
+        },
+        {
+          "id": "L2",
+          "loesung": "c[half_n] / 2",
+          "optionen": [
+            "c[half_n]",
+            "0.0",
+            "c[half_n] / 2",
+            "c[half_n] / 2j"
+          ],
+          "richtig": 2,
+          "erklaerung": "Der Index $n/2$ ist die Nyquist-Frequenz: auf dem groben Gitter liefern $e^{+2\\pi i\\frac n2t}$ und $e^{-2\\pi i\\frac n2t}$ in allen Knoten denselben Wert $(-1)^j$, sind also nicht unterscheidbar. Auf dem feinen Gitter sind sie es sehr wohl. Die symmetrische — und einzige, die das Ergebnis reell lässt — Aufteilung ist je die Hälfte. Lässt man die Halbierung weg, zählt dieser Anteil doppelt; setzt man null, fehlt er ganz. In beiden Fällen wird die Interpolationsbedingung verletzt.",
+          "hinweis": "Was passiert, wenn man denselben Koeffizienten an zwei Stellen voll einsetzt — wie oft wird dieser Mode dann gezählt?"
+        },
+        {
+          "id": "L3",
+          "loesung": "np.arange(-half_n + 1, 0)",
+          "optionen": [
+            "np.arange(-half_n, 0)",
+            "np.arange(1, half_n)",
+            "np.arange(-half_n + 1, 0)",
+            "np.arange(half_n - 1, 0, -1)"
+          ],
+          "richtig": 2,
+          "erklaerung": "Die Koeffizienten <code>c[half_n+1:]</code> gehören der Reihe nach zu den Frequenzen $-\\tfrac n2+1,\\,-\\tfrac n2+2,\\,\\dots,\\,-1$ — aufsteigend, weil Index $n/2+1$ der Frequenz $(n/2+1)-n=-n/2+1$ entspricht. Das sind $\\tfrac n2-1$ Werte, genau so viele wie Koeffizienten. <code>np.arange(-half_n, 0)</code> hätte einen Wert zu viel (der Nyquist-Mode wird ja separat behandelt), die positiven Varianten drehen das Vorzeichen der Ableitung für die halbe Frequenzachse um.",
+          "hinweis": "Index $j$ im Vektor der Länge $n$ steht für die Frequenz $j$ oder $j-n$. Welche davon, und wie viele Werte braucht man?"
+        },
+        {
+          "id": "L4",
+          "loesung": "c[:half_n] * (2j * np.pi * k_pos)",
+          "optionen": [
+            "c[:half_n] * (2 * np.pi * k_pos)",
+            "c[:half_n] * (2j * np.pi * k_pos)",
+            "c[:half_n] * (-2j * np.pi * k_pos)",
+            "c[:half_n] * (2j * np.pi)"
+          ],
+          "richtig": 1,
+          "erklaerung": "Theorem 3.1.15: $\\widehat{f'}(k)=2\\pi ik\\,\\widehat f(k)$. Alle drei Teile zählen. Das <b>$i$</b> sorgt für die Phasendrehung um $90^\\circ$ — aus $\\sin$ wird $\\cos$; ohne $i$ bekäme man eine um eine Viertelperiode verschobene Funktion. Das <b>Vorzeichen</b> folgt aus $\\tfrac{d}{dt}e^{2\\pi ikt}=2\\pi ik\\,e^{2\\pi ikt}$. Und das <b>$k$</b> ist der Grund, weshalb Ableiten hohe Frequenzen verstärkt und damit Rauschen aufbläht; ohne $k$ würden alle Moden gleich behandelt.",
+          "hinweis": "Leite $e^{2\\pi ikt}$ nach $t$ ab. Welche drei Faktoren bleiben stehen?"
+        },
+        {
+          "id": "L5",
+          "loesung": "c[half_n + 1:] * (2j * np.pi * k_neg)",
+          "optionen": [
+            "c[half_n + 1:]",
+            "c[half_n + 1:] * (2j * np.pi * np.abs(k_neg))",
+            "c[half_n + 1:] * (-2j * np.pi * k_neg)",
+            "c[half_n + 1:] * (2j * np.pi * k_neg)"
+          ],
+          "richtig": 3,
+          "erklaerung": "Dieselbe Regel $2\\pi ik$, aber mit den <b>negativen</b> Frequenzen. Hier wird der häufigste Fehler gemacht: man nimmt die Beträge oder dreht das Vorzeichen, und schon ist das Ergebnis nicht mehr reell — denn die Reellwertigkeit beruht darauf, dass zu $c_k$ und $c_{-k}=\\overline{c_k}$ die Faktoren $2\\pi ik$ und $-2\\pi ik$ gehören, die wieder zueinander konjugiert sind. Ohne jede Multiplikation bekäme man für die negativen Frequenzen schlicht die Funktion statt ihrer Ableitung.",
+          "hinweis": "Warum bleibt die Ableitung einer reellen Funktion reell — und was muss dafür für die Faktoren bei $+k$ und $-k$ gelten?"
+        },
+        {
+          "id": "L6",
+          "loesung": "np.fft.ifft(c_padded) * (N / n)",
+          "optionen": [
+            "np.fft.ifft(c_padded)",
+            "np.fft.fft(c_padded) * (N / n)",
+            "np.fft.ifft(c_padded) * (N / n)",
+            "np.fft.ifft(c_padded) * (n / N)"
+          ],
+          "richtig": 2,
+          "erklaerung": "<code>np.fft.ifft</code> teilt intern durch die Länge des übergebenen Vektors, also durch $N$. Die Koeffizienten stammen aber aus einer <code>fft</code> der Länge $n$ und tragen die Normierung $n$ in sich. Der Faktor $N/n$ korrigiert das. Vergisst man ihn, sind alle Werte um $n/N$ zu klein — bei $n=16$ und $N=128$ also um den Faktor $8$; mit $n/N$ statt $N/n$ sogar um $64$.",
+          "hinweis": "<code>ifft</code> eines Vektors der Länge $N$ teilt durch $N$. Auf welche Länge waren die Koeffizienten normiert?"
+        }
+      ],
+      "template": "import numpy as np\nimport matplotlib.pyplot as plt\n\n\ndef evaliptrig(y, N):\n    \"\"\"\n    Evaluate a trigonometric interpolation polynomial on some data\n\n    Args:\n        y (np.array): input data, len must be even\n        N (int): number of evaluation points of the interpolated poly\n\n    Returns:\n        np.array: evaluated values of the interpolation\n    \"\"\"\n    n = len(y)\n    if (n % 2 != 0):\n        raise ValueError(\"y must be of even length\")\n\n    # TODO: fft, Zero-Padding (positive Frequenzen, Nyquist haelftig auf beide\n    #       Enden, negative Frequenzen), ifft und Skalierung mit N/n\n    v = None\n    return v\n\n\ndef evaliDtrig(y, N):\n    \"\"\"\n    Evaluate a trigonometric interpolation polynomial of the derivative of some data\n\n    Args:\n        y (np.array): input data, len must be even\n        N (int): number of evaluation points of the interpolated poly\n\n    Returns:\n        np.array: evaluated values of the interpolation\n    \"\"\"\n    n = len(y)\n    if (n % 2 != 0):\n        raise ValueError(\"y must be of even length\")\n\n    # TODO: wie oben, aber jeder Koeffizient wird zusaetzlich mit 2*pi*i*k\n    #       multipliziert -- auf die richtigen Frequenzen k achten!\n    v = None\n    return v\n\n\ndef compute_convergence(a, b, fn, dfn, n_eval, n_convergence):\n    \"\"\"\n    Computes the convergence of a trigonometric interpolation polynomial to the\n    true value of the function or of the derivative\n\n    Args:\n        a (float): left interval limit\n        b (float): right interval limit\n        fn: function of which to compute the derivative\n        dfn: exact derivative. If None computes the convergence to the function\n        n_eval (int): number of evaluation points, must be >= 2**n_convergence\n        n_convergence (int): convergence is evaluated at 2**np.arange(1,n_convergence+1) points\n\n    Returns:\n        np.array: l2 norm of the error at np.linspace(a, b, n_eval, endpoint=False)\n    \"\"\"\n    if (n_eval < 2**n_convergence):\n        raise ValueError(\"Eval must be large enough\")\n\n    # calculate exact solution for the finest grid\n    xx = np.linspace(a, b, n_eval, endpoint=False)\n    if dfn is None:\n        fv = fn(xx)\n    else:\n        fv = dfn(xx)\n\n    ns = 2 ** np.arange(1, n_convergence + 1)\n    norms = np.zeros(n_convergence)\n    # TODO: ueber die Gitterdichten iterieren, auf das feine Gitter\n    #       interpolieren und die l2-Norm des Fehlers ablegen\n    return norms\n\n\nif __name__ == \"__main__\":\n    # ---- Treiber (im Original nicht enthalten, hier ergaenzt) ----\n    f = lambda t: np.exp(np.sin(2 * np.pi * t))\n    df = lambda t: 2 * np.pi * np.cos(2 * np.pi * t) * np.exp(np.sin(2 * np.pi * t))\n    g = lambda t: np.abs(t - 0.5)\n\n    n_eval = 1024\n    n_conv = 8\n    ns = 2 ** np.arange(1, n_conv + 1)\n\n    e_f = compute_convergence(0., 1., f, None, n_eval, n_conv)\n    e_df = compute_convergence(0., 1., f, df, n_eval, n_conv)\n    e_g = compute_convergence(0., 1., g, None, n_eval, n_conv)\n\n    plt.figure(figsize=(8, 6))\n    plt.loglog(ns, np.maximum(e_f, 1e-17), 'o-', label=r\"glatt: $f$\")\n    plt.loglog(ns, np.maximum(e_df, 1e-17), 's-', label=r\"glatt: $f'$\")\n    plt.loglog(ns, np.maximum(e_g, 1e-17), 'd-', label=r\"Hutfunktion: $g$\")\n    plt.grid(True, which='both')\n    plt.xlabel('Anzahl Stuetzstellen n')\n    plt.ylabel(r'$L^2$-Fehler')\n    plt.title('Konvergenz der trigonometrischen Interpolation')\n    plt.legend()\n    plt.savefig('./cx_out/convApproxFdF.png')\n",
+      "loesung": "import numpy as np\nimport matplotlib.pyplot as plt\n\n\ndef evaliptrig(y, N):\n    \"\"\"\n    Evaluate a trigonometric interpolation polynomial on some data\n\n    Args:\n        y (np.array): input data, len must be even\n        N (int): number of evaluation points of the interpolated poly\n\n    Returns:\n        np.array: evaluated values of the interpolation\n    \"\"\"\n    n = len(y)\n    if (n % 2 != 0):\n        raise ValueError(\"y must be of even length\")\n\n    c = np.fft.fft(y)\n\n    # Spezialfall: kein Padding noetig\n    if N == n:\n        return y.copy()\n\n    c_padded = np.zeros(N, dtype=complex)\n    half_n = n // 2\n\n    # positive Frequenzen\n    c_padded[:half_n] = c[:half_n]\n\n    # negative Frequenzen\n    c_padded[N - half_n + 1:] = c[half_n + 1:]\n\n    # Nyquist-Koeffizient haelftig auf beide Enden\n    c_padded[half_n] = c[half_n] / 2\n    c_padded[N - half_n] = c[half_n] / 2\n\n    v = np.fft.ifft(c_padded) * (N / n)\n    return v\n\n\ndef evaliDtrig(y, N):\n    \"\"\"\n    Evaluate a trigonometric interpolation polynomial of the derivative of some data\n\n    Args:\n        y (np.array): input data, len must be even\n        N (int): number of evaluation points of the interpolated poly\n\n    Returns:\n        np.array: evaluated values of the interpolation\n    \"\"\"\n    n = len(y)\n    if (n % 2 != 0):\n        raise ValueError(\"y must be of even length\")\n\n    c = np.fft.fft(y)\n    c_padded = np.zeros(N, dtype=complex)\n    half_n = n // 2\n\n    k_pos = np.arange(half_n)\n    k_neg = np.arange(-half_n + 1, 0)\n\n    if N == n:\n        c_padded[:half_n] = c[:half_n] * (2j * np.pi * k_pos)\n        c_padded[half_n + 1:] = c[half_n + 1:] * (2j * np.pi * k_neg)\n        c_padded[half_n] = 0\n    else:\n        c_padded[:half_n] = c[:half_n] * (2j * np.pi * k_pos)\n        c_padded[N - half_n + 1:] = c[half_n + 1:] * (2j * np.pi * k_neg)\n\n        c_padded[half_n] = (c[half_n] / 2) * (2j * np.pi * half_n)\n        c_padded[N - half_n] = (c[half_n] / 2) * (-2j * np.pi * half_n)\n\n    v = np.fft.ifft(c_padded) * (N / n)\n    return v\n\n\ndef compute_convergence(a, b, fn, dfn, n_eval, n_convergence):\n    \"\"\"\n    Computes the convergence of a trigonometric interpolation polynomial to the\n    true value of the function or of the derivative\n\n    Args:\n        a (float): left interval limit\n        b (float): right interval limit\n        fn: function of which to compute the derivative\n        dfn: exact derivative. If None computes the convergence to the function\n        n_eval (int): number of evaluation points, must be >= 2**n_convergence\n        n_convergence (int): convergence is evaluated at 2**np.arange(1,n_convergence+1) points\n\n    Returns:\n        np.array: l2 norm of the error at np.linspace(a, b, n_eval, endpoint=False)\n    \"\"\"\n    if (n_eval < 2**n_convergence):\n        raise ValueError(\"Eval must be large enough\")\n\n    # exakte Loesung auf dem feinsten Gitter\n    xx = np.linspace(a, b, n_eval, endpoint=False)\n    if dfn is None:\n        fv = fn(xx)\n    else:\n        fv = dfn(xx)\n\n    # ueber die Gitterdichten iterieren\n    ns = 2 ** np.arange(1, n_convergence + 1)\n    norms = np.zeros(n_convergence)\n    for i, n in enumerate(ns):\n        t = np.linspace(a, b, n, endpoint=False)\n        y = fn(t)\n        if dfn is None:\n            v = np.real(evaliptrig(y, n_eval))\n        else:\n            v = np.real(evaliDtrig(y, n_eval))\n        norms[i] = np.linalg.norm(v - fv) / np.sqrt(n_eval)\n    return norms\n\n\nif __name__ == \"__main__\":\n    # ---- Treiber (im Original nicht enthalten, hier ergaenzt) ----\n    f = lambda t: np.exp(np.sin(2 * np.pi * t))\n    df = lambda t: 2 * np.pi * np.cos(2 * np.pi * t) * np.exp(np.sin(2 * np.pi * t))\n    g = lambda t: np.abs(t - 0.5)\n\n    n_eval = 1024\n    n_conv = 8\n    ns = 2 ** np.arange(1, n_conv + 1)\n\n    e_f = compute_convergence(0., 1., f, None, n_eval, n_conv)\n    e_df = compute_convergence(0., 1., f, df, n_eval, n_conv)\n    e_g = compute_convergence(0., 1., g, None, n_eval, n_conv)\n\n    print('n      :', ns)\n    print('f      :', e_f)\n    print(\"f'     :\", e_df)\n    print('Hut    :', e_g)\n\n    plt.figure(figsize=(8, 6))\n    plt.loglog(ns, np.maximum(e_f, 1e-17), 'o-', label=r\"glatt: $f$\")\n    plt.loglog(ns, np.maximum(e_df, 1e-17), 's-', label=r\"glatt: $f'$\")\n    plt.loglog(ns, np.maximum(e_g, 1e-17), 'd-', label=r\"Hutfunktion: $g$\")\n    plt.grid(True, which='both')\n    plt.xlabel('Anzahl Stuetzstellen n')\n    plt.ylabel(r'$L^2$-Fehler')\n    plt.title('Konvergenz der trigonometrischen Interpolation')\n    plt.legend()\n    plt.savefig('./cx_out/convApproxFdF.png')\n",
+      "test": {
+        "typ": "werte",
+        "pruefcode": "import numpy as np\n\nn = 16\nt = np.linspace(0., 1., n, endpoint=False)\nN = 128\ntt = np.linspace(0., 1., N, endpoint=False)\n\n# --- (1) reine Harmonische: der Interpolant ist exakt ---\ny = np.sin(2 * np.pi * t)\nv = np.asarray(evaliptrig(y, N))\nassert v.shape == (N,), f'evaliptrig muss N Werte liefern, hier {v.shape}'\nassert np.max(np.abs(np.imag(v))) < 1e-10, 'fuer reelle Daten muss der Interpolant reell sein'\nassert np.allclose(np.real(v), np.sin(2 * np.pi * tt), rtol=1e-8, atol=1e-9), \\\n    'sin(2 pi t) muss exakt reproduziert werden (Kor. 3.5.9)'\n\n# --- (2) die Ableitung von sin(2 pi t) ist 2 pi cos(2 pi t) ---\nd = np.asarray(evaliDtrig(y, N))\nassert np.max(np.abs(np.imag(d))) < 1e-8, 'auch die Ableitung muss reell sein'\nassert np.allclose(np.real(d), 2 * np.pi * np.cos(2 * np.pi * tt), rtol=1e-7, atol=1e-7), \\\n    \"die Ableitung von sin(2 pi t) muss 2 pi cos(2 pi t) ergeben -- Faktor 2*pi*i*k pruefen\"\n\n# --- (3) zusammengesetztes bandbegrenztes Signal, inkl. negativer Frequenzen ---\ny2 = np.cos(2 * np.pi * 3 * t) - 0.4 * np.sin(2 * np.pi * 5 * t) + 0.25 * np.sin(2 * np.pi * 1 * t)\nf2 = lambda s: np.cos(2*np.pi*3*s) - 0.4*np.sin(2*np.pi*5*s) + 0.25*np.sin(2*np.pi*1*s)\nd2 = lambda s: (-6*np.pi*np.sin(2*np.pi*3*s) - 0.4*10*np.pi*np.cos(2*np.pi*5*s)\n                + 0.25*2*np.pi*np.cos(2*np.pi*1*s))\np2 = np.real(np.asarray(evaliptrig(y2, N)))\nassert np.allclose(p2, f2(tt), rtol=1e-8, atol=1e-9), 'das bandbegrenzte Signal muss exakt getroffen werden'\nassert np.allclose(p2[::N//n], y2, rtol=1e-9, atol=1e-9), \\\n    'jeder N/n-te Wert muss wieder eine urspruengliche Stuetzstelle sein'\nassert np.allclose(np.real(np.asarray(evaliDtrig(y2, N))), d2(tt), rtol=1e-7, atol=1e-7), \\\n    'die Ableitung des zusammengesetzten Signals stimmt nicht'\n\n# --- (3b) allgemeine Daten mit nichttrivialem Nyquist-Anteil ---\ny3 = np.array([1., -2., 0.5, 3., -1., 0., 2., -0.5])\nn3 = len(y3)\nassert abs(np.fft.fft(y3)[n3 // 2]) > 1e-3, 'Testdaten mit nichttrivialem Nyquist-Anteil'\nfor N3 in (32, 72, 128):\n    v3 = np.asarray(evaliptrig(y3, N3))\n    assert np.max(np.abs(np.imag(v3))) < 1e-10, \\\n        'fuer reelle Daten muss der Interpolant reell sein -- Nyquist-Koeffizient pruefen'\n    assert np.allclose(np.real(v3)[::N3 // n3], y3, rtol=1e-9, atol=1e-9), (\n        f'bei N={N3} werden die urspruenglichen Stuetzstellen nicht mehr getroffen: '\n        f'{np.real(v3)[::N3 // n3]} statt {y3}')\n\n# --- (4) Konvergenz: exponentiell fuer glatte, algebraisch fuer die Hutfunktion ---\nf = lambda s: np.exp(np.sin(2 * np.pi * s))\ndf = lambda s: 2 * np.pi * np.cos(2 * np.pi * s) * np.exp(np.sin(2 * np.pi * s))\ne_f = np.asarray(compute_convergence(0., 1., f, None, 1024, 7))\ne_df = np.asarray(compute_convergence(0., 1., f, df, 1024, 7))\nassert e_f.shape == (7,) and e_df.shape == (7,), 'compute_convergence muss n_convergence Werte liefern'\nassert e_f[0] > 1e-3 and e_df[0] > 1e-2, 'auf dem groebsten Gitter darf der Fehler nicht winzig sein'\nassert e_f[-1] < 1e-12, f'exponentielle Konvergenz erwartet, hier e_f[-1] = {e_f[-1]:.3e}'\nassert e_df[-1] < 1e-10, f'auch die Ableitung muss exponentiell konvergieren, hier {e_df[-1]:.3e}'\n\ng = lambda s: np.abs(s - 0.5)\ne_g = np.asarray(compute_convergence(0., 1., g, None, 1024, 7))\nassert e_g[-1] > 1e-5, 'die Hutfunktion hat einen Knick und konvergiert nur algebraisch'\nassert e_g[-1] < e_g[2], 'trotzdem muss der Fehler fallen'\n"
+      },
+      "referenzPlot": "assets/ref/ce-w5-approxfdf.png"
+    }
+  ]
+}

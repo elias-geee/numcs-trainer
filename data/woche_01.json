@@ -1,0 +1,574 @@
+{
+  "woche": 1,
+  "titel": "Rundungsfehler und Fehlerpropagation",
+  "status": "vollstaendig",
+  "skript": {
+    "kapitel": "1.1",
+    "seiten": "6–21"
+  },
+  "vorlage": "wochenplan/Vorlage01_rundungsfehler.pdf",
+  "aufgabenUebersicht": {
+    "moodle": 0,
+    "codeexpert": 3
+  },
+  "einleitung": "<p>Die ganze Woche dreht sich um eine Frage: <b>wann zerstört die Gleitkomma-Arithmetik ein Ergebnis, und wie formuliert man den Algorithmus um, damit sie es nicht tut.</b> Der rote Faden ist die <i>Auslöschung</i> — die Subtraktion zweier fast gleich grosser Zahlen. Jedes Beispiel des Kapitels ist eine Variation davon: instabile Nullstellenformel, Differenzenquotient, Potenzreihe, und schliesslich die beiden Auswege (rein imaginärer Schritt, Richardson).</p><p class=\"faint\">Das Skript betont ausdrücklich, dass die Rundungsfehleranalyse <i>nicht</i> der Kern der Vorlesung ist (S. 6) — die Ideen zu guten Approximationen und effizienten Algorithmen sind wichtiger. Für die Prüfung zählt vor allem: die Fälle erkennen, in denen klar vermeidbar schiefgeht.</p>",
+  "zusammenfassung": [
+    {
+      "id": "w1-z1",
+      "titel": "Absoluter und relativer Fehler",
+      "ref": {
+        "abschnitt": "1.1",
+        "seite": 6,
+        "nummer": "Definition 1.1.1"
+      },
+      "text": "<p>Sei $\\tilde{\\mathbf{x}}\\in\\mathbb{R}^n$ eine Approximation an $\\mathbf{x}\\in\\mathbb{R}^n$. Der <b>absolute Fehler</b> ist $\\|\\tilde{\\mathbf{x}}-\\mathbf{x}\\|$ mit einer Norm auf $\\mathbb{R}^n$; für $\\tilde{\\mathbf{x}}\\neq 0$ ist der <b>relative Fehler</b> $\\|\\tilde{\\mathbf{x}}-\\mathbf{x}\\|/\\|\\mathbf{x}\\|$.</p><p>Unterscheiden zwei positive Maschinenzahlen sich erst ab der $(\\ell+1)$-ten Ziffer, so ist der relative Fehler $&lt;10^{-\\ell}$. Der relative Fehler misst also direkt, wie viele korrekte Stellen übrig sind — deshalb ist er in der Numerik die interessantere Grösse.</p>",
+      "formeln": [
+        "\\|\\tilde{\\mathbf{x}}-\\mathbf{x}\\| \\qquad\\text{und}\\qquad \\frac{\\|\\tilde{\\mathbf{x}}-\\mathbf{x}\\|}{\\|\\mathbf{x}\\|}"
+      ],
+      "merke": "Floats nie mit <code>==</code> vergleichen. Stattdessen <code>abs(x) &lt; tol*s</code> mit einer Skala $s$, zu der $|x|$ klein sein soll (Code 1.1.5)."
+    },
+    {
+      "id": "w1-z2",
+      "titel": "Maschinenzahlen und Maschinengenauigkeit",
+      "ref": {
+        "abschnitt": "1.1",
+        "seite": 7
+      },
+      "text": "<p>Mit Basis $B\\ge 2$, Exponentenbereich $\\{e_{\\min},\\dots,e_{\\max}\\}$ und $m$ Mantissenziffern ist die Menge der Maschinenzahlen</p><p>Die Zahlen haben die Form $x=\\pm 0.a_1a_2\\dots a_m\\cdot B^e$, <b>normalisiert</b> durch $a_1\\neq 0$ für $x\\neq 0$. Entscheidend: der Abstand benachbarter Maschinenzahlen wächst mit dem Betrag — in jedem Binade $[B^{e-1},B^e)$ ist er konstant $B^{e-m}$. Die relative Auflösung ist also überall etwa gleich, die absolute nicht.</p><p>Die wichtigsten Kennzahlen liefert <code>numpy.finfo</code>:</p><ul><li><code>np.finfo(np.float64).eps</code> $\\approx 2.220446\\cdot10^{-16}$ — Abstand von $1.0$ zur nächst<b>grösseren</b> Maschinenzahl</li><li><code>.epsneg</code> $\\approx 1.110223\\cdot10^{-16}$ — Abstand zur nächst<b>kleineren</b></li><li><code>.tiny</code> $\\approx 2.225\\cdot10^{-308}$, <code>.max</code> $\\approx 1.798\\cdot10^{308}$, <code>.resolution</code> $=10^{-15}$</li></ul>",
+      "formeln": [
+        "\\mathcal{M}=\\bigl\\{d\\cdot B^{E}\\ \\big|\\ d=i\\cdot B^{-m},\\ i=B^{m-1},\\dots,B^{m}-1,\\ E\\in\\{e_{\\min},\\dots,e_{\\max}\\}\\bigr\\}"
+      ],
+      "merke": "<code>eps</code> ist <i>kein</i> absoluter Fehlerbalken, sondern eine <i>relative</i> Schranke. Für $x\\approx 10^{6}$ beträgt der Abstand zweier Maschinenzahlen bereits $\\approx 10^{-10}$."
+    },
+    {
+      "id": "w1-z3",
+      "titel": "Überlauf, Unterlauf, inf und NaN",
+      "ref": {
+        "abschnitt": "1.1",
+        "seite": 8,
+        "nummer": "Beispiel 1.1.4, Code 1.1.5"
+      },
+      "text": "<p><b>Überlauf</b> (Overflow): das Ergebnis liegt über <code>.max</code> — es gibt meistens eine Warnung, Resultat <code>inf</code>. <b>Unterlauf</b> (Underflow): das Ergebnis liegt zwischen $0$ und der kleinsten positiven Maschinenzahl; die Warnung ist standardmässig <i>ausgeschaltet</i>, weil Unterlauf meist harmlos ist — er kann aber Genauigkeit kosten. Mit <code>np.seterr(under=\"warn\")</code> lässt er sich sichtbar machen.</p><p>Spezialfälle: <code>np.array([1,2])/0.0</code> → <code>inf</code>, <code>np.array([0,0])/0.0</code> → <code>nan</code>. Vorsicht auch bei Ganzzahltypen: <code>np.uint8(23) - np.uint8(42)</code> ergibt <code>237</code> (Wrap-around, kein Fehler).</p>",
+      "merke": "Unterlauf ist still. Wenn ein Ergebnis unerwartet exakt $0$ ist, zuerst dort nachsehen."
+    },
+    {
+      "id": "w1-z4",
+      "titel": "Auslöschung — der zentrale Mechanismus",
+      "ref": {
+        "abschnitt": "1.1",
+        "seite": 10,
+        "nummer": "Bemerkung 1.1.9, Beispiel 1.1.10"
+      },
+      "text": "<p><b>Auslöschung</b> ist die Subtraktion zweier ungefähr gleich grosser Zahlen. Der Rundungsfehler der Subtraktion selbst ist dabei vernachlässigbar — das Problem ist, dass die <i>bereits vorhandenen</i> relativen Fehler der Operanden massiv verstärkt werden.</p><p>Im Dezimalbeispiel des Skripts sind $x=0.123467{*}$ und $y=0.123456{*}$ ab der 7. Ziffer verfälscht. Die Differenz $x-y=0.000011{*}=0.11{*}000\\cdot10^{-4}$ ist bereits ab der 3. Ziffer verfälscht: die führenden Nullen sind <i>unwesentlich</i>, beim Normalisieren rücken die verfälschten Ziffern nach vorn. Aus einem relativen Fehler $10^{-7}$ wird einer von $\\approx 10^{-3}$.</p>",
+      "merke": "Der absolute Fehler bleibt bei der Subtraktion klein — nur der <i>relative</i> explodiert, weil das Ergebnis klein ist. Darum ist Auslöschung immer dann gefährlich, wenn man anschliessend durch das Ergebnis teilt."
+    },
+    {
+      "id": "w1-z5",
+      "titel": "Instabile und stabile Nullstellen einer quadratischen Gleichung",
+      "ref": {
+        "abschnitt": "1.1",
+        "seite": 9,
+        "nummer": "Beispiel 1.1.6 / 1.1.13, Code 1.1.7 / 1.1.14"
+      },
+      "text": "<p>Für $p(x)=x^2+ax+b$ liefert die Schulformel $x_{1,2}=\\frac{-a\\pm\\sqrt{a^2-4b}}{2}$. Getestet an $p(x)=(x-c)(x-1/c)$, also $a=-(c+1/c)$, $b=1$: der relative Fehler der <b>kleineren</b> Nullstelle wächst auf $\\approx 10^{-11}$, während die grössere auf $\\approx 10^{-16}$ genau bleibt (Abb. 1.1.8). Der Unterschied: bei der kleineren Nullstelle steht eine <b>Subtraktion</b>, bei der grösseren eine Addition.</p><p>Die stabile Variante rechnet nur die unkritische Nullstelle aus und holt die andere über den Satz von <b>Vieta</b> ($x_1x_2=b$):</p><pre class=\"code\">wD = np.sqrt(D)\nz2 = np.where(a &lt; 0, (wD - a)/2, (-wD - a)/2)   # immer eine Addition\nz1 = b / z2                                     # Vieta statt Subtraktion</pre><p>Damit liegen beide Nullstellen bei $\\approx 10^{-16}$ (Abb. 1.1.15).</p>",
+      "merke": "Das Muster ist allgemein: Vorzeichen so wählen, dass die kritische Subtraktion gar nicht erst entsteht, und die zweite Grösse über eine algebraische Identität gewinnen."
+    },
+    {
+      "id": "w1-z6",
+      "titel": "Differenzenquotient: Approximationsfehler gegen Rundungsfehler",
+      "ref": {
+        "abschnitt": "1.1",
+        "seite": 11,
+        "nummer": "Beispiel 1.1.11, Code 1.1.12"
+      },
+      "text": "<p>Aus Taylor folgt für den einseitigen Differenzenquotienten ein Fehler der <b>Ordnung 1</b>:</p><p>Man erwartet also, dass der Fehler proportional zu $h$ fällt. Tatsächlich fällt er nur bis $h\\approx 10^{-8}$ und steigt danach wieder steil an — für $h=10^{-16}$ ist der relative Fehler $1.0$, also vollständiger Verlust. Grund: $f(x+h)-f(x)$ ist Auslöschung, der Fehler davon wird durch $h$ geteilt und damit um $1/h$ verstärkt.</p><p>Die Summe beider Effekte ist $\\approx |h| + \\frac{2\\,\\mathrm{eps}}{|h|}$ und wird minimal bei $|h|=\\sqrt{2\\,\\mathrm{eps}}$. In NumPy: <code>np.sqrt(2*np.finfo(np.float64).eps)</code> $=2.1073424255447017\\cdot10^{-8}$.</p>",
+      "formeln": [
+        "\\frac{f(x+h)-f(x)}{h}-f'(x)=\\tfrac{1}{2}f''(c)\\,h",
+        "\\left|\\frac{e^{x}-\\texttt{df}}{e^{x}}\\right|\\approx |h|+\\frac{2\\,\\mathrm{eps}}{|h|}\\ \\longrightarrow\\ \\min \\quad\\text{für}\\quad |h|=\\sqrt{2\\,\\mathrm{eps}}"
+      ],
+      "merke": "«Kleineres $h$ ist genauer» gilt nur bis $\\sqrt{2\\,\\mathrm{eps}}\\approx 2.1\\cdot10^{-8}$. Die Fehlerkurve über $h$ ist ein <b>V</b>: links Rundung, rechts Approximation."
+    },
+    {
+      "id": "w1-z7",
+      "titel": "Summe der Potenzreihe von $e^x$",
+      "ref": {
+        "abschnitt": "1.1",
+        "seite": 13,
+        "nummer": "Beispiel 1.1.16, Code 1.1.17"
+      },
+      "text": "<p>Die Reihe $e^x=\\sum_k x^k/k!$ konvergiert überall, also könnte man $e^x$ durch Abbruch nach genügend Termen beliebig gut berechnen. Für $x\\ge 0$ funktioniert das (relative Fehler $\\approx 10^{-9}$), für grosse negative $x$ ist es <b>katastrophal</b>: bei $x=-20$ liefert die Partialsumme $6.15\\cdot10^{-9}$ statt $2.06\\cdot10^{-9}$ — relativer Fehler $\\approx 1.98$, also kein einziges korrektes Zeichen.</p><p>Grund: die Summanden wechseln das Vorzeichen und werden betragsmässig <i>viel</i> grösser als das Ergebnis ($20^{20}/20!\\approx 4\\cdot10^{7}$ gegenüber einem Resultat von $10^{-9}$). Das ist Auslöschung im grossen Stil.</p>",
+      "merke": "Abhilfe: $e^{x}=1/e^{-x}$ für $x&lt;0$ — dieselbe Reihe, aber nur positive Summanden."
+    },
+    {
+      "id": "w1-z8",
+      "titel": "Ausweg 1: Ableitung via rein imaginärem Schritt",
+      "ref": {
+        "abschnitt": "1.1",
+        "seite": 15,
+        "nummer": "Beispiel 1.1.18, Abb. 1.1.19"
+      },
+      "text": "<p>Ist $f$ in einer komplexen Umgebung von $x_0$ <b>analytisch</b> (als konvergente Potenzreihe darstellbar, alle $a_j\\in\\mathbb{R}$), darf man Taylor mit einem rein imaginären Schritt $ih$ schreiben:</p><p>Die Terme $f(x_0)$ und $-\\tfrac12 f''(x_0)h^2$ sind reell und verschwinden im Imaginärteil. Daraus folgt eine Approximation der <b>Ordnung 2</b> ganz <b>ohne Subtraktion</b> — und damit ohne Auslöschung. In Abb. 1.1.19 fällt der Fehler von <code>diffih</code> wie $h^2$ bis hinunter zur Maschinengenauigkeit und bleibt dort, während <code>diffd1</code> ab $h\\approx10^{-8}$ wieder hochläuft.</p><p>Der Preis: $f$ muss für komplexe Argumente auswertbar und deutlich glatter sein, als man oft weiss (bei reinen Messdaten unmöglich).</p>",
+      "formeln": [
+        "f(x_0+ih)=f(x_0)+f'(x_0)ih-\\tfrac{1}{2}f''(x_0)h^{2}-\\tfrac{i}{6}f'''(x_0)h^{3}+\\mathcal{O}(h^{4})",
+        "f'(x_0)=\\frac{\\operatorname{Im}\\bigl(f(x_0+ih)\\bigr)}{h}+\\tfrac{1}{6}f'''(x_0)h^{2}+\\mathcal{O}(h^{4})"
+      ],
+      "merke": "Keine Subtraktion ⇒ keine Auslöschung. In NumPy: <code>np.imag(f(x + h*1j)) / h</code>."
+    },
+    {
+      "id": "w1-z9",
+      "titel": "Ausweg 2: symmetrischer Differenzenquotient und Richardson-Extrapolation",
+      "ref": {
+        "abschnitt": "1.1",
+        "seite": 17,
+        "nummer": "Beispiel 1.1.20, (1.1.1)–(1.1.8), Code 1.1.21"
+      },
+      "text": "<p>Subtrahiert man die Taylor-Entwicklungen für $+h$ und $-h$, heben sich alle <b>geraden</b> Potenzen auf. Der symmetrische Differenzenquotient $d(h)=\\frac{f(x+h)-f(x-h)}{2h}$ hat damit Ordnung 2, und — entscheidend — sein Fehler ist eine Reihe in <b>ausschliesslich geraden</b> Potenzen von $h$:</p><p>Halbiert man $h$, wird der Term $c_1h^2$ um $2^2=4$ kleiner. Die Linearkombination, die ihn eliminiert, ist $d_1(h)=\\frac{4d(h/2)-d(h)}{3}$ mit Fehler $\\mathcal{O}(h^4)$. Wiederholen: $d_2(h)=\\frac{16d_1(h/2)-d_1(h)}{15}$ mit $\\mathcal{O}(h^6)$. Allgemein mit $d_{\\ell,0}=d(h/2^{\\ell})$:</p><p>Das ergibt das <b>Richardson-Schema</b> (1.1.8): erste Spalte = symmetrische Differenzenquotienten zu immer kleinerem $h$, jede weitere Spalte erhöht die Ordnung um 2. Auf der <b>Diagonalen</b> stehen die besten Approximationen, mit Fehler $f'(x)-R_{\\ell,k}=C\\cdot(h/2^{\\ell})^{2k+2}$.</p><p class=\"faint\">Bei der Quadratur heisst dasselbe Vorgehen Romberg-Schema; der Algorithmus ist als Aitken-Neville bekannt.</p>",
+      "formeln": [
+        "f'(x)-d(h)=c_1h^{2}+c_2h^{4}+\\dots+c_nh^{2n}+\\mathcal{O}(h^{2n+2})",
+        "R_{\\ell,k}=\\frac{4^{k}R_{\\ell,k-1}-R_{\\ell-1,k-1}}{4^{k}-1},\\qquad f'(x)-R_{\\ell,k}=C\\cdot\\left(h/2^{\\ell}\\right)^{2k+2}"
+      ],
+      "merke": "Der Nenner ist $4^k-1$ (nicht $2^k-1$), weil die Fehlerreihe nur gerade Potenzen enthält: eine Halbierung von $h$ verkleinert $h^{2k}$ um $2^{2k}=4^{k}$."
+    },
+    {
+      "id": "w1-z10",
+      "titel": "Konvergenzbeschleunigung heilt die Auslöschung nicht",
+      "ref": {
+        "abschnitt": "1.1",
+        "seite": 20,
+        "nummer": "Abb. 1.1.22"
+      },
+      "text": "<p>Das Skript betont das ausdrücklich: Richardson <i>behebt</i> das Auslöschungsproblem nicht. Es konvergiert nur so schnell, dass man mit rechtzeitigem Abbruch über eine Fehlerschätzung gar nicht erst in den Bereich kleiner $h$ kommt, in dem Auslöschung sichtbar wird. Lässt man das Schema weiterlaufen, sieht man sie im letzten Level ebenso.</p><p>Das ist der Unterschied zur Technik mit komplexen Zahlen: dort verschwindet die Auslöschung <b>strukturell</b>, hier wird sie nur umgangen.</p>",
+      "merke": "In Code 1.1.21 ist genau dafür das Abbruchkriterium <code>errest = abs(y[j]-y[j-1])</code> mit <code>if errest &lt; rtol*abs(y[j]) or errest &lt; atol: break</code> eingebaut."
+    }
+  ],
+  "moodleHinweis": "Für diese Woche gibt es <b>kein</b> Moodle-Material — im Ordner <code>moodle quizes/</code> fehlt ein Quiz 1. Alle Fragen hier sind von mir im Stil der Originalfragen ergänzt (Single Choice mit Scoring SC1/0, Zahleneingaben) und mit Skript-Verweis begründet.",
+  "moodle": [
+    {
+      "id": "m-w1-01",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Maschinengenauigkeit",
+      "frageHtml": "<p>Was liefert <code>np.finfo(np.float64).eps</code>?</p>",
+      "optionen": [
+        "Die kleinste positive normalisierte Maschinenzahl, $\\approx 2.225\\cdot10^{-308}$.",
+        "Die Differenz zwischen $1.0$ und der nächstgrösseren Maschinenzahl, $\\approx 2.220446\\cdot10^{-16}$.",
+        "Die Differenz zwischen $1.0$ und der nächstkleineren Maschinenzahl, $\\approx 1.110223\\cdot10^{-16}$.",
+        "Die grösste darstellbare Maschinenzahl, $\\approx 1.798\\cdot10^{308}$."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p><code>eps</code> ist der Abstand von $1.0$ zur nächst<b>grösseren</b> Maschinenzahl. Die anderen Optionen sind ebenfalls Felder von <code>finfo</code>, aber andere: <code>.tiny</code> (a), <code>.epsneg</code> (c) und <code>.max</code> (d). Der Unterschied zwischen <code>eps</code> und <code>epsneg</code> ist genau der Faktor 2 — unterhalb von $1.0$ ist man eine Binade tiefer, dort liegen die Maschinenzahlen doppelt so dicht.</p>",
+      "skriptRef": {
+        "abschnitt": "1.1",
+        "seite": 7
+      }
+    },
+    {
+      "id": "m-w1-02",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Auslöschung",
+      "frageHtml": "<p>Bei welcher Operation tritt <b>Auslöschung</b> auf, und was genau passiert dabei?</p>",
+      "optionen": [
+        "Bei der Multiplikation sehr grosser Zahlen; das Ergebnis läuft über.",
+        "Bei der Division durch eine sehr kleine Zahl; der absolute Fehler wird verstärkt.",
+        "Bei der Subtraktion zweier ungefähr gleich grosser Zahlen; der <b>relative</b> Fehler wird extrem verstärkt, obwohl der Rundungsfehler der Subtraktion selbst vernachlässigbar ist.",
+        "Bei der Addition vieler kleiner Zahlen; die Summanden verschwinden unter der Maschinengenauigkeit."
+      ],
+      "loesung": 2,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Die Subtraktion selbst rundet praktisch nicht. Verstärkt werden die <i>schon vorhandenen</i> Fehler der Operanden: der absolute Fehler bleibt gleich, aber das Ergebnis ist klein, also wird der relative Fehler um den Faktor $\\frac{|x|}{|x-y|}$ grösser. Im Beispiel des Skripts wird aus $10^{-7}$ ein Fehler von $10^{-3}$.</p>",
+      "skriptRef": {
+        "abschnitt": "1.1",
+        "seite": 10,
+        "nummer": "Bem. 1.1.9"
+      }
+    },
+    {
+      "id": "m-w1-03",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Stabile Nullstellen",
+      "frageHtml": "<p>Warum ist die bekannte Formel $x_{1,2}=\\frac{-a\\pm\\sqrt{a^{2}-4b}}{2}$ für die Nullstellen von $p(x)=x^{2}+ax+b$ numerisch instabil, und wie behebt man das?</p>",
+      "optionen": [
+        "Weil $\\sqrt{D}$ ungenau berechnet wird; man muss die Diskriminante mit höherer Präzision auswerten.",
+        "Für die betragsmässig kleinere Nullstelle entsteht eine Subtraktion fast gleich grosser Zahlen. Abhilfe: nur die unkritische Nullstelle direkt berechnen und die andere über den Satz von Vieta $x_1x_2=b$.",
+        "Weil die Diskriminante negativ werden kann; man muss vorher auf $D&lt;0$ prüfen.",
+        "Weil $a$ und $b$ bereits Rundungsfehler enthalten; man muss das Ergebnis auf weniger Stellen runden."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Für $a>0$ ist $-a+\\sqrt{a^2-4b}$ eine Auslöschung (beide Terme fast gleich gross), für $a&lt;0$ trifft es den anderen Zweig. Code 1.1.14 wählt mit <code>np.where(a&lt;0, (wD-a)/2, (-wD-a)/2)</code> immer die <b>Addition</b> und holt die zweite Nullstelle als <code>b/z2</code>. Der Test auf $D&lt;0$ steht zwar auch im Code, ist aber eine ganz andere Frage (reelle Lösbarkeit, nicht Stabilität).</p>",
+      "skriptRef": {
+        "abschnitt": "1.1",
+        "seite": 12,
+        "nummer": "Bsp. 1.1.13, Code 1.1.14"
+      }
+    },
+    {
+      "id": "m-w1-04",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Konvergenzordnungen",
+      "frageHtml": "<p>Welche Konvergenzordnung $p$ (Fehler $\\mathcal{O}(h^{p})$, <i>ohne</i> Berücksichtigung der Rundung) haben die folgenden Approximationen von $f'(x)$ für hinreichend glattes $f$? <b>Ganze Zahlen.</b></p>",
+      "felder": [
+        {
+          "label": "p\\ \\text{für}\\ \\tfrac{f(x+h)-f(x)}{h}",
+          "wert": 1,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "p\\ \\text{für}\\ \\tfrac{f(x+h)-f(x-h)}{2h}",
+          "wert": 2,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "p\\ \\text{für}\\ \\tfrac{\\operatorname{Im}(f(x+ih))}{h}",
+          "wert": 2,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Einseitig: der Restterm ist $\\tfrac12 f''(c)h$, also Ordnung 1. Symmetrisch: beim Subtrahieren der Taylorreihen für $\\pm h$ fallen alle geraden Potenzen weg, es bleibt $-\\tfrac16 f'''(x)h^{2}$ — Ordnung 2, und die Fehlerreihe enthält <i>nur</i> gerade Potenzen (Grundlage für Richardson). Imaginärer Schritt: $\\tfrac16 f'''(x_0)h^{2}$ — ebenfalls Ordnung 2, aber ohne Auslöschung.</p>",
+      "skriptRef": {
+        "abschnitt": "1.1",
+        "seite": 11,
+        "nummer": "Bsp. 1.1.11 / 1.1.18 / 1.1.20"
+      }
+    },
+    {
+      "id": "m-w1-05",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Optimale Schrittweite",
+      "frageHtml": "<p>Für den einseitigen Differenzenquotienten verhält sich der gesamte relative Fehler wie $|h|+\\frac{2\\,\\mathrm{eps}}{|h|}$. Bei welchem $h$ wird er minimal? Mit $\\mathrm{eps}=2.220446049250313\\cdot10^{-16}$, <b>mindestens drei signifikante Ziffern</b>.</p>",
+      "felder": [
+        {
+          "label": "h_{\\text{opt}}",
+          "wert": 2.1073424255447017e-08,
+          "tol": 0.01,
+          "tolTyp": "rel",
+          "anzeige": "2.107\\cdot10^{-8}"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Ableiten von $g(h)=h+2\\,\\mathrm{eps}/h$ ergibt $g'(h)=1-2\\,\\mathrm{eps}/h^{2}=0$, also $h=\\sqrt{2\\,\\mathrm{eps}}$. In NumPy: <code>np.sqrt(2*np.finfo(np.float64).eps)</code> $=2.1073424255447017\\cdot10^{-8}$. Der minimale Fehler selbst ist $2\\sqrt{2\\,\\mathrm{eps}}\\approx 4.2\\cdot10^{-8}$ — man verliert also etwa die Hälfte aller Stellen.</p>",
+      "skriptRef": {
+        "abschnitt": "1.1",
+        "seite": 12,
+        "nummer": "Code 1.1.12"
+      }
+    },
+    {
+      "id": "m-w1-06",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Imaginärer Schritt",
+      "frageHtml": "<p>Die Formel $f'(x_0)\\approx\\frac{\\operatorname{Im}\\bigl(f(x_0+ih)\\bigr)}{h}$ kommt ohne jede Subtraktion aus. Welche Voraussetzung an $f$ braucht sie?</p>",
+      "optionen": [
+        "$f$ muss zweimal stetig differenzierbar sein — mehr nicht.",
+        "$f$ muss monoton sein.",
+        "Keine; die Formel gilt für jede stetige Funktion.",
+        "$f$ muss in einer komplexen Umgebung von $x_0$ analytisch sein (als konvergente Potenzreihe mit reellen Koeffizienten darstellbar) und für komplexe Argumente auswertbar."
+      ],
+      "loesung": 3,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Die Herleitung setzt $f(z)=\\sum_j a_j(z-x_0)^j$ mit $a_j\\in\\mathbb{R}$ voraus. Nur dann sind $f(x_0)$ und $-\\tfrac12 f''(x_0)h^2$ reell und fallen beim Imaginärteil weg. Zweimal stetig differenzierbar reicht <b>nicht</b>, und für reine Messdaten ist die Methode unbrauchbar — genau das steht als Einschränkung im Skript.</p>",
+      "skriptRef": {
+        "abschnitt": "1.1",
+        "seite": 15,
+        "nummer": "Bsp. 1.1.18"
+      }
+    },
+    {
+      "id": "m-w1-07",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Richardson",
+      "frageHtml": "<p>Im Richardson-Schema $R_{\\ell,k}=\\dfrac{4^{k}R_{\\ell,k-1}-R_{\\ell-1,k-1}}{4^{k}-1}$ steht $4^{k}-1$ im Nenner und nicht $2^{k}-1$. Warum?</p>",
+      "optionen": [
+        "Weil in jedem Schritt vier Werte linear kombiniert werden.",
+        "Weil der Fehler des symmetrischen Differenzenquotienten nur <b>gerade</b> Potenzen von $h$ enthält; eine Halbierung von $h$ verkleinert den Term $h^{2k}$ daher um $2^{2k}=4^{k}$.",
+        "Weil $h$ in jedem Schritt geviertelt wird.",
+        "Weil im Restterm die vierte Ableitung von $f$ auftritt."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Aus $f'(x)-d(h)=c_1h^2+c_2h^4+\\dots$ und $f'(x)-d(h/2)=c_1\\tfrac{1}{2^2}h^2+c_2\\tfrac{1}{2^4}h^4+\\dots$ eliminiert die Kombination $\\frac{2^2 d(h/2)-d(h)}{2^2-1}$ den $h^2$-Term. Auf Level $k$ ist der zu eliminierende Term $h^{2k}$, der Faktor also $2^{2k}=4^{k}$. $h$ wird dabei stets nur <b>halbiert</b> (Option c ist die typische Verwechslung).</p>",
+      "skriptRef": {
+        "abschnitt": "1.1",
+        "seite": 18,
+        "nummer": "(1.1.3)–(1.1.7)"
+      }
+    },
+    {
+      "id": "m-w1-08",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Richardson und Auslöschung",
+      "frageHtml": "<p>Behebt die Konvergenzbeschleunigung nach Richardson das Problem der Auslöschung?</p>",
+      "optionen": [
+        "Ja — durch die Linearkombination heben sich die Rundungsfehler gegenseitig auf.",
+        "Ja — weil in der Rekursion keine Subtraktion mehr vorkommt.",
+        "Nein. Sie konvergiert nur so schnell, dass man mit rechtzeitigem Abbruch gar nicht erst in den Bereich kleiner $h$ gelangt, in dem die Auslöschung sichtbar wird; ohne Abbruch tritt sie ebenso auf.",
+        "Nein — die Auslöschung wird durch die Linearkombination sogar systematisch verstärkt."
+      ],
+      "loesung": 2,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Das Skript sagt es wörtlich: «Es ist jedoch wichtig zu betonen, dass die Konvergenzbeschleunigung das Problem der Auslöschung nicht behebt (im Unterschied zur Technik mit komplexen Zahlen).» In Abb. 1.1.22 sieht man in drei Fällen, wie die Auslöschung im letzten Level doch auftritt. Deshalb enthält Code 1.1.21 die Fehlerschätzung mit <code>break</code>.</p>",
+      "skriptRef": {
+        "abschnitt": "1.1",
+        "seite": 20,
+        "nummer": "Code 1.1.21, Abb. 1.1.22"
+      }
+    },
+    {
+      "id": "m-w1-09",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Potenzreihe",
+      "frageHtml": "<p>Die Auswertung von $e^{x}$ über die abgebrochene Potenzreihe liefert bei $x=-20$ einen relativen Fehler von $\\approx 1.98$ — also kein einziges korrektes Zeichen. Woran liegt das, und was hilft?</p>",
+      "optionen": [
+        "Die Reihe konvergiert für negative $x$ nicht; man braucht grundsätzlich mehr Terme.",
+        "Die Summanden wechseln das Vorzeichen und werden betragsmässig viel grösser als das Ergebnis — Auslöschung. Abhilfe: $e^{x}=1/e^{-x}$ für $x&lt;0$ verwenden.",
+        "Das Abbruchkriterium $|\\text{term}|>\\text{tol}\\cdot y$ greift zu früh; eine kleinere Toleranz behebt das Problem.",
+        "Bei der Berechnung von $x^{k}/k!$ kommt es zum Überlauf."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Für $x=-20$ erreicht der grösste Summand $20^{20}/20!\\approx 4\\cdot10^{7}$, während das Resultat $\\approx 2\\cdot10^{-9}$ ist — etwa 16 Zehnerpotenzen Unterschied, also genau die verfügbare Stellenzahl. Mehr Terme oder eine kleinere Toleranz ändern daran nichts, weil die Information bereits in den Zwischensummen verloren geht. $e^{x}=1/e^{-x}$ macht alle Summanden positiv.</p>",
+      "skriptRef": {
+        "abschnitt": "1.1",
+        "seite": 13,
+        "nummer": "Bsp. 1.1.16, Code 1.1.17"
+      }
+    }
+  ],
+  "codeexpert": [
+    {
+      "id": "ce-w1-rekursion",
+      "titel": "3-term Rekursion",
+      "quelle": "codeexpert/3-term Rekursion - Student attempt.rtf",
+      "skriptRef": {
+        "abschnitt": "1.1",
+        "seite": 6,
+        "nummer": "Fehlerpropagation"
+      },
+      "braucht": [
+        "numpy"
+      ],
+      "beschreibung": "<p>Betrachtet wird die Folge $y_n=\\int_0^1 x^{n}e^{x-1}\\,\\mathrm{d}x$. Partielle Integration liefert die Rekursion</p><p>$$y_0=1-\\tfrac{1}{e},\\qquad y_n=1-n\\,y_{n-1}.$$</p><p>Berechne die Folge <b>vorwärts</b> mit dieser Rekursion und <b>rückwärts</b> mit der aufgelösten Form $y_{n-1}=\\frac{1-y_n}{n}$, beginnend bei einem groben Startwert für grosses $n$. Vergleiche beide Ergebnisse.</p><p>Der Punkt der Aufgabe: der unvermeidliche Anfangsfehler von $y_0$ (Grössenordnung <code>eps</code>) wird vorwärts in jedem Schritt mit $n$ multipliziert, nach $n$ Schritten also mit $n!$ — bei $n=25$ ist das $\\approx 10^{25}$, und die Folge explodiert, obwohl $0&lt;y_n&lt;\\frac{1}{n+1}$ gelten muss. Rückwärts wird derselbe Fehler in jedem Schritt durch $n$ <b>geteilt</b>; der Startwert ist deshalb fast beliebig.</p>",
+      "hinweisUmgebung": "Im Original werden die exakten Werte am Ende mit <code>sympy</code> nachgerechnet. Das ist hier weggelassen — <code>sympy</code> wäre in Pyodide ein grosser Zusatzdownload und bringt für die eigentliche Aufgabe nichts. Geprüft wird stattdessen direkt, dass die rückwärts berechnete Folge die Rekursion erfüllt und wie ein Integral aussehen muss.",
+      "luecken_template": "import numpy as np\n\nN = 41\nyf = np.zeros(N)   # vorwaerts berechnet\nyb = np.zeros(N)   # rueckwaerts berechnet\n\n# ---------- Vorwaerts ----------\n# Startwert y_0 = Integral von exp(x-1) ueber [0,1]\nyf[0] = «L1»\n\nfor n in range(1, N):\n    # Rekursionsschritt vorwaerts\n    yf[n] = «L2»\n\n# ---------- Rueckwaerts ----------\n# Grober Startwert: y_n -> 0 fuer grosses n.\n# Der Fehler wird nach unten hin durch n geteilt, also ist 0 gut genug.\nyb[N-1] = 0.0\n\nfor n in range(N-1, 0, -1):\n    # Rekursionsschritt rueckwaerts\n    yb[n-1] = «L3»\n\nk = 12\nprint(' n |       vorwaerts       |      rueckwaerts')\nfor n in range(k):\n    print(f'{n:2d} | {yf[n]: .15f} | {yb[n]: .15f}')\nprint('...')\nprint('yf[25] =', yf[25], ' (muss zwischen 0 und 1/26 liegen!)')\n",
+      "luecken": [
+        {
+          "id": "L1",
+          "loesung": "1 - 1/np.e",
+          "optionen": [
+            "1 - 1/np.e",
+            "1/np.e",
+            "np.e - 1",
+            "1 - np.e"
+          ],
+          "richtig": 0,
+          "erklaerung": "$y_0=\\int_0^1 e^{x-1}\\mathrm{d}x=\\bigl[e^{x-1}\\bigr]_0^1=1-e^{-1}\\approx 0.6321$. Die anderen Optionen liegen ausserhalb von $(0,1)$ oder treffen die Stammfunktion nicht — und $y_n$ muss zwischen $0$ und $\\frac{1}{n+1}$ liegen.",
+          "hinweis": "Stammfunktion von $e^{x-1}$ ist wieder $e^{x-1}$; einsetzen der Grenzen $0$ und $1$."
+        },
+        {
+          "id": "L2",
+          "loesung": "1 - n * yf[n-1]",
+          "optionen": [
+            "1 - n * yf[n-1]",
+            "(1 - yf[n-1]) / n",
+            "1 + n * yf[n-1]",
+            "n * yf[n-1] - 1"
+          ],
+          "richtig": 0,
+          "erklaerung": "Das ist die Rekursion aus der partiellen Integration, nach $y_n$ aufgelöst. Die zweite Option ist die <i>rückwärts</i> aufgelöste Form — mit ihr an dieser Stelle bekäme man keine Instabilität zu sehen, also auch nicht den Punkt der Aufgabe. Der Faktor $n$ vor $y_{n-1}$ ist genau der Verstärkungsfaktor des Fehlers.",
+          "hinweis": "Die Rekursion steht in der Aufgabenstellung; hier wird sie direkt in dieser Richtung verwendet."
+        },
+        {
+          "id": "L3",
+          "loesung": "(1 - yb[n]) / n",
+          "optionen": [
+            "1 - n * yb[n]",
+            "(1 - yb[n]) / n",
+            "(1 + yb[n]) / n",
+            "(1 - yb[n]) * n"
+          ],
+          "richtig": 1,
+          "erklaerung": "$y_n=1-n\\,y_{n-1}$ nach $y_{n-1}$ aufgelöst ergibt $y_{n-1}=\\frac{1-y_n}{n}$. Die <b>Division</b> durch $n$ ist der ganze Trick: ein Fehler $\\varepsilon$ in $y_n$ wird zu $\\varepsilon/n$ in $y_{n-1}$ und nach wenigen Schritten um $n!$ gedämpft. Darum darf der Startwert grob sein. Option a ist dieselbe Formel wie vorwärts (multipliziert statt dividiert) und damit genauso instabil.",
+          "hinweis": "Die Vorwärtsformel nach $y_{n-1}$ umstellen. Kommt $n$ in den Zähler oder in den Nenner?"
+        }
+      ],
+      "template": "import numpy as np\n\nN = 41 # 121\nyf = np.zeros(N)\nyb = np.zeros(N)\n\n# Vorwaerts\n# TODO: intelligente Initialisierung\n\nprint(0, yf[0])\n\nfor n in range(1, N):\n    # TODO: Rekursionsschritt\n    print(n, yf[n])\nprint('-------')\n\n# Rueckwaerts\n# TODO: intelligente Initialisierung\n\nfor n in range(N-1, 0, -1):\n    # TODO: Rekursionsschritt\n    print(n, yb[n])\nprint(0, yb[0])\nprint('-----')\n\nk = 20\nprint('yf[:', k, ']=', yf[:k])\nprint('yb[:', k, ']=', yb[:k])\n",
+      "loesung": "import numpy as np\n\nN = 41 # 121\nyf = np.zeros(N)\nyb = np.zeros(N)\n\n# Vorwaerts\n# intelligente Initialisierung: y_0 = int_0^1 exp(x-1) dx = 1 - 1/e\nyf[0] = 1 - 1/np.e\nprint(0, yf[0])\n\nfor n in range(1, N):\n    # Rekursionsschritt: y_n = 1 - n*y_{n-1}\n    yf[n] = 1 - n * yf[n-1]\n    print(n, yf[n])\nprint('-------')\n\n# Rueckwaerts\n# intelligente Initialisierung: y_n -> 0, der Fehler wird nach unten gedaempft\nyb[N-1] = 0.0\n\nfor n in range(N-1, 0, -1):\n    # Rekursionsschritt: y_{n-1} = (1 - y_n)/n\n    yb[n-1] = (1 - yb[n]) / n\n    print(n, yb[n])\nprint(0, yb[0])\nprint('-----')\n\nk = 20\nprint('yf[:', k, ']=', yf[:k])\nprint('yb[:', k, ']=', yb[:k])\n",
+      "test": {
+        "typ": "werte",
+        "pruefcode": "import numpy as np\n\nassert yb.shape[0] >= 26 and yf.shape[0] >= 26, 'yf und yb muessen mindestens 26 Eintraege haben'\n\n# --- rueckwaerts: muss die exakte Folge treffen ---\nassert abs(yb[0] - (1 - 1/np.e)) < 1e-12, 'yb[0] trifft y_0 = 1 - 1/e nicht'\nfor n in range(1, 16):\n    assert abs(yb[n] - (1 - n*yb[n-1])) < 1e-12, f'yb verletzt die Rekursion bei n={n}'\nassert np.all(yb[:20] > 0), 'y_n ist ein Integral ueber eine positive Funktion, also > 0'\nassert np.all(np.diff(yb[:20]) < 0), 'y_n faellt streng monoton'\nassert np.all(yb[:20] < 1.0/np.arange(1, 21)), 'es muss y_n < 1/(n+1) gelten'\n\n# --- vorwaerts: richtiger Start, aber sichtbar instabil ---\nassert abs(yf[0] - (1 - 1/np.e)) < 1e-12, 'yf[0] trifft y_0 = 1 - 1/e nicht'\nfor n in range(1, 10):\n    assert abs(yf[n] - (1 - n*yf[n-1])) < 1e-12, f'yf verletzt die Rekursion bei n={n}'\nassert abs(yf[25]) > 1.0, 'die Vorwaertsrekursion muss bei n=25 sichtbar explodiert sein'\n"
+      }
+    },
+    {
+      "id": "ce-w1-imagschritt",
+      "titel": "1. Ableitung mit imaginärem Schritt",
+      "quelle": "codeexpert/1. Ableitung mit imag. Schritt - Student attempt.rtf",
+      "skriptRef": {
+        "abschnitt": "1.1",
+        "seite": 15,
+        "nummer": "Bsp. 1.1.18, Abb. 1.1.19"
+      },
+      "braucht": [
+        "numpy",
+        "matplotlib"
+      ],
+      "beschreibung": "<p>Implementiere zwei Approximationen der ersten Ableitung und vergleiche sie über 60 Halbierungen der Schrittweite, beginnend bei $h_0=0.5$:</p><ul><li><code>diffd1</code> — der einseitige Differenzenquotient $\\frac{f(x+h)-f(x)}{h}$, Ordnung 1</li><li><code>diffih</code> — der rein imaginäre Schritt $\\frac{\\operatorname{Im}(f(x_0+ih))}{h}$, Ordnung 2</li></ul><p>Beide Funktionen geben die Werte <code>y</code> und die zugehörigen Schrittweiten <code>h</code> zurück. Der Plot zeigt den relativen Fehler über $h$ doppelt-logarithmisch für vier glatte Funktionen; er reproduziert Abb. 1.1.19 des Skripts.</p><p>Zu sehen ist das <b>V</b> bei <code>diffd1</code> — links von $h\\approx 10^{-8}$ dominiert die Auslöschung — gegenüber der sauberen $h^{2}$-Geraden von <code>diffih</code>, die bis zur Maschinengenauigkeit durchfällt und dort bleibt.</p>",
+      "luecken_template": "import numpy as np\n\n# Einseitiger Differenzenquotient, Ordnung 1\ndef diffd1(f, x, h0):\n    nit = 60                        # maximale Anzahl Halbierungen\n    h = np.zeros(nit); h[0] = h0    # Schrittweiten\n    y = np.zeros(nit)\n    for i in range(nit):\n        if i > 0:\n            h[i] = «L1»\n        y[i] = «L2»\n    return y, h\n\n# Rein imaginaerer Schritt, Ordnung 2, ohne Subtraktion\ndef diffih(f, x, h0):\n    nit = 60\n    h = np.zeros(nit); h[0] = h0\n    y = np.zeros(nit)\n    for i in range(nit):\n        if i > 0:\n            h[i] = h[i-1] / 2.0\n        y[i] = «L3»\n    return y, h\n\n# ---- kurze Kontrolle (das volle Experiment mit Plot steht in Stufe 3) ----\nx = 1.1\nfor f, df, name in [(np.exp, np.exp, 'exp'), (np.sin, np.cos, 'sin')]:\n    y1, h1 = diffd1(f, x, 0.5)\n    y2, h2 = diffih(f, x, 0.5)\n    e1 = np.abs(y1 - df(x)) / abs(df(x))\n    e2 = np.abs(y2 - df(x)) / abs(df(x))\n    print(f'{name}: diffd1 bester rel. Fehler = {e1.min():.3e} bei h = {h1[e1.argmin()]:.3e}')\n    print(f'{name}: diffih bester rel. Fehler = {e2.min():.3e} bei h = {h2[e2.argmin()]:.3e}')\n",
+      "luecken": [
+        {
+          "id": "L1",
+          "loesung": "h[i-1] / 2.0",
+          "optionen": [
+            "h[i-1] / 2.0",
+            "h[i] / 2.0",
+            "h0 / 2.0",
+            "h[i-1] * 2.0"
+          ],
+          "richtig": 0,
+          "erklaerung": "Jede Schrittweite ist die Hälfte der <b>vorherigen</b>, also $h_i=h_{i-1}/2=h_0/2^{i}$. <code>h[i]/2.0</code> greift auf den noch nicht gesetzten Eintrag zu (und liefert $0$), <code>h0/2.0</code> wäre für alle $i$ gleich.",
+          "hinweis": "Welcher Eintrag von <code>h</code> ist an dieser Stelle schon gefüllt?"
+        },
+        {
+          "id": "L2",
+          "loesung": "(f(x + h[i]) - f(x)) / h[i]",
+          "optionen": [
+            "(f(x + h[i]) - f(x - h[i])) / h[i]",
+            "(f(x) - f(x + h[i])) / h[i]",
+            "(f(x + h[i]) - f(x)) / h[i]",
+            "(f(x + h[i]) - f(x)) / (2 * h[i])"
+          ],
+          "richtig": 2,
+          "erklaerung": "Der <b>einseitige</b> Differenzenquotient: Zähler $f(x+h)-f(x)$, Nenner genau $h$ — der Abstand der beiden Auswertungsstellen. Option a hat den symmetrischen Zähler mit dem falschen Nenner (Abstand ist dort $2h$), Option b das falsche Vorzeichen, Option d teilt durch die doppelte Spannweite und liefert systematisch die halbe Ableitung.",
+          "hinweis": "Zähler und Nenner müssen zusammenpassen: der Nenner ist der Abstand zwischen den beiden Stellen, an denen $f$ ausgewertet wird."
+        },
+        {
+          "id": "L3",
+          "loesung": "np.imag(f(x + h[i] * 1.0j)) / h[i]",
+          "optionen": [
+            "np.real(f(x + h[i] * 1.0j)) / h[i]",
+            "np.imag(f(x + h[i] * 1.0j)) / h[i]",
+            "np.imag(f(x + h[i])) / h[i]",
+            "np.imag(f(x + h[i] * 1.0j)) / (2 * h[i])"
+          ],
+          "richtig": 1,
+          "erklaerung": "Aus $f(x_0+ih)=f(x_0)+f'(x_0)ih-\\tfrac12 f''(x_0)h^{2}-\\tfrac{i}{6}f'''(x_0)h^{3}+\\dots$ ist der Imaginärteil $hf'(x_0)-\\tfrac16 f'''(x_0)h^{3}+\\mathcal{O}(h^5)$; eine Division durch $h$ liefert die Ableitung mit Fehler $\\mathcal{O}(h^{2})$. <code>np.real</code> (Option a) liefert $f(x_0)-\\tfrac12 f''h^2$ — also die Funktion selbst, geteilt durch $h$. Option c vergisst das <code>1j</code>, der Imaginärteil einer reellen Zahl ist $0$.",
+          "hinweis": "Welcher Teil der Taylorreihe mit rein imaginärem Schritt ist imaginär? Und durch welche Potenz von $h$ muss man teilen?"
+        }
+      ],
+      "template": "import numpy as np\n\n# def of dv\ndef diffd1(f, x, h0):\n    nit = 60 # max depth of iterations\n    h = np.zeros(nit); h[0] = h0 # width of diff. quot.\n    y = np.zeros(nit)\n    # TODO: implement here the first order divided difference\n\n    return y, h\n\n# complex imaginary step\ndef diffih(f, x, h0):\n    nit = 60 # max depth of iterations\n    h = np.zeros(nit); h[0] = h0 # width of diff. quot.\n    y = np.zeros(nit)\n    # TODO: implement here the complex imaginary step formula\n\n    return y, h\n\n\n# printing routine\ndef prnt(pname, f, df, x, h0, ax):\n    print(f.__name__)\n    z, h = pname(f, x, h0)\n    rerr = abs(z - df(x)) / df(x)\n    ax.loglog(h, rerr, '.', label=pname.__name__)\n    kt = 25\n    if pname.__name__ == 'diffd1':\n        ax.loglog(h[:kt], h[:kt], 'k--', label='$h$')\n    else:\n        ax.loglog(h[:kt], h[:kt]**2, 'k-.', label='$h^2$')\n    print('Relativer Fehler:')\n    print(rerr)\n    print('-----------')\n\n\nx = 1.1  # where to evaluate\nh0 = 0.5 # starting step\n\ndatan = lambda x: 1/(1+x**2)\ndsqrt = lambda x: 0.5*x**-0.5\ndcos  = lambda x: -np.sin(x)\n\nlof = [np.arctan, np.sqrt, np.exp, np.sin]\nlod = [datan,     dsqrt,   np.exp, np.cos]\n\nfrom matplotlib import pyplot as plt\nparams = {'axes.labelsize': 20,\n          'figure.figsize': (18, 12),\n          'legend.fontsize': 20,\n          'xtick.labelsize': 16,\n          'lines.markersize': 12,\n          'ytick.labelsize': 16\n          }\nplt.rcParams.update(params)\n\nfig, axs = plt.subplots(2, 2, sharex=True, sharey=True)\naxsp = axs.flatten()\nfor f, df, ax in zip(lof, lod, axsp):\n    print('diffd1')\n    prnt(diffd1, f, df, x, h0, ax)\n    print('diffih')\n    prnt(diffih, f, df, x, h0, ax)\n    ax.grid(True, which=\"both\")\n    ax.set_xlabel('h')\n    ax.set_ylabel('relative error')\n    ax.set_title(f.__name__)\n    ax.legend()\n    fig.tight_layout()\n\nplt.savefig('./cx_out/cancelCF.png')\n",
+      "loesung": "import numpy as np\n\n# def of dv\ndef diffd1(f, x, h0):\n    nit = 60 # max depth of iterations\n    h = np.zeros(nit); h[0] = h0 # width of diff. quot.\n    y = np.zeros(nit)\n    # first order divided difference\n    for i in range(nit):\n        if i > 0:\n            h[i] = h[i-1] / 2.0\n        y[i] = (f(x + h[i]) - f(x)) / h[i]\n    return y, h\n\n# complex imaginary step\ndef diffih(f, x, h0):\n    nit = 60 # max depth of iterations\n    h = np.zeros(nit); h[0] = h0 # width of diff. quot.\n    y = np.zeros(nit)\n    # complex imaginary step formula\n    for i in range(nit):\n        if i > 0:\n            h[i] = h[i-1] / 2.0\n        y[i] = np.imag(f(x + h[i] * 1.0j)) / h[i]\n    return y, h\n\n\n# printing routine\ndef prnt(pname, f, df, x, h0, ax):\n    print(f.__name__)\n    z, h = pname(f, x, h0)\n    rerr = abs(z - df(x)) / df(x)\n    ax.loglog(h, rerr, '.', label=pname.__name__)\n    kt = 25\n    if pname.__name__ == 'diffd1':\n        ax.loglog(h[:kt], h[:kt], 'k--', label='$h$')\n    else:\n        ax.loglog(h[:kt], h[:kt]**2, 'k-.', label='$h^2$')\n    print('Relativer Fehler:')\n    print(rerr)\n    print('-----------')\n\n\nx = 1.1  # where to evaluate\nh0 = 0.5 # starting step\n\ndatan = lambda x: 1/(1+x**2)\ndsqrt = lambda x: 0.5*x**-0.5\ndcos  = lambda x: -np.sin(x)\n\nlof = [np.arctan, np.sqrt, np.exp, np.sin]\nlod = [datan,     dsqrt,   np.exp, np.cos]\n\nfrom matplotlib import pyplot as plt\nparams = {'axes.labelsize': 20,\n          'figure.figsize': (18, 12),\n          'legend.fontsize': 20,\n          'xtick.labelsize': 16,\n          'lines.markersize': 12,\n          'ytick.labelsize': 16\n          }\nplt.rcParams.update(params)\n\nfig, axs = plt.subplots(2, 2, sharex=True, sharey=True)\naxsp = axs.flatten()\nfor f, df, ax in zip(lof, lod, axsp):\n    print('diffd1')\n    prnt(diffd1, f, df, x, h0, ax)\n    print('diffih')\n    prnt(diffih, f, df, x, h0, ax)\n    ax.grid(True, which=\"both\")\n    ax.set_xlabel('h')\n    ax.set_ylabel('relative error')\n    ax.set_title(f.__name__)\n    ax.legend()\n    fig.tight_layout()\n\nplt.savefig('./cx_out/cancelCF.png')\n",
+      "test": {
+        "typ": "werte",
+        "pruefcode": "import numpy as np\nd = np.exp(1.0)\n\ny1, h1 = diffd1(np.exp, 1.0, 0.5)\nassert len(h1) >= 36 and len(y1) == len(h1), 'y und h muessen gleich lang sein (mindestens 36 Werte)'\nassert abs(h1[0] - 0.5) < 1e-15 and abs(h1[1] - 0.25) < 1e-15, 'h muss bei h0 starten und halbiert werden'\ne1 = np.abs(y1 - d)\nassert 1.6 < e1[3]/e1[4] < 2.5, 'diffd1 muss Ordnung 1 haben: bei halbem h halbiert sich der Fehler'\nassert e1[35] > 100 * e1[25], 'bei sehr kleinem h muss die Ausloeschung den Fehler wieder gross machen'\n\ny2, h2 = diffih(np.exp, 1.0, 0.5)\nassert abs(h2[0] - 0.5) < 1e-15 and abs(h2[1] - 0.25) < 1e-15, 'auch diffih halbiert h'\ne2 = np.abs(y2 - d)\nassert 3.2 < e2[3]/e2[4] < 5.0, 'diffih muss Ordnung 2 haben: bei halbem h viertelt sich der Fehler'\nassert e2[35] < 1e-12, 'der imaginaere Schritt kennt keine Ausloeschung, der Fehler bleibt winzig'\n\n# Gegenprobe mit einer zweiten Funktion\nys, hs = diffih(np.sin, 1.1, 0.5)\nassert abs(ys[20] - np.cos(1.1)) < 1e-12, 'diffih muss auch fuer sin die Ableitung treffen'\n"
+      },
+      "referenzPlot": "assets/ref/ce-w1-imagschritt.png"
+    },
+    {
+      "id": "ce-w1-richardson",
+      "titel": "1. Ableitung mit Richardson-Beschleunigung",
+      "quelle": "codeexpert/1. Ableitung mit Richardson Beschleunigung - Student attempt.rtf",
+      "skriptRef": {
+        "abschnitt": "1.1",
+        "seite": 17,
+        "nummer": "Bsp. 1.1.20, Code 1.1.21, Abb. 1.1.22"
+      },
+      "braucht": [
+        "numpy",
+        "matplotlib"
+      ],
+      "beschreibung": "<p>Zwei Funktionen sind zu implementieren:</p><ul><li><code>diffd2(f, x, h0)</code> — der <b>symmetrische</b> Differenzenquotient $d(h)=\\frac{f(x+h)-f(x-h)}{2h}$, vektorisiert über alle 60 Schrittweiten $h_0/2^{i}$ auf einmal.</li><li><code>diffRichardsonV(f, x, h0, rtol, atol)</code> — das <b>Richardson-Schema</b>. Erste Spalte $R_{\\ell,0}=d(h_0/2^{\\ell})$, danach spaltenweise $R_{\\ell,k}=\\frac{4^{k}R_{\\ell,k-1}-R_{\\ell-1,k-1}}{4^{k}-1}$. Zurückgegeben wird die <b>Diagonale</b> (die jeweils besten Approximationen) samt zugehörigen $h$-Werten; über eine Fehlerschätzung $|R_{\\ell,\\ell}-R_{\\ell,\\ell-1}|$ wird frühzeitig abgebrochen.</li></ul><p>Der Plot vergleicht beide über $h$ mit den Hilfsgeraden $h^{2}$ und $h^{8}$ und reproduziert Abb. 1.1.22. Die Pointe: Richardson erreicht Maschinengenauigkeit bei noch grossem $h$ — die Auslöschung von <code>diffd2</code> (das V links) bekommt man gar nicht erst zu sehen, <b>solange man rechtzeitig abbricht</b>.</p>",
+      "luecken_template": "import numpy as np\n\n# Symmetrischer Differenzenquotient, vektorisiert ueber alle Schrittweiten\ndef diffd2(f, x, h0):\n    nit = 60                       # max. Anzahl Halbierungen\n    h = «L1»                       # alle Schrittweiten auf einmal\n    y = «L2»\n    return y, h\n\n# Richardson-Extrapolation\ndef diffRichardsonV(f, x, h0, rtol=1e-12, atol=1e-12):\n    nit = 30                       # max. Tiefe des Schemas\n    R = np.zeros((nit, nit))\n    h_vals = np.zeros(nit)\n    h = h0\n    n_iter = nit\n\n    for i in range(nit):\n        h_vals[i] = h\n        # erste Spalte: symmetrischer Differenzenquotient zu diesem h\n        R[i, 0] = (f(x + h) - f(x - h)) / (2 * h)\n\n        for j in range(1, i + 1):\n            # Richardson-Schritt: eliminiert den Term h^(2j)\n            R[i, j] = «L3»\n\n        if i > 0:\n            # Fehlerschaetzung aus zwei benachbarten Diagonaleintraegen\n            err = abs(R[i, i] - R[i, i-1])\n            if err <= atol + rtol * abs(R[i, i]):\n                n_iter = i + 1\n                break\n\n        h = h / 2\n\n    y = «L4»                       # die besten Approximationen\n    return y, h_vals[:n_iter]\n\n# ---- kurze Kontrolle (das volle Experiment mit Plot steht in Stufe 3) ----\nx = 1.1\nfor f, df, name in [(np.exp, np.exp, 'exp'), (np.sin, np.cos, 'sin')]:\n    y, h = diffd2(f, x, 0.5)\n    e = np.abs(y - df(x)) / abs(df(x))\n    print(f'{name}: diffd2  bester rel. Fehler = {e.min():.3e} bei h = {h[e.argmin()]:.3e}')\n    z, hh = diffRichardsonV(f, x, 0.5)\n    print(f'{name}: Richardson bricht nach {len(z)} Levels ab, rel. Fehler = {abs(z[-1]-df(x))/abs(df(x)):.3e}')\n",
+      "luecken": [
+        {
+          "id": "L1",
+          "loesung": "h0 / 2**np.arange(nit)",
+          "optionen": [
+            "h0 / 2**np.arange(1, nit+1)",
+            "h0 * 2**np.arange(nit)",
+            "h0 / 2**np.arange(nit)",
+            "h0 / np.arange(1, nit+1)"
+          ],
+          "richtig": 2,
+          "erklaerung": "Gesucht ist $h_i=h_0/2^{i}$ für $i=0,\\dots,\\text{nit}-1$, also mit $h_0$ selbst als erstem Eintrag — <code>np.arange(nit)</code> beginnt bei $0$ und $2^0=1$. Option a startet bei $h_0/2$ und lässt $h_0$ aus, Option b vergrössert $h$, Option d halbiert nicht, sondern teilt durch $1,2,3,\\dots$ — damit fällt $h$ viel zu langsam.",
+          "hinweis": "Der erste Eintrag soll $h_0$ selbst sein. Bei welchem Wert beginnt <code>np.arange(nit)</code>?"
+        },
+        {
+          "id": "L2",
+          "loesung": "(f(x + h) - f(x - h)) / (2 * h)",
+          "optionen": [
+            "(f(x + h) - f(x - h)) / (2 * h)",
+            "(f(x + h) - f(x - h)) / h",
+            "(f(x + h) - f(x)) / (2 * h)",
+            "(f(x - h) - f(x + h)) / (2 * h)"
+          ],
+          "richtig": 0,
+          "erklaerung": "Der symmetrische Differenzenquotient. Der Nenner ist $2h$, weil die beiden Auswertungsstellen $x-h$ und $x+h$ den Abstand $2h$ haben. Da <code>h</code> hier ein ganzes Array ist, berechnet diese eine Zeile alle 60 Werte auf einmal — genau das ist mit «vektorisiert» gemeint. Option d hat das Vorzeichen gedreht, Option c ist der einseitige Quotient mit falschem Nenner.",
+          "hinweis": "Der Nenner ist der Abstand zwischen den beiden Stellen, an denen $f$ ausgewertet wird."
+        },
+        {
+          "id": "L3",
+          "loesung": "R[i, j-1] + (R[i, j-1] - R[i-1, j-1]) / (4**j - 1)",
+          "optionen": [
+            "R[i, j-1] + (R[i, j-1] - R[i-1, j-1]) / (2**j - 1)",
+            "R[i-1, j-1] + (R[i, j-1] - R[i-1, j-1]) / (4**j - 1)",
+            "R[i, j-1] + (R[i, j-1] - R[i-1, j-1]) / (4**j - 1)",
+            "R[i, j-1] - (R[i, j-1] - R[i-1, j-1]) / (4**j - 1)"
+          ],
+          "richtig": 2,
+          "erklaerung": "Das ist $R_{\\ell,k}=\\frac{4^{k}R_{\\ell,k-1}-R_{\\ell-1,k-1}}{4^{k}-1}$, nur anders geklammert: $R_{\\ell,k-1}+\\frac{R_{\\ell,k-1}-R_{\\ell-1,k-1}}{4^{k}-1}$ — beides identisch, die zweite Form ist numerisch die freundlichere (sie addiert eine kleine Korrektur zum bereits guten Wert). Der Nenner ist $4^{j}-1$, weil die Fehlerreihe nur gerade $h$-Potenzen enthält (Option a ist die klassische Verwechslung). Option b startet vom <i>schlechteren</i> Vorgängerlevel, Option d zieht die Korrektur ab statt sie zu addieren.",
+          "hinweis": "Umgeformt aus $\\frac{4^{k}a-b}{4^{k}-1}$: das ist $a$ plus eine Korrektur proportional zu $a-b$. Welche Potenz steht im Nenner?"
+        },
+        {
+          "id": "L4",
+          "loesung": "np.diag(R[:n_iter, :n_iter])",
+          "optionen": [
+            "R[:n_iter, 0]",
+            "np.diag(R[:n_iter, :n_iter])",
+            "R[n_iter-1, :n_iter]",
+            "np.diag(R)"
+          ],
+          "richtig": 1,
+          "erklaerung": "Auf der Diagonalen steht $R_{\\ell,\\ell}$ — zu jedem $h=h_0/2^{\\ell}$ die höchstmögliche Ordnung $2\\ell+2$. Option a wäre die erste Spalte, also die unbeschleunigten symmetrischen Differenzenquotienten. Option d gibt die Diagonale der vollen $30\\times 30$-Matrix zurück, also inklusive der nach dem <code>break</code> nie gefüllten Nullen — die Länge passt dann nicht mehr zu <code>h_vals[:n_iter]</code>.",
+          "hinweis": "Welche Einträge des Schemas gehören zu «ein bestimmtes $h$, höchste erreichte Ordnung»? Und wie viele Zeilen wurden überhaupt gefüllt?"
+        }
+      ],
+      "template": "import numpy as np\nfrom matplotlib import pyplot as plt\nparams = {'axes.labelsize': 20,\n          'figure.figsize': (18, 12),\n          'legend.fontsize': 20,\n          'xtick.labelsize': 16,\n          'lines.markersize': 12,\n          'ytick.labelsize': 16\n          }\nplt.rcParams.update(params)\n\n# standard symmetric divided differences of order 2\ndef diffd2(f, x, h0):\n    nit = 60 # max depth of iterations\n    h = h0/2**np.arange(nit)\n    # TODO: implement here the symmetric divided differences of order 2\n\n    return y, h\n\n# Richardson extrapolation; fixed level for vectorisation\ndef diffRichardsonV(f, x, h0, rtol=1e-12, atol=1e-12):\n    nit = 30 # max depth of iterations\n    # TODO: implement here the Richardson scheme.\n    #       Return the diagonal of the scheme and the corresponding h values.\n\n    return y, h\n\n\n# printing routine\ndef prnt(pname, f, df, x, h0, ax):\n    print(f.__name__)\n    z, h = pname(f, x, h0)\n    rerr = abs(z - df(x)) / df(x)\n    ax.loglog(h, rerr, '.', label=pname.__name__)\n    print('Relativer Fehler:')\n    print(rerr)\n    print('-----------')\n    return z, h\n\n\nx = 1.1  # where to evaluate\nh0 = 0.5 # starting step\n\ndatan = lambda x: 1/(1+x**2)\ndsqrt = lambda x: 0.5*x**-0.5\ndcos  = lambda x: -np.sin(x)\n\nlof = [np.arctan, np.sqrt, np.exp, np.sin, np.cos]\nlod = [datan,     dsqrt,   np.exp, np.cos, dcos]\n\nfig, axs = plt.subplots(2, 2, sharex=True, sharey=True)\naxsp = axs.flatten()\n\nfor f, df, ax in zip(lof, lod, axsp):\n    print('diffd2:')\n    prnt(diffd2, f, df, x, h0, ax)\n    print('diffRichardsonV:')\n    z, h = prnt(diffRichardsonV, f, df, x, h0, ax)\n    # one more to get the h\n    ax.loglog(h, h**2, 'k--', label='$h^2$')\n    ax.loglog(h, h**8, 'k-.', label='$h^8$')\n    ax.grid(True, which=\"both\")\n    ax.set_xlabel('h')\n    ax.set_ylabel('relative error')\n    ax.set_title(f.__name__)\n    ax.legend()\n\nfig.tight_layout()\nplt.savefig('./cx_out/cancelRD2.png')\n",
+      "loesung": "import numpy as np\nfrom matplotlib import pyplot as plt\nparams = {'axes.labelsize': 20,\n          'figure.figsize': (18, 12),\n          'legend.fontsize': 20,\n          'xtick.labelsize': 16,\n          'lines.markersize': 12,\n          'ytick.labelsize': 16\n          }\nplt.rcParams.update(params)\n\n# standard symmetric divided differences of order 2\ndef diffd2(f, x, h0):\n    nit = 60 # max depth of iterations\n    h = h0/2**np.arange(nit)\n    # symmetric divided differences of order 2, vectorised over h\n    y = (f(x + h) - f(x - h)) / (2 * h)\n    return y, h\n\n# Richardson extrapolation; fixed level for vectorisation\ndef diffRichardsonV(f, x, h0, rtol=1e-12, atol=1e-12):\n    nit = 30 # max depth of iterations\n    R = np.zeros((nit, nit))\n    h_vals = np.zeros(nit)\n    h = h0\n    n_iter = nit\n\n    for i in range(nit):\n        h_vals[i] = h\n        R[i, 0] = (f(x + h) - f(x - h)) / (2 * h)\n\n        for j in range(1, i + 1):\n            R[i, j] = R[i, j-1] + (R[i, j-1] - R[i-1, j-1]) / (4**j - 1)\n\n        if i > 0:\n            err = abs(R[i, i] - R[i, i-1])\n            if err <= atol + rtol * abs(R[i, i]):\n                n_iter = i + 1\n                break\n\n        h = h / 2\n\n    y = np.diag(R[:n_iter, :n_iter])\n    return y, h_vals[:n_iter]\n\n\n# printing routine\ndef prnt(pname, f, df, x, h0, ax):\n    print(f.__name__)\n    z, h = pname(f, x, h0)\n    rerr = abs(z - df(x)) / df(x)\n    ax.loglog(h, rerr, '.', label=pname.__name__)\n    print('Relativer Fehler:')\n    print(rerr)\n    print('-----------')\n    return z, h\n\n\nx = 1.1  # where to evaluate\nh0 = 0.5 # starting step\n\ndatan = lambda x: 1/(1+x**2)\ndsqrt = lambda x: 0.5*x**-0.5\ndcos  = lambda x: -np.sin(x)\n\nlof = [np.arctan, np.sqrt, np.exp, np.sin, np.cos]\nlod = [datan,     dsqrt,   np.exp, np.cos, dcos]\n\nfig, axs = plt.subplots(2, 2, sharex=True, sharey=True)\naxsp = axs.flatten()\n\nfor f, df, ax in zip(lof, lod, axsp):\n    print('diffd2:')\n    prnt(diffd2, f, df, x, h0, ax)\n    print('diffRichardsonV:')\n    z, h = prnt(diffRichardsonV, f, df, x, h0, ax)\n    # one more to get the h\n    ax.loglog(h, h**2, 'k--', label='$h^2$')\n    ax.loglog(h, h**8, 'k-.', label='$h^8$')\n    ax.grid(True, which=\"both\")\n    ax.set_xlabel('h')\n    ax.set_ylabel('relative error')\n    ax.set_title(f.__name__)\n    ax.legend()\n\nfig.tight_layout()\nplt.savefig('./cx_out/cancelRD2.png')\n",
+      "test": {
+        "typ": "werte",
+        "pruefcode": "import numpy as np\n\n# --- (a) symmetrischer Differenzenquotient ---\ny, h = diffd2(np.sin, 1.1, 0.5)\nassert len(y) == len(h) and len(h) >= 12, 'y und h muessen gleich lang sein (mindestens 12 Werte)'\nassert abs(h[0] - 0.5) < 1e-15 and abs(h[1] - 0.25) < 1e-15, 'h muss bei h0 beginnen und halbiert werden'\ne = np.abs(y - np.cos(1.1))\nassert 3.2 < e[2]/e[3] < 5.0, 'diffd2 muss Ordnung 2 haben: bei halbem h viertelt sich der Fehler'\n\n# --- (b) Richardson ---\nz, hh = diffRichardsonV(np.exp, 1.0, 0.5)\nassert len(z) == len(hh), 'Diagonale und h-Werte muessen gleich lang sein'\nassert 3 <= len(z) < 15, 'mit der Fehlerschaetzung muss das Schema frueh abbrechen (aber mind. 3 Level liefern)'\nassert abs(z[0] - (np.exp(1.5) - np.exp(0.5))/1.0) < 1e-12, 'der erste Eintrag ist d(h0), der symmetrische Quotient zu h0'\nassert abs(z[-1] - np.exp(1.0)) < 1e-11, \"der letzte Diagonaleintrag muss f'(x) sehr genau treffen\"\n\n# Der entscheidende Test: EIN Extrapolationsschritt muss die Ordnung von 2 auf 4\n# heben. Mit dem falschen Nenner 2**j-1 faellt der Fehler nur um den Faktor ~2.\nez = np.abs(z - np.exp(1.0))\nassert ez[0]/ez[1] > 20, ('R[1,1] muss deutlich besser sein als R[0,0] (Ordnung 2 -> 4). '\n                         f'Hier nur Faktor {ez[0]/ez[1]:.2f} — stimmt der Nenner?')\n\n# --- (c) zweite Funktion zur Gegenprobe ---\nz2, h2 = diffRichardsonV(np.sin, 1.1, 0.5)\nassert abs(z2[-1] - np.cos(1.1)) < 1e-11, 'Richardson muss auch fuer sin die Ableitung treffen'\nassert abs(z2[-1] - np.cos(1.1)) < abs(z2[0] - np.cos(1.1)), 'das Schema muss den Startwert deutlich verbessern'\n"
+      },
+      "referenzPlot": "assets/ref/ce-w1-richardson.png"
+    }
+  ]
+}

@@ -1,0 +1,715 @@
+{
+  "woche": 2,
+  "titel": "Rechenaufwand und Rechnen mit Matrizen",
+  "status": "vollstaendig",
+  "skript": {
+    "kapitel": "1.2–1.3",
+    "seiten": "21–40"
+  },
+  "vorlage": "wochenplan/Vorlage02_RechenaufwandMatrizen.pdf",
+  "aufgabenUebersicht": {
+    "moodle": 10,
+    "codeexpert": 4
+  },
+  "einleitung": "<p>Diese Woche hat ein einziges Thema: <b>wie viel kostet eine Rechnung — und wie macht man sie billiger, ohne das Ergebnis zu ändern.</b> Kapitel 1.2 liefert das Vokabular: Rechenaufwand als Anzahl elementarer Operationen (Def. 1.2.1), asymptotische Komplexität als Worst-Case-Verhalten für $n\\to\\infty$ (Def. 1.2.2) und die Landau-Notation $\\mathcal{O}$ (Def. 1.2.3). Dazu gleich die Warnung: seit rund 70 Jahren ist die Operationszahl <i>kein</i> verlässlicher Laufzeitindikator mehr — Speicherbandbreite, Cache-Level und parallel arbeitende BLAS-Bibliotheken entscheiden heute mindestens so stark.</p><p>Kapitel 1.3 ist die Anwendung davon, und der rote Faden heisst <b>Bem. 1.3.8: «Denken vor Rechnen!»</b> Vier Mal dasselbe Muster: man nutzt eine bekannte Struktur — Diagonalgestalt, Rang 1, kleiner Rang $p\\ll n$, Kronecker-Struktur — und spart dadurch eine ganze Zehnerpotenz im Exponenten. $\\mathcal{O}(n^{3})\\to\\mathcal{O}(n^{2})$ bei Diagonalmatrizen, $\\mathcal{O}(n^{2})\\to\\mathcal{O}(n)$ bei Rang-1-Matrizen und beim oberen Teil, $\\mathcal{O}(n^{4})\\to\\mathcal{O}(n^{3})$ beim Kronecker-Produkt. Die Hebel dabei sind immer dieselben drei: <b>Assoziativität</b> (anders klammern), <b>Besetzungsmuster</b> (Nullen nicht anfassen) und <b>nie eine grosse Matrix aufbauen, die man gleich wieder wegwirft</b>.</p>",
+  "moodleHinweis": "Für diese Woche gibt es <b>kein</b> Moodle-Material — im Ordner <code>moodle quizes/</code> existiert kein passendes Quiz zu Rechenaufwand und Matrizenrechnung. Alle Fragen hier sind von mir im Stil der Originalfragen ergänzt (Single Choice mit Scoring SC1/0, Zahleneingaben) und mit Skript-Verweis begründet.",
+  "zusammenfassung": [
+    {
+      "id": "w2-z1",
+      "titel": "Rechenaufwand — was genau gezählt wird",
+      "ref": {
+        "abschnitt": "1.2",
+        "seite": 21,
+        "nummer": "Definition 1.2.1"
+      },
+      "text": "<p>Der <b>Rechenaufwand</b> (computational effort / cost) eines numerischen Algorithmus ist die <b>Anzahl elementarer Operationen</b>: Additionen, Subtraktionen, Multiplikationen, Divisionen. Manchmal zählt man auch Aufrufe elementarer Funktionen wie $\\sin,\\cos,\\sqrt{\\ \\,},\\exp,\\ln$ dazu.</p><p>Gezählt wird also <i>theoretisch</i> und <i>asymptotisch</i> — nicht gemessen. Speicherzugriffe, Kopien und Schleifenverwaltung tauchen in dieser Zählung gar nicht auf; genau deshalb ist sie nur ein Modell für die Laufzeit und nicht die Laufzeit selbst.</p>",
+      "merke": "Rechenaufwand = Anzahl elementarer Operationen. Eine reine Zählgrösse — ohne Sekunden, ohne Hardware."
+    },
+    {
+      "id": "w2-z2",
+      "titel": "Warum die Operationszahl heute nur noch grob mit der Laufzeit korreliert",
+      "ref": {
+        "abschnitt": "1.2",
+        "seite": 21,
+        "nummer": "Text nach Def. 1.2.1"
+      },
+      "text": "<p>Das Skript ist hier ungewöhnlich deutlich: <i>«70 Jahre zuvor war die Anzahl elementarer Operationen ein guter Indikator für die zu erwartende Laufzeit eines Programms; heute jedoch nicht mehr, ausser auf eine eher ungenaue, asymptotische Weise.»</i> Drei Gründe:</p><ul><li><b>Bandbreite des Arbeitsspeichers</b> — entscheidend ist, wie die Daten gelesen und geschrieben werden, nicht wie oft gerechnet wird.</li><li><b>Cache-Level</b> — Daten in niedrigeren Leveln werden deutlich schneller und womöglich parallel bearbeitet als Daten in oberen Leveln.</li><li><b>Mehrere Kerne und BLAS</b> — grundlegende lineare Algebra (BLAS, ATLAS, OpenBLAS, Intel MKL) ist so weit optimiert, dass alle Cores die Daten im Cache parallel bearbeiten. Das ist viel schneller — und nicht mehr deterministisch.</li></ul><p>Praktische Folge: Eine vektorisierte NumPy-Zeile, die <i>mehr</i> Operationen ausführt, kann deutlich schneller sein als eine Python-Schleife mit weniger Operationen.</p>",
+      "merke": "Laufzeit messen statt schätzen: Bem. 1.3.11 zeigt dazu <code>time.process_time()</code> in einer Schleife (Code 1.3.12, S. 34) bzw. als Dekorator <code>@mytimeit(rep=nrEXP)</code> (Code 1.3.13, S. 35). Angegeben wird immer das <b>Minimum</b> über mindestens drei Messungen."
+    },
+    {
+      "id": "w2-z3",
+      "titel": "Asymptotische Komplexität — Worst Case, Problemgrösse gegen unendlich",
+      "ref": {
+        "abschnitt": "1.2",
+        "seite": 21,
+        "nummer": "Definition 1.2.2"
+      },
+      "text": "<p>Die <b>asymptotische (Rechen-)Komplexität</b> eines Algorithmus charakterisiert die <b>ungünstigste</b> (Worst-Case-)Abhängigkeit seines Rechenaufwands von einem oder mehreren <b>Problemgrössenparametern</b>, wenn diese gegen $\\infty$ wachsen.</p><p>«Ungünstigst» heisst: der maximale Aufwand über einen ganzen Satz zulässiger Daten. Ein typischer Problemgrössenparameter ist die Länge $n\\to\\infty$ der Ein-/Ausgabevektoren.</p><p>Die praktische Bedeutung ist eine (unpräzise) Vorhersage: ein Algorithmus der Komplexität $\\mathcal{O}(n^2)$ braucht bei <b>verdoppelter</b> Problemgrösse die <b>vierfache</b> Zeit — vorausgesetzt, $n$ ist so gross, dass Cache-Level und sonstige Hardware-Einflüsse vernachlässigbar sind.</p>",
+      "merke": "Komplexität ist eine Aussage über $n\\to\\infty$ und über den schlimmsten Fall — keine Aussage über ein konkretes, kleines $n$."
+    },
+    {
+      "id": "w2-z4",
+      "titel": "Landau-Notation $\\mathcal{O}$ — und wann sie «scharf» gemeint ist",
+      "ref": {
+        "abschnitt": "1.2",
+        "seite": 22,
+        "nummer": "Definition 1.2.3"
+      },
+      "text": "<p>Für $F,G:\\mathbb{N}\\to\\mathbb{R}$ schreibt man $F(n)=\\mathcal{O}(G(n))$, falls es eine Konstante $C>0$ und ein $n_*\\in\\mathbb{N}$ gibt mit $F(n)\\le C\\,G(n)$ für alle $n\\ge n_*$.</p><p>Anschaulich: $F$ wächst höchstens genauso schnell wie $G$. Im Kontext der asymptotischen Komplexität wird die Notation aber meist <b>scharf</b> gelesen: es gibt keine langsamer wachsende Funktion, die man statt $G$ einsetzen könnte — also «$F$ wächst <i>genauso</i> schnell wie $G$».</p><p>Zweite Unschärfe: Dieselbe Notation wird auch für $h\\to 0$ «missbraucht». In Kapitel 1.1 verhielt sich der Fehler wie $C\\cdot h$ bzw. $C\\cdot h^{2}$ — korrekterweise müsste man dort $o(h)$ und $o(h^{2})$ schreiben, um zu betonen, dass $h\\to 0$ und nicht $h\\to\\infty$ betrachtet wird.</p>",
+      "formeln": [
+        "F(n)=\\mathcal{O}(G(n))\\quad:\\Longleftrightarrow\\quad \\exists\\,C>0,\\ \\exists\\,n_*\\in\\mathbb{N}:\\ F(n)\\le C\\,G(n)\\ \\ \\text{für alle } n\\ge n_*"
+      ],
+      "merke": "$\\mathcal{O}$ ist formal nur eine <i>obere</i> Schranke, wird in der Komplexitätsangabe aber scharf gemeint. $n\\to\\infty$ versus $h\\to 0$ nicht verwechseln."
+    },
+    {
+      "id": "w2-z5",
+      "titel": "Die drei Referenzwerte: Gauss, Dreiecks-, Diagonalmatrix",
+      "ref": {
+        "abschnitt": "1.2",
+        "seite": 22,
+        "nummer": "Beispiele zu Def. 1.2.3"
+      },
+      "text": "<p>Die Standardbeispiele des Skripts, die man an der Prüfung im Schlaf können sollte — jeweils für ein lineares Gleichungssystem mit $\\mathbf{A}\\in\\mathbb{R}^{n,n}$:</p><ul><li><b>Gauss-Elimination</b>, allgemeine $n\\times n$-Matrix: $\\mathcal{O}(n^{3})$</li><li><b>obere Dreiecksmatrix</b> (Rückwärtssubstitution): $\\mathcal{O}(n^{2})$</li><li><b>Diagonalmatrix</b>: $\\mathcal{O}(n)$</li></ul><p>Die angegebenen Komplexitäten beziehen sich jeweils auf das Worst-Case-Szenario <b>in der Klasse der betrachteten Matrizen</b> und können nicht durch langsamer wachsende Funktionen in $n$ ersetzt werden — sie sind also scharf.</p>",
+      "merke": "Je mehr Struktur man kennt und ausnutzt, desto kleiner der Exponent: $3\\to 2\\to 1$. Das ist das Leitmotiv des ganzen Kapitels 1.3."
+    },
+    {
+      "id": "w2-z6",
+      "titel": "Skalarprodukt und Tensorprodukt (dyadisches Produkt)",
+      "ref": {
+        "abschnitt": "1.3",
+        "seite": 26,
+        "nummer": "Code 1.3.1, Code 1.3.2"
+      },
+      "text": "<p>Vektoren sind aus mathematischer Sicht immer <b>Spalten</b>; $\\mathbf{x}\\in\\mathbb{C}^{m}$ ist also eine $m\\times 1$-Matrix. Als Zeile geschrieben ist es $\\mathbf{x}^{T}$, komplex konjugiert $\\mathbf{x}^{H}$.</p><ul><li><b>Skalarprodukt</b> von $\\mathbf{b},\\mathbf{a}\\in\\mathbb{C}^{m}$: $\\langle\\mathbf{b},\\mathbf{a}\\rangle=\\overline{\\mathbf{b}}\\cdot\\mathbf{a}=\\mathbf{b}^{H}\\mathbf{a}=\\sum_{k=1}^{m}\\overline{b_k}a_k\\in\\mathbb{C}$ — Ergebnis ein <b>Skalar</b>.</li><li><b>Tensorprodukt</b> (dyadisches, manchmal irreführend «äusseres» Produkt) von $\\mathbf{b}\\in\\mathbb{C}^{m}$, $\\mathbf{a}\\in\\mathbb{C}^{n}$: $\\mathbf{b}\\mathbf{a}^{H}=[b_i\\overline{a_j}]\\in\\mathbb{C}^{m,n}$ — Ergebnis eine Matrix vom <b>Rang 1</b>.</li></ul><p>Beides sind Spezialfälle des Matrixprodukts $\\mathbf{A}\\mathbf{B}=\\bigl[\\sum_{j=1}^{n}a_{ij}b_{jk}\\bigr]\\in\\mathbb{C}^{m,p}$ für $\\mathbf{A}\\in\\mathbb{C}^{m,n}$, $\\mathbf{B}\\in\\mathbb{C}^{n,p}$: $p=1$ und $m=1$ gibt das Skalarprodukt, $n=1$ das Tensorprodukt.</p><p>In NumPy ist ein 1D-<code>array</code> <b>weder</b> Zeile noch Spalte — darauf muss man aufpassen. Die wichtigsten Varianten (Code 1.3.1/1.3.2): <code>np.dot(b, a)</code> ohne Konjugation, <code>np.vdot(b, a)</code> <i>mit</i> Konjugation des ersten Arguments, <code>np.outer(b, a)</code>, <code>np.kron</code>, <code>np.tensordot(b, a, axes=1)</code> wie <code>dot</code> und <code>axes=-1</code> fürs Tensorprodukt, sowie das universelle <code>np.einsum('i,i', b, a)</code> bzw. <code>np.einsum('i,j', b, a)</code>.</p>",
+      "formeln": [
+        "\\langle\\mathbf{b},\\mathbf{a}\\rangle=\\mathbf{b}^{H}\\mathbf{a}=\\sum_{k=1}^{m}\\overline{b_k}\\,a_k\\in\\mathbb{C}",
+        "\\mathbf{b}\\mathbf{a}^{H}=\\bigl[b_i\\overline{a_j}\\bigr]\\in\\mathbb{C}^{m,n}"
+      ],
+      "merke": "<code>np.vdot</code> konjugiert das <b>erste</b> Argument, <code>np.dot</code> nicht. <code>einsum</code> ist flexibler und RAM-sparsamer, aber langsamer als <code>dot</code>/<code>inner</code>/<code>tensordot</code> — die rufen BLAS auf."
+    },
+    {
+      "id": "w2-z7",
+      "titel": "Matrixprodukt spalten- und zeilenweise lesen — und der Rang",
+      "ref": {
+        "abschnitt": "1.3",
+        "seite": 30,
+        "nummer": "Bem. 1.3.3–1.3.5, (1.3.9), (1.3.10)"
+      },
+      "text": "<p>$\\mathbf{A}\\mathbf{x}$ ist eine <b>Linearkombination der Spalten</b> von $\\mathbf{A}$ mit den Einträgen von $\\mathbf{x}$ als Koeffizienten (Bem. 1.3.3). Daraus folgt unmittelbar Bem. 1.3.4:</p><p>Denn in $\\mathbf{A}\\mathbf{X}=\\mathbf{B}$ ist jede Spalte $\\mathbf{B}_{:,1}=\\sum_{j=1}^{n}\\mathbf{X}_{j,1}\\mathbf{A}_{:,j}$ eine Linearkombination der Spalten von $\\mathbf{A}$ — also $\\operatorname{Rank}\\mathbf{B}\\le\\operatorname{Rank}\\mathbf{A}$ (1.3.9). Umgekehrt ist jede <b>Zeile</b> von $\\mathbf{B}$ eine Linearkombination der Zeilen von $\\mathbf{X}$, $\\mathbf{B}_{1,:}=\\sum_{k=1}^{n}\\mathbf{A}_{1,k}\\mathbf{X}_{k,:}$ — also $\\operatorname{Rank}\\mathbf{B}\\le\\operatorname{Rank}\\mathbf{X}$ (1.3.10).</p><p>Bem. 1.3.5 zieht daraus den praktischen Schluss: je nach Struktur von $\\mathbf{A}$ und $\\mathbf{X}$ ist die Spalten- oder die Zeilensicht vorteilhaft. Genau diese Wahl entscheidet in den folgenden Beispielen über den Exponenten.</p>",
+      "formeln": [
+        "\\mathbf{A}\\mathbf{x}=\\sum_{j=1}^{n}x_j\\,\\mathbf{A}_{:,j}",
+        "\\operatorname{Rank}(\\mathbf{A}\\mathbf{X})\\le\\min\\bigl(\\operatorname{Rank}\\mathbf{A},\\ \\operatorname{Rank}\\mathbf{X}\\bigr)"
+      ],
+      "merke": "Ein Produkt kann den Rang nie erhöhen. Umgekehrt: eine Matrix vom Rang $p$ lässt sich als $\\mathbf{A}\\mathbf{B}^{T}$ mit nur $p$ Spalten schreiben — die Grundlage aller Tricks weiter unten."
+    },
+    {
+      "id": "w2-z8",
+      "titel": "Besetzungsmuster und Diagonalmatrizen — «Denken vor Rechnen!»",
+      "ref": {
+        "abschnitt": "1.3",
+        "seite": 32,
+        "nummer": "Bem. 1.3.6–1.3.8, Bsp. 1.3.9, Abb. 1.3.10"
+      },
+      "text": "<p>Blöcke aus Nullen tragen zum Ergebnis nichts bei — Speicher und Arbeit kann man sich dafür sparen. Das <b>Besetzungsmuster</b> ist deshalb bei dünnbesetzten (sparse) Matrizen die entscheidende Information.</p><p><b>Bem. 1.3.6:</b> Die Menge der Diagonalmatrizen, die der unteren und die der oberen Dreiecksmatrizen sind jeweils <b>abgeschlossen</b> bezüglich der Matrixmultiplikation; dasselbe gilt für die Inversen der nichtsingulären Vertreter (Vorwärts-/Rückwärtssubstitution). Für <b>Pfeilmatrizen</b> gilt das <i>nicht</i> — ihr Produkt ist im Allgemeinen voll besetzt.</p><p><b>Bem. 1.3.7:</b> Entscheidend ist die Seite, von der eine Diagonalmatrix multipliziert wird: <b>von links</b> skaliert $\\mathbf{D}\\mathbf{A}$ die <b>Zeilen</b>, $(\\mathbf{D}\\mathbf{A})_{i,:}=d_i\\mathbf{A}_{i,:}$; <b>von rechts</b> skaliert $\\mathbf{A}\\mathbf{D}$ die <b>Spalten</b>, $(\\mathbf{A}\\mathbf{D})_{:,j}=d_j\\mathbf{A}_{:,j}$.</p><p><b>Bem. 1.3.8:</b> <i>«Die blinde Verwendung von Prozeduren aus <code>numpy</code> garantiert nicht die bestmögliche Rechenzeit. Denken vor Rechnen!»</i> Bsp. 1.3.9 macht das konkret: für eine voll besetzte $n\\times n$-Matrix kostet das offensichtliche <code>D @ A</code> volle $\\mathcal{O}(n^{3})$ Operationen, weil NumPy $\\mathbf{D}$ als gewöhnliche Matrix sieht. Nutzt man die Struktur aus, sind es $\\mathcal{O}(n^{2})$:</p><pre class=\"code\">D.diagonal()[:, np.newaxis] * A</pre><p>Zwei Details machen den Unterschied: <code>D.diagonal()</code> ist ein <b>View</b> (keine Kopie), und <code>np.newaxis</code> erzwingt das Broadcasting über die Zeilen. In Abb. 1.3.10 liegen die beiden Messreihen über zwei Zehnerpotenzen auseinander.</p>",
+      "merke": "Links = Zeilen, rechts = Spalten. Wenn eine der beiden Matrizen Struktur hat, ist <code>@</code> fast immer die falsche Antwort — erst überlegen, was die Operation <i>bedeutet</i>."
+    },
+    {
+      "id": "w2-z9",
+      "titel": "Operationszählung und Blockmultiplikation",
+      "ref": {
+        "abschnitt": "1.3",
+        "seite": 36,
+        "nummer": "Bem. 1.3.15, (1.3.11), Bem. 1.3.16"
+      },
+      "text": "<p>Die Tabelle des Skripts, die man auswendig können sollte:</p><table><tr><th>Operation</th><th>$\\#\\{*,/\\}$</th><th>$\\#\\{+,-\\}$</th><th>Komplexität</th></tr><tr><td>Skalarprodukt, $\\mathbf{x},\\mathbf{y}\\in\\mathbb{R}^{n}$</td><td>$n$</td><td>$n-1$</td><td>$\\mathcal{O}(n)$</td></tr><tr><td>Tensorprodukt, $\\mathbf{x}\\in\\mathbb{R}^{m},\\mathbf{y}\\in\\mathbb{R}^{n}$</td><td>$nm$</td><td>$0$</td><td>$\\mathcal{O}(mn)$</td></tr><tr><td>Matrix $\\times$ Vektor, $\\mathbf{A}\\in\\mathbb{R}^{m,n}$</td><td>$mn$</td><td>$(n-1)m$</td><td>$\\mathcal{O}(mn)$</td></tr><tr><td>Matrixprodukt, $\\mathbf{A}\\in\\mathbb{R}^{m,n},\\mathbf{B}\\in\\mathbb{R}^{n,p}$</td><td>$mnp$</td><td>$(n-1)mp$</td><td>$\\mathcal{O}(mnp)$</td></tr></table><p><b>Bem. 1.3.15:</b> Das Produkt zweier Matrizen lässt sich auch <b>blockweise</b> berechnen — mit derselben Formel wie für $2\\times 2$-Matrizen, nur ist die Multiplikation von Blöcken <b>nicht kommutativ</b>, die Reihenfolge der Faktoren muss also erhalten bleiben.</p><p><b>Bem. 1.3.16:</b> Für $m=n=p$ drückt der Divide-and-Conquer-Algorithmus von <b>Strassen</b> die Komplexität auf $\\mathcal{O}(n^{\\log_2 7})$, theoretisch sogar auf $\\mathcal{O}(n^{2.36})$ — für Anwendungen jedoch bedeutungslos.</p>",
+      "formeln": [
+        "\\begin{bmatrix}\\mathbf{A}_{11}&\\mathbf{A}_{12}\\\\ \\mathbf{A}_{21}&\\mathbf{A}_{22}\\end{bmatrix}\\begin{bmatrix}\\mathbf{B}_{11}&\\mathbf{B}_{12}\\\\ \\mathbf{B}_{21}&\\mathbf{B}_{22}\\end{bmatrix}=\\begin{bmatrix}\\mathbf{A}_{11}\\mathbf{B}_{11}+\\mathbf{A}_{12}\\mathbf{B}_{21}&\\mathbf{A}_{11}\\mathbf{B}_{12}+\\mathbf{A}_{12}\\mathbf{B}_{22}\\\\ \\mathbf{A}_{21}\\mathbf{B}_{11}+\\mathbf{A}_{22}\\mathbf{B}_{21}&\\mathbf{A}_{21}\\mathbf{B}_{12}+\\mathbf{A}_{22}\\mathbf{B}_{22}\\end{bmatrix}"
+      ],
+      "merke": "Eine Addition weniger als Multiplikationen pro Skalarprodukt: $n$ Produkte, aber nur $n-1$ Summen. Das $-1$ wird in Prüfungsaufgaben gern gefragt."
+    },
+    {
+      "id": "w2-z10",
+      "titel": "Rang-1-Matrizen: Assoziativität als Effizienzhebel",
+      "ref": {
+        "abschnitt": "1.3",
+        "seite": 37,
+        "nummer": "Beispiel 1.3.17, Abb. 1.3.18"
+      },
+      "text": "<p>Eine Matrix vom Rang 1 lässt sich immer als Tensorprodukt zweier Vektoren schreiben — und dann lohnt sich das Umklammern:</p><ul><li>$\\mathbf{y}=\\bigl(\\mathbf{a}\\mathbf{b}^{T}\\bigr)\\mathbf{x}$ kostet $\\mathcal{O}(mn)$: erst wird die voll besetzte $m\\times n$-Matrix $\\mathbf{a}\\mathbf{b}^{T}$ aufgebaut, dann mit $\\mathbf{x}$ multipliziert.</li><li>$\\mathbf{y}=\\mathbf{a}\\bigl(\\mathbf{b}^{T}\\mathbf{x}\\bigr)$ kostet $\\mathcal{O}(m+n)$: $\\mathbf{b}^{T}\\mathbf{x}$ ist ein Skalarprodukt ($n$ Multiplikationen), das Ergebnis ist eine Zahl, mit der $\\mathbf{a}$ skaliert wird ($m$ Multiplikationen).</li></ul><p>Mathematisch ist beides exakt dasselbe — Matrixmultiplikation ist assoziativ. Numerisch ist es der Unterschied zwischen $\\mathcal{O}(n^{2})$ und $\\mathcal{O}(n)$, in Abb. 1.3.18 über vier Zehnerpotenzen sichtbar.</p>",
+      "formeln": [
+        "\\mathbf{y}=\\bigl(\\mathbf{a}\\mathbf{b}^{T}\\bigr)\\mathbf{x}\\ \\ \\mathcal{O}(mn)\\qquad\\text{gegen}\\qquad \\mathbf{y}=\\mathbf{a}\\bigl(\\mathbf{b}^{T}\\mathbf{x}\\bigr)\\ \\ \\mathcal{O}(m+n)"
+      ],
+      "merke": "Klammern kosten nichts und sparen alles. Immer so klammern, dass <b>keine</b> grosse Matrix entsteht — in NumPy: <code>a * (b @ x)</code> statt <code>np.outer(a, b) @ x</code>."
+    },
+    {
+      "id": "w2-z11",
+      "titel": "Oberer Teil einer Matrix kleinen Rangs — Teilsummen mit <code>cumsum</code>",
+      "ref": {
+        "abschnitt": "1.3",
+        "seite": 37,
+        "nummer": "Beispiel 1.3.19, Abb. 1.3.20"
+      },
+      "text": "<p>Seien $\\mathbf{A},\\mathbf{B}\\in\\mathbb{R}^{n,p}$ mit $p\\ll n$ und $\\mathbf{R}$ der obere Teil von $\\mathbf{A}\\mathbf{B}^{T}$. Die direkte Implementierung <code>np.triu(A @ B.T) @ x</code> kostet $\\mathcal{O}(pn^{2})$.</p><p>Was ist diese Operation für $p=1$ eigentlich? Man kann $\\operatorname{triu}(\\mathbf{a}\\mathbf{b}^{T})$ als Produkt $\\operatorname{diag}(\\mathbf{a})\\,\\mathbf{T}\\,\\operatorname{diag}(\\mathbf{b})$ schreiben, wobei $\\mathbf{T}$ die obere Dreiecksmatrix <b>nur mit Einsen</b> ist. Der teuerste Teil ist die Multiplikation mit $\\mathbf{T}$ — und die ist erstaunlich einfach: $\\mathbf{T}\\mathbf{v}$ enthält genau die <b>Teilsummen</b> von $\\mathbf{v}$, von hinten aufsummiert, $s_j=\\sum_{k=n-j+1}^{n}v_k$. Solche Teilsummen rechnet <code>v.cumsum()</code> bzw. <code>np.cumsum(v)</code> in $\\mathcal{O}(n)$.</p><p>Für allgemeines $p$ zerlegt man $\\mathbf{A}\\mathbf{B}^{T}=\\sum_{\\ell=1}^{p}\\mathbf{A}_{:,\\ell}\\bigl(\\mathbf{B}_{:,\\ell}\\bigr)^{T}$ und wendet dasselbe $p$-mal an: $\\mathcal{O}(n\\cdot p)$ statt $\\mathcal{O}(pn^{2})$ — relevant genau für $p\\ll n$.</p>",
+      "formeln": [
+        "\\mathbf{A}\\mathbf{B}^{T}=\\sum_{\\ell=1}^{p}\\mathbf{A}_{:,\\ell}\\bigl(\\mathbf{B}_{:,\\ell}\\bigr)^{\\top}\\qquad\\Longrightarrow\\qquad \\mathcal{O}(n\\cdot p)\\ \\ \\text{statt}\\ \\ \\mathcal{O}(pn^{2})"
+      ],
+      "merke": "Eine obere Dreiecksmatrix aus lauter Einsen mal Vektor = Teilsummen von hinten. In NumPy: <code>np.cumsum(z[::-1])[::-1]</code> — zweimal umdrehen, damit die Richtung stimmt."
+    },
+    {
+      "id": "w2-z12",
+      "titel": "Kronecker-Produkt — nie aufbauen, immer umformen",
+      "ref": {
+        "abschnitt": "1.3",
+        "seite": 39,
+        "nummer": "Definition 1.3.21, Beispiel 1.3.22, Abb. 1.3.23"
+      },
+      "text": "<p><b>Def. 1.3.21:</b> Das Kronecker-Produkt $\\mathbf{A}\\otimes\\mathbf{B}$ von $\\mathbf{A}\\in\\mathbb{R}^{m,n}$ und $\\mathbf{B}\\in\\mathbb{R}^{l,k}$ ist die $(ml)\\times(nk)$-Matrix, deren Block $(i,j)$ gerade $(\\mathbf{A})_{i,j}\\mathbf{B}$ ist.</p><p><b>Bsp. 1.3.22:</b> Würde man $\\mathbf{A}\\otimes\\mathbf{B}$ erst bauen und dann mit dem $nk$-langen Vektor $\\mathbf{x}$ multiplizieren, hätte man Komplexität $\\mathcal{O}(m\\cdot n\\cdot l\\cdot k)$ — für quadratische $n\\times n$-Blöcke also $\\mathcal{O}(n^{4})$, plus denselben Speicherbedarf. Teilt man $\\mathbf{x}$ dagegen in $n$ gleich grosse Blöcke $\\mathbf{x}^{j}\\in\\mathbb{R}^{k}$ auf, steht in Blockzeile $i$ des Ergebnisses</p><p>Die Idee ist, die kleineren Produkte $\\mathbf{B}\\mathbf{x}^{j}$ für $j=1,\\dots,n$ <b>auf einmal</b> zu berechnen und sie dann mit den Koeffizienten aus den Spalten von $\\mathbf{A}$ linear zu kombinieren. Schreibt man die Blöcke als Zeilen einer Matrix $\\mathbf{X}\\in\\mathbb{R}^{n,k}$, ist das genau $\\mathbf{A}\\mathbf{X}\\mathbf{B}^{T}$ — Komplexität $\\mathcal{O}(n^{3})$. In Abb. 1.3.23 liegen die Messreihen rund drei Zehnerpotenzen auseinander.</p>",
+      "formeln": [
+        "(\\mathbf{A}\\otimes\\mathbf{B})\\mathbf{x}=\\begin{bmatrix}\\mathbf{A}_{1,1}\\mathbf{B}\\mathbf{x}^{1}+\\cdots+\\mathbf{A}_{1,n}\\mathbf{B}\\mathbf{x}^{n}\\\\ \\vdots\\\\ \\mathbf{A}_{m,1}\\mathbf{B}\\mathbf{x}^{1}+\\cdots+\\mathbf{A}_{m,n}\\mathbf{B}\\mathbf{x}^{n}\\end{bmatrix}"
+      ],
+      "merke": "In NumPy: <code>x.reshape(n, k)</code>, dann <code>A @ (X @ B.T)</code>, dann <code>.ravel()</code> — <code>np.kron</code> kommt gar nicht vor."
+    }
+  ],
+  "moodle": [
+    {
+      "id": "m-w2-01",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Rechenaufwand",
+      "frageHtml": "<p>Was ist nach Definition 1.2.1 der <b>Rechenaufwand</b> eines numerischen Algorithmus?</p>",
+      "optionen": [
+        "Die gemessene Laufzeit auf einer Referenzmaschine, angegeben in Sekunden.",
+        "Die Anzahl elementarer Operationen (Additionen, Subtraktionen, Multiplikationen, Divisionen); manchmal werden auch Aufrufe elementarer Funktionen wie $\\sin,\\cos,\\sqrt{\\ \\,},\\exp,\\ln$ mitgezählt.",
+        "Die Anzahl Speicherzugriffe, gewichtet mit dem Cache-Level, in dem die Daten liegen.",
+        "Die Anzahl Zeilen Code, die der Algorithmus in Python braucht."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Der Rechenaufwand ist eine reine <b>Zählgrösse</b>: Additionen, Subtraktionen, Multiplikationen, Divisionen, gelegentlich auch elementare Funktionen. Keine Sekunden, keine Hardware. Dass Speicherzugriffe und Cache-Level heute für die tatsächliche Laufzeit mindestens so wichtig sind, steht direkt im Anschluss im Skript — sie gehören aber nicht zur Definition.</p>",
+      "skriptRef": {
+        "abschnitt": "1.2",
+        "seite": 21,
+        "nummer": "Def. 1.2.1"
+      }
+    },
+    {
+      "id": "m-w2-02",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Operationszahl und Laufzeit",
+      "frageHtml": "<p>Das Skript schreibt, die Anzahl elementarer Operationen sei <i>früher</i> ein guter Indikator für die Laufzeit gewesen, <i>heute jedoch nicht mehr, ausser auf eine eher ungenaue, asymptotische Weise</i>. Welche Begründung gibt es dafür?</p>",
+      "optionen": [
+        "Moderne Prozessoren führen Multiplikationen und Divisionen inzwischen gleich schnell aus wie Additionen.",
+        "Compiler optimieren einen grossen Teil der Operationen ohnehin weg, sodass die gezählte Anzahl irrelevant ist.",
+        "Entscheidend sind die Bandbreite des Arbeitsspeichers und damit die Art, wie Daten gelesen und geschrieben werden, die verschiedenen Cache-Level sowie optimierte, parallel arbeitende BLAS-Implementierungen — viel schneller, dafür nicht mehr deterministisch.",
+        "Weil Python als interpretierte Sprache jede Operation gleich teuer macht."
+      ],
+      "loesung": 2,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Das Skript nennt genau diese drei Punkte: <b>Bandbreite des Arbeitsspeichers</b> (also wie die Daten gelesen und geschrieben werden), <b>Cache-Level</b> (Daten in niedrigeren Leveln werden deutlich schneller und womöglich parallel bearbeitet) und die hochoptimierten <b>BLAS</b>-Operationen, bei denen alle Cores die Daten im Cache parallel bearbeiten. Der Wochenplan fasst das mit «viel schneller, nicht-deterministisch!» zusammen. Praktische Konsequenz: eine vektorisierte NumPy-Zeile mit <i>mehr</i> Operationen kann eine Python-Schleife mit <i>weniger</i> Operationen deutlich schlagen.</p>",
+      "skriptRef": {
+        "abschnitt": "1.2",
+        "seite": 21
+      }
+    },
+    {
+      "id": "m-w2-03",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Landau-Notation",
+      "frageHtml": "<p>Wann schreibt man $F(n)=\\mathcal{O}(G(n))$ für $F,G:\\mathbb{N}\\to\\mathbb{R}$, und wie ist diese Notation im Kontext der asymptotischen Komplexität üblicherweise gemeint?</p>",
+      "optionen": [
+        "Falls $F(n)\\le C\\,G(n)$ für <b>alle</b> $n\\in\\mathbb{N}$ und <b>jede</b> Konstante $C>0$ gilt; gemeint ist eine exakte Gleichheit der Funktionen.",
+        "Falls es $C>0$ und $n_*\\in\\mathbb{N}$ gibt mit $F(n)\\le C\\,G(n)$ für alle $n\\ge n_*$; formal ist das nur eine obere Schranke, im Kontext der Komplexität wird sie aber meist <b>scharf</b> gelesen — $F$ wächst genauso schnell wie $G$.",
+        "Falls $\\lim_{n\\to\\infty}F(n)/G(n)=0$ gilt — also genau dann, wenn $F$ echt langsamer wächst als $G$.",
+        "Falls $F$ und $G$ denselben Grad als Polynome haben."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Def. 1.2.3 verlangt genau zwei Zutaten: eine Konstante $C>0$ und eine Schwelle $n_*$, ab der $F(n)\\le C\\,G(n)$ gilt. Vor $n_*$ darf $F$ beliebig gross sein — deshalb ist $\\mathcal{O}$ eine Aussage über $n\\to\\infty$ und sagt nichts über ein konkretes, kleines $n$. Option c beschreibt $F(n)=o(G(n))$, die <i>strikt</i> kleinere Ordnung. Und das Skript betont: «Im Kontext der asymptotischen Komplexität versteht sich die Landau-Notation oft auch <i>scharf</i> in dem Sinne, dass es keine Funktion gibt, die langsamer wächst als $G$ und die in $\\mathcal{O}(\\cdot)$ verwendet werden kann.»</p>",
+      "skriptRef": {
+        "abschnitt": "1.2",
+        "seite": 22,
+        "nummer": "Def. 1.2.3"
+      }
+    },
+    {
+      "id": "m-w2-04",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Komplexitätsexponenten",
+      "frageHtml": "<p>Für ein lineares Gleichungssystem mit $\\mathbf{A}\\in\\mathbb{R}^{n,n}$: Welchen Exponenten $p$ hat der Rechenaufwand $\\mathcal{O}(n^{p})$ in den drei Standardfällen des Skripts? <b>Ganze Zahlen.</b></p>",
+      "felder": [
+        {
+          "label": "p\\ \\text{für allgemeine } \\mathbf{A}\\ \\text{(Gauss-Elimination)}",
+          "wert": 3,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "p\\ \\text{für obere Dreiecksmatrizen}",
+          "wert": 2,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "p\\ \\text{für Diagonalmatrizen}",
+          "wert": 1,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Die drei Referenzwerte aus Def. 1.2.3 und dem Wochenplan: Gauss-Elimination für allgemeine $n\\times n$-Matrizen $\\mathcal{O}(n^{3})$, Rückwärtssubstitution bei oberen Dreiecksmatrizen $\\mathcal{O}(n^{2})$, Diagonalmatrizen $\\mathcal{O}(n)$. Die Angaben beziehen sich jeweils auf das Worst-Case-Szenario <b>in der Klasse der betrachteten Matrizen</b> und können nicht durch langsamer wachsende Funktionen ersetzt werden — sie sind also scharf.</p>",
+      "skriptRef": {
+        "abschnitt": "1.2",
+        "seite": 22,
+        "nummer": "Def. 1.2.3"
+      }
+    },
+    {
+      "id": "m-w2-05",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Operationszählung",
+      "frageHtml": "<p>Zählen nach der Tabelle in Bem. 1.3.15. Wie viele Multiplikationen bzw. Additionen braucht man (<b>ohne</b> Landau-Notation, exakte Zahlen)?</p><ul><li>Skalarprodukt $\\mathbf{x}^{T}\\mathbf{y}$ mit $\\mathbf{x},\\mathbf{y}\\in\\mathbb{R}^{1000}$</li><li>Matrixprodukt $\\mathbf{A}\\mathbf{B}$ mit $\\mathbf{A}\\in\\mathbb{R}^{4,5}$ und $\\mathbf{B}\\in\\mathbb{R}^{5,3}$</li></ul>",
+      "felder": [
+        {
+          "label": "\\#\\{*\\}\\ \\text{Skalarprodukt}",
+          "wert": 1000,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "\\#\\{+\\}\\ \\text{Skalarprodukt}",
+          "wert": 999,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "\\#\\{*\\}\\ \\text{Matrixprodukt}",
+          "wert": 60,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "\\#\\{+\\}\\ \\text{Matrixprodukt}",
+          "wert": 48,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Skalarprodukt in $\\mathbb{R}^{n}$: $n$ Multiplikationen, aber nur $n-1$ Additionen — bei $n$ Summanden braucht man $n-1$ Pluszeichen. Mit $n=1000$ also $1000$ und $999$.</p><p>Matrixprodukt $\\mathbf{A}\\in\\mathbb{R}^{m,n}$, $\\mathbf{B}\\in\\mathbb{R}^{n,p}$: jedes der $mp$ Ergebniselemente ist ein Skalarprodukt der Länge $n$, also $mnp$ Multiplikationen und $(n-1)mp$ Additionen. Mit $m=4$, $n=5$, $p=3$: $4\\cdot 5\\cdot 3=60$ und $4\\cdot 4\\cdot 3=48$. Die Komplexität ist $\\mathcal{O}(mnp)$.</p>",
+      "skriptRef": {
+        "abschnitt": "1.3",
+        "seite": 36,
+        "nummer": "Tabelle in Bem. 1.3.15"
+      }
+    },
+    {
+      "id": "m-w2-06",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Diagonalmatrizen",
+      "frageHtml": "<p>$\\mathbf{A}$ sei eine voll besetzte $n\\times n$-Matrix, $\\mathbf{D}=\\operatorname{diag}(d_1,\\dots,d_n)$. Welche Aussage über $\\mathbf{D}\\mathbf{A}$ ist richtig?</p>",
+      "optionen": [
+        "$\\mathbf{D}\\mathbf{A}$ skaliert die <b>Spalten</b> von $\\mathbf{A}$; in NumPy effizient als <code>D.diagonal() * A</code> in $\\mathcal{O}(n^{2})$.",
+        "$\\mathbf{D}\\mathbf{A}$ skaliert die <b>Zeilen</b> von $\\mathbf{A}$, also $(\\mathbf{D}\\mathbf{A})_{i,:}=d_i\\mathbf{A}_{i,:}$; in NumPy effizient als <code>D.diagonal()[:, np.newaxis] * A</code> in $\\mathcal{O}(n^{2})$ statt $\\mathcal{O}(n^{3})$ für <code>D @ A</code>.",
+        "$\\mathbf{D}\\mathbf{A}$ und $\\mathbf{A}\\mathbf{D}$ sind gleich, weil Diagonalmatrizen mit allem kommutieren.",
+        "<code>D @ A</code> ist bereits optimal, weil NumPy die Nullen in $\\mathbf{D}$ automatisch erkennt und überspringt."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Bem. 1.3.7: von <b>links</b> skaliert eine Diagonalmatrix die <b>Zeilen</b>, von <b>rechts</b> die <b>Spalten</b> — beides ist im Allgemeinen verschieden, Diagonalmatrizen kommutieren nur untereinander. Damit NumPy die Diagonale über die Zeilen verteilt, muss der 1D-Vektor mit <code>[:, np.newaxis]</code> zur Spalte der Form $(n,1)$ werden; ohne diesen Index skaliert man die Spalten. <code>D.diagonal()</code> ist dabei ein View und kostet keine Kopie. Und nein: NumPy erkennt die Struktur <b>nicht</b> — genau das ist Bem. 1.3.8, «Denken vor Rechnen!»</p>",
+      "skriptRef": {
+        "abschnitt": "1.3",
+        "seite": 33,
+        "nummer": "Bem. 1.3.7–1.3.8, Bsp. 1.3.9"
+      }
+    },
+    {
+      "id": "m-w2-07",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Assoziativität und Komplexität",
+      "frageHtml": "<p>Alle beteiligten Vektoren haben die Länge $n$, alle Matrizen die Grösse $n\\times n$. Welchen Exponenten $p$ hat der Rechenaufwand $\\mathcal{O}(n^{p})$? <b>Ganze Zahlen.</b></p><ul><li>$\\mathbf{y}=\\bigl(\\mathbf{a}\\mathbf{b}^{T}\\bigr)\\mathbf{x}$ — Rang-1-Matrix erst aufbauen</li><li>$\\mathbf{y}=\\mathbf{a}\\bigl(\\mathbf{b}^{T}\\mathbf{x}\\bigr)$ — umgeklammert</li><li>$(\\mathbf{A}\\otimes\\mathbf{B})\\mathbf{x}$ — Kronecker-Produkt erst aufbauen</li><li>$(\\mathbf{A}\\otimes\\mathbf{B})\\mathbf{x}$ — über die Blöcke von $\\mathbf{x}$</li></ul>",
+      "felder": [
+        {
+          "label": "p\\ \\text{für}\\ (\\mathbf{a}\\mathbf{b}^{T})\\mathbf{x}",
+          "wert": 2,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "p\\ \\text{für}\\ \\mathbf{a}(\\mathbf{b}^{T}\\mathbf{x})",
+          "wert": 1,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "p\\ \\text{für}\\ \\texttt{np.kron(A,B) @ x}",
+          "wert": 4,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "p\\ \\text{für}\\ \\mathbf{A}\\mathbf{X}\\mathbf{B}^{T}",
+          "wert": 3,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p><b>Rang 1</b> (Bsp. 1.3.17): $\\bigl(\\mathbf{a}\\mathbf{b}^{T}\\bigr)\\mathbf{x}$ baut die volle $m\\times n$-Matrix auf, also $\\mathcal{O}(mn)=\\mathcal{O}(n^{2})$. Umgeklammert ist $\\mathbf{b}^{T}\\mathbf{x}$ ein Skalarprodukt ($n$ Multiplikationen) und das Skalieren von $\\mathbf{a}$ kostet $m$ weitere — zusammen $\\mathcal{O}(m+n)=\\mathcal{O}(n)$. Die Rechnung ist dieselbe, nur anders geklammert.</p><p><b>Kronecker</b> (Bsp. 1.3.22): $\\mathbf{A}\\otimes\\mathbf{B}$ ist eine $n^{2}\\times n^{2}$-Matrix; aufbauen und multiplizieren kostet $\\mathcal{O}(m\\cdot n\\cdot l\\cdot k)=\\mathcal{O}(n^{4})$ — und ebenso viel Speicher. Liest man $\\mathbf{x}$ dagegen blockweise als Matrix $\\mathbf{X}\\in\\mathbb{R}^{n,n}$ und rechnet $\\mathbf{A}\\mathbf{X}\\mathbf{B}^{T}$, sind es zwei gewöhnliche Matrixprodukte, also $\\mathcal{O}(n^{3})$.</p>",
+      "skriptRef": {
+        "abschnitt": "1.3",
+        "seite": 37,
+        "nummer": "Bsp. 1.3.17, Bsp. 1.3.22"
+      }
+    },
+    {
+      "id": "m-w2-08",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Teilsummen und cumsum",
+      "frageHtml": "<p>Sei $\\mathbf{T}\\in\\mathbb{R}^{n,n}$ die obere Dreiecksmatrix, die <b>nur Einsen</b> enthält ($T_{ij}=1$ für $i\\le j$, sonst $0$). Was ist $\\mathbf{T}\\mathbf{v}$, und wie berechnet man es effizient?</p>",
+      "optionen": [
+        "$\\mathbf{T}\\mathbf{v}$ ist der Vektor der Teilsummen <b>von hinten</b>, $(\\mathbf{T}\\mathbf{v})_i=\\sum_{k\\ge i}v_k$. Mit <code>np.cumsum(v[::-1])[::-1]</code> kostet das $\\mathcal{O}(n)$ statt $\\mathcal{O}(n^{2})$.",
+        "$\\mathbf{T}\\mathbf{v}$ ist der Vektor der Teilsummen von vorne, $(\\mathbf{T}\\mathbf{v})_i=\\sum_{k\\le i}v_k$, also direkt <code>np.cumsum(v)</code>.",
+        "$\\mathbf{T}\\mathbf{v}$ ist der konstante Vektor, dessen Einträge alle gleich $\\sum_k v_k$ sind.",
+        "$\\mathbf{T}\\mathbf{v}=\\mathbf{v}$, weil $\\mathbf{T}$ nur Einsen enthält und damit wie die Einheitsmatrix wirkt."
+      ],
+      "loesung": 0,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Zeile $i$ von $\\mathbf{T}$ hat Einsen ab Spalte $i$, also ist $(\\mathbf{T}\\mathbf{v})_i=v_i+v_{i+1}+\\dots+v_n$ — die Teilsumme <b>von hinten</b>. <code>np.cumsum</code> summiert von vorne, deshalb dreht man den Vektor erst um, kumuliert, und dreht das Ergebnis wieder zurück. Genau das macht aus $\\mathcal{O}(n^{2})$ ein $\\mathcal{O}(n)$ und ist der Kern von Bsp. 1.3.19: $\\operatorname{triu}(\\mathbf{a}\\mathbf{b}^{T})\\mathbf{x}=\\operatorname{diag}(\\mathbf{a})\\bigl(\\mathbf{T}\\bigl(\\operatorname{diag}(\\mathbf{b})\\mathbf{x}\\bigr)\\bigr)$. Für $p$ Spalten wiederholt man das $p$-mal und landet bei $\\mathcal{O}(n\\cdot p)$ statt $\\mathcal{O}(pn^{2})$.</p>",
+      "skriptRef": {
+        "abschnitt": "1.3",
+        "seite": 38,
+        "nummer": "Bsp. 1.3.19"
+      }
+    },
+    {
+      "id": "m-w2-09",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Kronecker-Produkt",
+      "frageHtml": "<p>Gesucht ist $(\\mathbf{A}\\otimes\\mathbf{B})\\mathbf{x}$ mit $\\mathbf{A}\\in\\mathbb{R}^{m,n}$, $\\mathbf{B}\\in\\mathbb{R}^{l,k}$ und $\\mathbf{x}\\in\\mathbb{R}^{nk}$, <b>ohne</b> das Kronecker-Produkt aufzubauen. Welcher Weg ist richtig?</p>",
+      "optionen": [
+        "<code>x.reshape(k, n)</code>, dann <code>B @ (X @ A.T)</code>, dann <code>.ravel()</code>.",
+        "<code>np.kron(A, B) @ x</code> — einen anderen Weg gibt es nicht, man kann höchstens <code>scipy.sparse</code> verwenden.",
+        "<code>x.reshape(n, k)</code>, dann <code>A @ (X @ B.T)</code>, dann <code>.ravel()</code>.",
+        "<code>x.reshape(n, k)</code>, dann <code>A @ X @ B</code>, dann <code>.ravel(order='F')</code>."
+      ],
+      "loesung": 2,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>$\\mathbf{x}$ zerfällt in $n$ Blöcke der Länge $k$ — die Anzahl Blöcke ist die Spaltenzahl von $\\mathbf{A}$, die Blocklänge die Spaltenzahl von $\\mathbf{B}$. Jeder Block wird eine <b>Zeile</b> von $\\mathbf{X}\\in\\mathbb{R}^{n,k}$ (NumPys Standardreihenfolge, zeilenweise). Dann ist Zeile $j$ von $\\mathbf{X}\\mathbf{B}^{T}$ gerade $(\\mathbf{B}\\mathbf{x}^{j})^{T}$ — alle kleinen Produkte auf einmal — und die Multiplikation mit $\\mathbf{A}$ von links kombiniert sie so, wie es die Blockzeilen von $\\mathbf{A}\\otimes\\mathbf{B}$ verlangen. Also $(\\mathbf{A}\\otimes\\mathbf{B})\\mathbf{x}=\\operatorname{vec}(\\mathbf{A}\\mathbf{X}\\mathbf{B}^{T})$, zeilenweise aufgefaltet. Option a vertauscht die Rollen von $\\mathbf{A}$ und $\\mathbf{B}$, Option d vergisst die Transponierung von $\\mathbf{B}$ und faltet spaltenweise auf.</p>",
+      "skriptRef": {
+        "abschnitt": "1.3",
+        "seite": 39,
+        "nummer": "Def. 1.3.21, Bsp. 1.3.22"
+      }
+    },
+    {
+      "id": "m-w2-10",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Dimensionen und Speicherbedarf",
+      "frageHtml": "<p>Zwei kleine Rechnungen zum Kronecker-Produkt und zum Speicher:</p><ul><li>$\\mathbf{A}\\in\\mathbb{R}^{3,4}$ und $\\mathbf{B}\\in\\mathbb{R}^{5,2}$: Welche Grösse hat $\\mathbf{A}\\otimes\\mathbf{B}$?</li><li>Wie viel Speicher belegt eine voll besetzte $4096\\times 4096$-Matrix im Typ <code>float64</code> (8 Byte pro Eintrag)? <b>In MiB</b>, also in Vielfachen von $1024^{2}$ Byte.</li></ul>",
+      "felder": [
+        {
+          "label": "\\text{Zeilen von } \\mathbf{A}\\otimes\\mathbf{B}",
+          "wert": 15,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "\\text{Spalten von } \\mathbf{A}\\otimes\\mathbf{B}",
+          "wert": 8,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "\\text{Speicher in MiB}",
+          "wert": 128,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Nach Def. 1.3.21 ist $\\mathbf{A}\\otimes\\mathbf{B}$ für $\\mathbf{A}\\in\\mathbb{R}^{m,n}$ und $\\mathbf{B}\\in\\mathbb{R}^{l,k}$ eine $(ml)\\times(nk)$-Matrix — hier also $(3\\cdot 5)\\times(4\\cdot 2)=15\\times 8$. Man setzt pro Eintrag von $\\mathbf{A}$ eine ganze Kopie von $\\mathbf{B}$ ein.</p><p>Speicher: $4096^{2}\\cdot 8\\ \\text{Byte}=134\\,217\\,728\\ \\text{Byte}=128\\ \\text{MiB}$. Das ist der Grund, warum die CodeExpert-Aufgaben dieser Woche in der Browser-Variante verkleinert sind — und warum man das Kronecker-Produkt oder $\\operatorname{triu}(\\mathbf{A}\\mathbf{B}^{T})$ gar nicht erst aufbaut: der Speicher ist oft die härtere Schranke als die Rechenzeit.</p>",
+      "skriptRef": {
+        "abschnitt": "1.3",
+        "seite": 39,
+        "nummer": "Def. 1.3.21"
+      }
+    }
+  ],
+  "codeexpert": [
+    {
+      "id": "ce-w2-diagonal",
+      "titel": "Multiplikation mit einer Diagonalmatrix",
+      "quelle": "codeexpert/Multiplikation mit einer Diagonalmatrix - Student attempt.rtf",
+      "skriptRef": {
+        "abschnitt": "1.3",
+        "seite": 33,
+        "nummer": "Bem. 1.3.7/1.3.8, Bsp. 1.3.9, Abb. 1.3.10"
+      },
+      "braucht": [
+        "numpy",
+        "matplotlib"
+      ],
+      "beschreibung": "<p>Sei $\\mathbf{A}$ eine voll besetzte $n\\times n$-Matrix und $\\mathbf{D}=\\operatorname{diag}(d_1,\\dots,d_n)$. Gesucht ist $\\mathbf{D}\\mathbf{A}$ auf zwei Arten:</p><ul><li><code>slowmultiply</code> — der offensichtliche Weg <code>D @ A</code>. NumPy sieht $\\mathbf{D}$ als ganz normale, voll besetzte Matrix und rechnet $\\mathcal{O}(n^3)$ Operationen.</li><li><code>fastmultiply</code> — die Struktur ausgenutzt: <b>von links</b> skaliert eine Diagonalmatrix nur die <b>Zeilen</b>, also $(\\mathbf{D}\\mathbf{A})_{i,:}=d_i\\mathbf{A}_{i,:}$. Mit <code>D.diagonal()</code> (ein View, keine Kopie) und <code>[:, np.newaxis]</code> für das Broadcasting kostet das nur $\\mathcal{O}(n^2)$.</li></ul><p>Beide Varianten werden mit dem Dekorator <code>mytimeit</code> über Teilmatrizen wachsender Grösse gemessen; der doppelt-logarithmische Plot vergleicht sie mit den Referenzgeraden $\\mathcal{O}(n^3)$ und $\\mathcal{O}(n^2)$ und reproduziert Abb. 1.3.10 des Skripts.</p>",
+      "hinweisUmgebung": "<p>Das Original rechnet mit <code>maxlev = 11</code>, also bis zu einer $2048\\times 2048$-Matrix. Das ist im Browser (Pyodide) unbrauchbar langsam und sprengt den Speicher — hier steht <code>maxlev = 9</code>, also höchstens $512\\times 512$. Der Abstand der beiden Kurven ist dadurch kleiner, die Steigungen bleiben aber sichtbar.</p><p>Geprüft wird ausserdem nur die <b>Korrektheit</b>, nicht die Laufzeit: gemessene Zeiten sind im Browser von zu vielen Dingen abhängig, um ein verlässliches Kriterium zu sein.</p>",
+      "luecken_template": "import numpy as np\nimport time\n\ndef mytimeit(rep=1): # decorator with argument\n    def mytimeit_real_decorator(func): # actual decorator\n        def wrapper(*args, **kwargs):\n            ts = [] # measured times\n            for k in range(rep):\n                #start = time.perf_counter()\n                start = time.process_time()\n                result = func(*args, **kwargs)\n                end = time.process_time()\n                #end = time.perf_counter()\n                ts.append(end - start)\n            print(f'Min. Time taken: {min(ts):.6f} seconds in ',func.__name__)\n            wrapper.ats.append(min(ts)) # record the minimal measured time\n            return result\n        wrapper.ats = [] # declare atribute to use later\n        return wrapper\n    return mytimeit_real_decorator\n\nnrEXP = 3\n\n@mytimeit(rep=nrEXP)\ndef slowmultiply(D, A):\n    # standard, aber langsam: das volle Matrixprodukt, O(n^3)\n    return «L1»\n\n@mytimeit(rep=nrEXP)\ndef fastmultiply(D, A):\n    # effizient: D von links skaliert die ZEILEN von A, O(n^2)\n    return «L2»\n\n# ---- kurze Kontrolle (das volle Zeitexperiment mit Plot steht in Stufe 3) ----\nn = 128\nA = np.random.rand(n, n)\nd = np.random.rand(n)\nD = np.diag(d)\n\nX = slowmultiply(D, A)\nY = fastmultiply(D, A)\nprint('gleiches Ergebnis:', np.allclose(X, Y))\nprint('groesste Abweichung:', np.abs(np.asarray(X) - np.asarray(Y)).max())\n",
+      "luecken": [
+        {
+          "id": "L1",
+          "loesung": "D @ A",
+          "optionen": [
+            "D @ A",
+            "D * A",
+            "A @ D",
+            "np.diagonal(D) @ A"
+          ],
+          "richtig": 0,
+          "erklaerung": "<p>Das ist der <i>naive</i> Weg, der hier absichtlich gefragt ist: das volle Matrixprodukt mit $\\mathcal{O}(n^3)$ Operationen. <code>D * A</code> wäre das <b>elementweise</b> Produkt und liesse nur die Diagonale übrig. <code>A @ D</code> multipliziert von rechts und skaliert damit die <b>Spalten</b> statt der Zeilen (Bem. 1.3.7). <code>np.diagonal(D) @ A</code> ist ein Vektor mal Matrix und liefert einen Vektor, keine Matrix.</p>",
+          "hinweis": "Hier ist ausnahmsweise die unbedachte Variante gesucht — genau die, mit der man $\\mathcal{O}(n^3)$ bezahlt."
+        },
+        {
+          "id": "L2",
+          "loesung": "D.diagonal()[:, np.newaxis] * A",
+          "optionen": [
+            "D.diagonal() * A",
+            "D.diagonal()[:, np.newaxis] * A",
+            "D.diagonal()[np.newaxis, :] * A",
+            "np.diag(D.diagonal()) * A"
+          ],
+          "richtig": 1,
+          "erklaerung": "<p>$\\mathbf{D}\\mathbf{A}$ skaliert die $i$-te <b>Zeile</b> von $\\mathbf{A}$ mit $d_i$. Damit das Broadcasting die Diagonale über die Zeilen und nicht über die Spalten verteilt, muss der 1D-Vektor zu einer <b>Spalte</b> der Form $(n,1)$ werden — genau das macht <code>[:, np.newaxis]</code>. Ohne diesen Index (Option a) oder mit <code>[np.newaxis, :]</code> (Option c) wird über die Spalten skaliert, also $\\mathbf{A}\\mathbf{D}$ berechnet. Option d baut die Diagonalmatrix wieder auf und verwendet dann <code>*</code> statt <code>@</code> — das ist das <b>elementweise</b> Produkt und lässt nur die Diagonale von $\\mathbf{A}$ stehen. <code>D.diagonal()</code> ist übrigens ein View und kostet keine Kopie.</p>",
+          "hinweis": "Welche Form muss der Vektor haben, damit NumPy ihn beim Broadcasting über die Zeilen und nicht über die Spalten verteilt?"
+        }
+      ],
+      "template": "import numpy as np\nimport time\n\ndef mytimeit(rep=1): # decorator with argument\n    def mytimeit_real_decorator(func): # actual decorator\n        def wrapper(*args, **kwargs):\n            ts = [] # measured times\n            for k in range(rep):\n                #start = time.perf_counter()\n                start = time.process_time()\n                result = func(*args, **kwargs)\n                end = time.process_time()\n                #end = time.perf_counter()\n                ts.append(end - start)\n            print(f'Min. Time taken: {min(ts):.6f} seconds in ',func.__name__)\n            wrapper.ats.append(min(ts)) # record the minimal measured time\n            return result\n        wrapper.ats = [] # declare atribute to use later\n        return wrapper\n    return mytimeit_real_decorator\n\nnrEXP = 4\n\n# construct big full matrix\nmaxlev = 9   # Original: 11 -- fuer den Browser verkleinert\nminlev = 2\nN = 2**maxlev\n# constructing a huge full matrix will cost a lot of time and memory, be ready\nA = np.random.rand(N,N)\nd = np.random.rand(N)\nD = np.diag(d)\n\n@mytimeit(rep=nrEXP)\ndef slowmultiply(D,A):\n  #TODO: implementieren Sie hier die standard aber langsame Variante\n  return None\n\n@mytimeit(rep=nrEXP)\ndef fastmultiply(D,A):\n  #TODO: implementieren Sie hier die effizientere Variante\n  return None\n\n# work with submatrices of various dimensions\nw = 2**np.arange(minlev,maxlev+1)\nfor n in w:\n    print('n =', n)\n    An = A[:n,:n] # view, no copy\n    Dn = D[:n,:n] # view, no copy\n\n    print('slowmult...')\n    X = slowmultiply(Dn,An)\n    print('fastmult...')\n    Y = fastmultiply(Dn,An)\n\n    if abs( np.linalg.norm(X.ravel() - Y.ravel()) ) > np.finfo(np.float64).eps : print('Error')\n\nimport matplotlib.pyplot as plt\nparams = {'axes.labelsize': 20,\n          'figure.figsize' : (12,12),\n          'axes.titlesize': 16,\n          'legend.fontsize': 16,\n          'xtick.labelsize': 16,\n          'lines.markersize'  : 12,\n          'axes.linewidth' : 3,\n          'ytick.labelsize': 16#,\n          #'text.usetex': True\n          }\nplt.rcParams.update(params)\nplt.rcParams['figure.constrained_layout.use'] = True\nplt.loglog(w, slowmultiply.ats,'*', label = 'D @ A')\nplt.loglog(w, fastmultiply.ats,'D', label = ' D.diagonal()[:,np.newaxis] * A')\nplt.loglog(w[3:],1E-11 * w[3:]**3,'b-', label='O($n^3$)')\nplt.loglog(w[3:],1E-9 * w[3:]**2,'--', label='O($n^2$)')\n\nplt.xlabel('size n')\nplt.ylabel('time (s)')\nplt.grid()\nplt.legend()\nplt.savefig('./cx_out/timemultdiag.png')\n",
+      "loesung": "import numpy as np\nimport time\n\ndef mytimeit(rep=1): # decorator with argument\n    def mytimeit_real_decorator(func): # actual decorator\n        def wrapper(*args, **kwargs):\n            ts = [] # measured times\n            for k in range(rep):\n                #start = time.perf_counter()\n                start = time.process_time()\n                result = func(*args, **kwargs)\n                end = time.process_time()\n                #end = time.perf_counter()\n                ts.append(end - start)\n            print(f'Min. Time taken: {min(ts):.6f} seconds in ',func.__name__)\n            wrapper.ats.append(min(ts)) # record the minimal measured time\n            return result\n        wrapper.ats = [] # declare atribute to use later\n        return wrapper\n    return mytimeit_real_decorator\n\nnrEXP = 4\n\n# construct big full matrix\nmaxlev = 9   # Original: 11 -- fuer den Browser verkleinert\nminlev = 2\nN = 2**maxlev\n# constructing a huge full matrix will cost a lot of time and memory, be ready\nA = np.random.rand(N,N)\nd = np.random.rand(N)\nD = np.diag(d)\n\n@mytimeit(rep=nrEXP)\ndef slowmultiply(D,A):\n  # standard, aber langsam: das volle Matrixprodukt, O(n^3)\n  return D @ A\n\n@mytimeit(rep=nrEXP)\ndef fastmultiply(D,A):\n  # effizient: D von links skaliert die ZEILEN von A, O(n^2)\n  return D.diagonal()[:, np.newaxis] * A\n\n# work with submatrices of various dimensions\nw = 2**np.arange(minlev,maxlev+1)\nfor n in w:\n    print('n =', n)\n    An = A[:n,:n] # view, no copy\n    Dn = D[:n,:n] # view, no copy\n\n    print('slowmult...')\n    X = slowmultiply(Dn,An)\n    print('fastmult...')\n    Y = fastmultiply(Dn,An)\n\n    if abs( np.linalg.norm(X.ravel() - Y.ravel()) ) > np.finfo(np.float64).eps : print('Error')\n\nimport matplotlib.pyplot as plt\nparams = {'axes.labelsize': 20,\n          'figure.figsize' : (12,12),\n          'axes.titlesize': 16,\n          'legend.fontsize': 16,\n          'xtick.labelsize': 16,\n          'lines.markersize'  : 12,\n          'axes.linewidth' : 3,\n          'ytick.labelsize': 16#,\n          #'text.usetex': True\n          }\nplt.rcParams.update(params)\nplt.rcParams['figure.constrained_layout.use'] = True\nplt.loglog(w, slowmultiply.ats,'*', label = 'D @ A')\nplt.loglog(w, fastmultiply.ats,'D', label = ' D.diagonal()[:,np.newaxis] * A')\nplt.loglog(w[3:],1E-11 * w[3:]**3,'b-', label='O($n^3$)')\nplt.loglog(w[3:],1E-9 * w[3:]**2,'--', label='O($n^2$)')\n\nplt.xlabel('size n')\nplt.ylabel('time (s)')\nplt.grid()\nplt.legend()\nplt.savefig('./cx_out/timemultdiag.png')\n",
+      "test": {
+        "typ": "werte",
+        "pruefcode": "import numpy as np\n\nrng = np.random.default_rng(20250219)\n\n# --- (a) quadratischer Fall: trifft die Semantik (Zeilen- statt Spaltenskalierung) ---\nn = 37\nAq = rng.random((n, n))\ndq = rng.random(n) + 0.5\nDq = np.diag(dq)\nref = dq[:, np.newaxis] * Aq          # unabhaengig nachgerechnet\n\nXs = np.asarray(slowmultiply(Dq, Aq))\nYf = np.asarray(fastmultiply(Dq, Aq))\n\nassert Xs.shape == (n, n), f'slowmultiply liefert die Form {Xs.shape} statt {(n, n)}'\nassert Yf.shape == (n, n), f'fastmultiply liefert die Form {Yf.shape} statt {(n, n)}'\nassert np.allclose(Xs, ref), 'slowmultiply muss D @ A liefern (D skaliert die Zeilen von A)'\nassert np.allclose(Yf, ref), 'fastmultiply muss dasselbe liefern wie D @ A'\nassert np.allclose(Xs, Yf), 'die schnelle und die langsame Variante muessen uebereinstimmen'\n\n# Sicherheitsnetz: die Testdaten duerfen Zeilen- und Spaltenskalierung nicht verwechselbar machen\nassert not np.allclose(ref, Aq * dq[np.newaxis, :]), 'Testdaten zu symmetrisch'\nassert np.linalg.norm(Yf) > 1e-6, 'das Ergebnis darf nicht trivial 0 sein'\n\n# --- (b) rechteckiges A: erzwingt echtes Broadcasting ueber die Zeilen ---\nm, k = 29, 17\nAr = rng.random((m, k))\ndr = rng.random(m) + 0.5\nDr = np.diag(dr)\nrefr = dr[:, np.newaxis] * Ar\n\nXr = np.asarray(slowmultiply(Dr, Ar))\nYr = np.asarray(fastmultiply(Dr, Ar))\nassert Xr.shape == (m, k) and Yr.shape == (m, k), 'auch fuer rechteckiges A muss die Form m x k sein'\nassert np.allclose(Xr, refr) and np.allclose(Yr, refr), 'auch fuer rechteckiges A muss D @ A herauskommen'\n"
+      },
+      "referenzPlot": "assets/ref/ce-w2-diagonal.png"
+    },
+    {
+      "id": "ce-w2-kronecker",
+      "titel": "Multiplikation mit dem Kronecker-Produkt",
+      "quelle": "codeexpert/Multiplikation mit dem Kronecker Produkt - Student attempt.rtf",
+      "skriptRef": {
+        "abschnitt": "1.3",
+        "seite": 39,
+        "nummer": "Def. 1.3.21, Bsp. 1.3.22, Abb. 1.3.23"
+      },
+      "braucht": [
+        "numpy",
+        "matplotlib"
+      ],
+      "beschreibung": "<p>Gesucht ist $(\\mathbf{A}\\otimes\\mathbf{B})\\mathbf{x}$ für $\\mathbf{A}\\in\\mathbb{R}^{m,n}$, $\\mathbf{B}\\in\\mathbb{R}^{l,k}$ und $\\mathbf{x}\\in\\mathbb{R}^{nk}$ — wieder auf zwei Arten:</p><ul><li><code>slowKmultiply</code> — erst mit <code>np.kron</code> die ganze $(ml)\\times(nk)$-Matrix aufbauen, dann multiplizieren. Für quadratische $n\\times n$-Blöcke sind das $\\mathcal{O}(n^4)$ Operationen — und ebenso viel Speicher.</li><li><code>fastKmultiply</code> — $\\mathbf{x}$ in $n$ Blöcke der Länge $k$ zerlegen, also zeilenweise als Matrix $\\mathbf{X}\\in\\mathbb{R}^{n,k}$ lesen. Dann ist $(\\mathbf{A}\\otimes\\mathbf{B})\\mathbf{x}$ genau die zeilenweise Auffaltung von $\\mathbf{A}\\mathbf{X}\\mathbf{B}^{T}$: die kleinen Produkte $\\mathbf{B}\\mathbf{x}^{j}$ werden auf einmal berechnet und anschliessend mit den Koeffizienten aus den Spalten von $\\mathbf{A}$ linear kombiniert. Das kostet nur $\\mathcal{O}(n^3)$ — und das Kronecker-Produkt wird nie aufgebaut.</li></ul><p>Der doppelt-logarithmische Plot vergleicht beide Laufzeiten mit $\\mathcal{O}(n^4)$ und $\\mathcal{O}(n^3)$ und reproduziert Abb. 1.3.23.</p><p class=\"faint\">Auf die <b>Klammerung</b> kommt es an: <code>A @ (X @ B.T)</code> und <code>(A @ X) @ B.T</code> sind zwar dasselbe, aber <code>np.kron(A, B) @ x</code> ist es eben nicht — das ist dieselbe Rechnung in einer völlig anderen, viel teureren Reihenfolge.</p>",
+      "hinweisUmgebung": "<p>Das Original rechnet mit <code>maxlev = 11</code> ($n$ bis $2048$) und baut das Kronecker-Produkt für $n&lt;2^{7}$ auf. Schon für $n=64$ wäre <code>np.kron</code> eine $4096\\times 4096$-Matrix, also rund $134$ MB — im Browser nicht machbar. Hier steht <code>maxlev = 7</code> ($n$ bis $128$), und die direkte Variante läuft nur bis $n=32$ (Kronecker-Produkt $1024\\times 1024$).</p><p>Geprüft wird nur die <b>Korrektheit</b>: die schnelle Variante muss dasselbe liefern wie <code>np.kron(A, B) @ x</code>. Laufzeiten sind im Browser kein verlässliches Kriterium.</p>",
+      "luecken_template": "import numpy as np\nimport time\n\ndef mytimeit(rep=1): # decorator with argument\n    def mytimeit_real_decorator(func): # actual decorator\n        def wrapper(*args, **kwargs):\n            ts = [] # measured times\n            for k in range(rep):\n                start = time.perf_counter()\n                #start = time.process_time()\n                result = func(*args, **kwargs)\n                #end = time.process_time()\n                end = time.perf_counter()\n                ts.append(end - start)\n            print(f'Min. Time taken: {min(ts):.6f} seconds in ',func.__name__)\n            wrapper.ats.append(min(ts)) # record the minimal measured time\n            return result\n        wrapper.ats = [] # declare atribute to use later\n        return wrapper\n    return mytimeit_real_decorator\n\nnrEXP = 3\n\n@mytimeit(rep=nrEXP)\ndef slowKmultiply(A, B, x):\n    # direkt: erst das ganze Kronecker-Produkt bauen  ->  O(n^4)\n    R = «L1»\n    y = R @ x\n    return y\n\n@mytimeit(rep=nrEXP)\ndef fastKmultiply(A, B, x):\n    # x blockweise als Matrix lesen: Block j wird zu Zeile j\n    X = «L2»\n    # alle kleinen Produkte B x^j auf einmal und dann mit A kombinieren  ->  O(n^3)\n    Y = «L3»\n    return Y.ravel()\n\n# ---- kurze Kontrolle (das volle Zeitexperiment mit Plot steht in Stufe 3) ----\nn = 24\nA = np.random.rand(n, n)\nB = np.random.rand(n, n)\nx = np.random.rand(n * n)\n\nys = slowKmultiply(A, B, x)\nyf = fastKmultiply(A, B, x)\nprint('gleiches Ergebnis:', np.allclose(ys, yf))\nprint('groesste Abweichung:', np.abs(np.asarray(ys) - np.asarray(yf)).max())\n",
+      "luecken": [
+        {
+          "id": "L1",
+          "loesung": "np.kron(A, B)",
+          "optionen": [
+            "np.kron(A, B)",
+            "np.kron(B, A)",
+            "np.outer(A, B)",
+            "A @ B"
+          ],
+          "richtig": 0,
+          "erklaerung": "<p>Nach Def. 1.3.21 steht in Block $(i,j)$ von $\\mathbf{A}\\otimes\\mathbf{B}$ der Ausdruck $(\\mathbf{A})_{i,j}\\mathbf{B}$ — die <b>erste</b> Matrix liefert die Skalare, die <b>zweite</b> den Block. <code>np.kron(B, A)</code> dreht das um und ergibt eine andere Matrix (gleiche Form, andere Einträge). <code>np.outer</code> macht aus beiden Argumenten erst flache Vektoren und liefert ein dyadisches Produkt, <code>A @ B</code> ist ein gewöhnliches Matrixprodukt.</p>",
+          "hinweis": "Welche der beiden Matrizen liefert die Skalare vor den Blöcken, welche den Block selbst?"
+        },
+        {
+          "id": "L2",
+          "loesung": "x.reshape(A.shape[1], B.shape[1])",
+          "optionen": [
+            "x.reshape(B.shape[1], A.shape[1])",
+            "x.reshape(A.shape[1], B.shape[1])",
+            "x.reshape(A.shape[1], B.shape[1]).T",
+            "x.reshape(A.shape[1], B.shape[1], order='F')"
+          ],
+          "richtig": 1,
+          "erklaerung": "<p>$\\mathbf{x}$ zerfällt in $n$ Blöcke $\\mathbf{x}^{1},\\dots,\\mathbf{x}^{n}$ der Länge $k$, wobei $n$ die Anzahl <b>Spalten</b> von $\\mathbf{A}$ und $k$ die Anzahl Spalten von $\\mathbf{B}$ ist. Jeder Block wird eine <b>Zeile</b> von $\\mathbf{X}$, also <code>reshape(n, k)</code> in der NumPy-Standardreihenfolge (C-Order, zeilenweise). Die vertauschte Form (Option a) passt schon dimensional nicht mehr, <code>.T</code> und <code>order='F'</code> füllen die Matrix spaltenweise und vertauschen damit die Rolle der beiden Faktoren.</p>",
+          "hinweis": "Wie lang ist ein einzelner Block $\\mathbf{x}^{j}$, und wie viele Blöcke gibt es? Welcher der beiden Werte gehört zu $\\mathbf{A}$?"
+        },
+        {
+          "id": "L3",
+          "loesung": "A @ (X @ B.T)",
+          "optionen": [
+            "A @ (X @ B)",
+            "B @ (X @ A.T)",
+            "A @ (X @ B.T)",
+            "A.T @ (X @ B)"
+          ],
+          "richtig": 2,
+          "erklaerung": "<p>Zeile $j$ von $\\mathbf{X}$ ist $\\bigl(\\mathbf{x}^{j}\\bigr)^{T}$, also ist Zeile $j$ von $\\mathbf{X}\\mathbf{B}^{T}$ gerade $\\bigl(\\mathbf{B}\\mathbf{x}^{j}\\bigr)^{T}$ — damit sind alle kleinen Produkte $\\mathbf{B}\\mathbf{x}^{j}$ mit <b>einem</b> Aufruf erledigt. Die Multiplikation mit $\\mathbf{A}$ von links kombiniert sie anschliessend so, wie es die Blockzeilen von $\\mathbf{A}\\otimes\\mathbf{B}$ verlangen. Insgesamt $(\\mathbf{A}\\otimes\\mathbf{B})\\mathbf{x}=\\operatorname{vec}\\bigl(\\mathbf{A}\\mathbf{X}\\mathbf{B}^{T}\\bigr)$ (zeilenweise aufgefaltet). Die vergessene Transponierung (Option a) passt nur zufällig, wenn $\\mathbf{B}$ quadratisch ist, und liefert dann falsche Werte; Option b vertauscht die Rollen von $\\mathbf{A}$ und $\\mathbf{B}$.</p>",
+          "hinweis": "$\\mathbf{B}$ soll von <i>links</i> auf jeden Block wirken — die Blöcke stehen aber als <i>Zeilen</i> in $\\mathbf{X}$. Was heisst das für $\\mathbf{B}$?"
+        }
+      ],
+      "template": "import numpy as np\nimport time\n\ndef mytimeit(rep=1): # decorator with argument\n    def mytimeit_real_decorator(func): # actual decorator\n        def wrapper(*args, **kwargs):\n            ts = [] # measured times\n            for k in range(rep):\n                start = time.perf_counter()\n                #start = time.process_time()\n                result = func(*args, **kwargs)\n                #end = time.process_time()\n                end = time.perf_counter()\n                ts.append(end - start)\n            print(f'Min. Time taken: {min(ts):.6f} seconds in ',func.__name__)\n            wrapper.ats.append(min(ts)) # record the minimal measured time\n            return result\n        wrapper.ats = [] # declare atribute to use later\n        return wrapper\n    return mytimeit_real_decorator\n\nnrEXP = 4\n\nmaxlev = 7   # Original: 11 -- fuer den Browser verkleinert\nminlev = 2\nN = 2**maxlev\n#p = 5\n\nA = np.random.rand(N,N)\nB = np.random.rand(N,N)\nx = np.random.rand(N*N)\n\n@mytimeit(rep=nrEXP)\ndef slowKmultiply(A,B,x):\n    # TODO: implement here\n    return None\n\n\n@mytimeit(rep=nrEXP)\ndef fastKmultiply(A,B,x):\n    # TODO: implement here\n    return None\n\n# work with submatrices of various dimensions\nw = 2**np.arange(minlev,maxlev+1)\nfor n in w:\n    print('n =', n)\n    An = A[:n,:n] # view, no copy\n    Bn = B[:n,:n] # view, no copy\n    xn = x[:n*n] # view, no copy\n\n    if n <= 32: # else too long / too much memory for the browser\n      print('slowKmult...')\n      ys = slowKmultiply(An, Bn, xn)\n    print('fastKmult...')\n    yf = fastKmultiply(An, Bn, xn)\n\nimport matplotlib.pyplot as plt\nparams = {'axes.labelsize': 20,\n          'figure.figsize' : (12,12),\n          'axes.titlesize': 16,\n          'legend.fontsize': 16,\n          'xtick.labelsize': 16,\n          'lines.markersize'  : 12,\n          'axes.linewidth' : 3,\n          'ytick.labelsize': 16#,\n          #'text.usetex': True\n          }\nplt.rcParams.update(params)\nplt.rcParams['figure.constrained_layout.use'] = True\n\nk = len(slowKmultiply.ats)\nplt.loglog(w[:k], slowKmultiply.ats,'*', label = 'direct way')\nplt.loglog(w, fastKmultiply.ats,'D', label = 'LA way')\nplt.loglog(w,1E-9 * w**4,'b-', label='O($n^4$)')\nplt.loglog(w,2.5E-11 * w**3,'--', label='O(n^3)')\nplt.xlabel('size n')\nplt.ylabel('time (s)')\nplt.grid()\nplt.legend()\nplt.savefig('./cx_out/timemultAkBx.png')\n",
+      "loesung": "import numpy as np\nimport time\n\ndef mytimeit(rep=1): # decorator with argument\n    def mytimeit_real_decorator(func): # actual decorator\n        def wrapper(*args, **kwargs):\n            ts = [] # measured times\n            for k in range(rep):\n                start = time.perf_counter()\n                #start = time.process_time()\n                result = func(*args, **kwargs)\n                #end = time.process_time()\n                end = time.perf_counter()\n                ts.append(end - start)\n            print(f'Min. Time taken: {min(ts):.6f} seconds in ',func.__name__)\n            wrapper.ats.append(min(ts)) # record the minimal measured time\n            return result\n        wrapper.ats = [] # declare atribute to use later\n        return wrapper\n    return mytimeit_real_decorator\n\nnrEXP = 4\n\nmaxlev = 7   # Original: 11 -- fuer den Browser verkleinert\nminlev = 2\nN = 2**maxlev\n#p = 5\n\nA = np.random.rand(N,N)\nB = np.random.rand(N,N)\nx = np.random.rand(N*N)\n\n@mytimeit(rep=nrEXP)\ndef slowKmultiply(A,B,x):\n    # direkt: erst das ganze Kronecker-Produkt bauen, dann multiplizieren\n    R = np.kron(A, B)\n    y = R @ x\n    return(y)\n\n\n@mytimeit(rep=nrEXP)\ndef fastKmultiply(A,B,x):\n    # ohne das Kronecker-Produkt je aufzubauen\n    X = x.reshape(A.shape[1], B.shape[1])\n    Y = A @ (X @ B.T)\n    return Y.ravel()\n\n# work with submatrices of various dimensions\nw = 2**np.arange(minlev,maxlev+1)\nfor n in w:\n    print('n =', n)\n    An = A[:n,:n] # view, no copy\n    Bn = B[:n,:n] # view, no copy\n    xn = x[:n*n] # view, no copy\n\n    if n <= 32: # else too long / too much memory for the browser\n      print('slowKmult...')\n      ys = slowKmultiply(An, Bn, xn)\n    print('fastKmult...')\n    yf = fastKmultiply(An, Bn, xn)\n\nimport matplotlib.pyplot as plt\nparams = {'axes.labelsize': 20,\n          'figure.figsize' : (12,12),\n          'axes.titlesize': 16,\n          'legend.fontsize': 16,\n          'xtick.labelsize': 16,\n          'lines.markersize'  : 12,\n          'axes.linewidth' : 3,\n          'ytick.labelsize': 16#,\n          #'text.usetex': True\n          }\nplt.rcParams.update(params)\nplt.rcParams['figure.constrained_layout.use'] = True\n\nk = len(slowKmultiply.ats)\nplt.loglog(w[:k], slowKmultiply.ats,'*', label = 'direct way')\nplt.loglog(w, fastKmultiply.ats,'D', label = 'LA way')\nplt.loglog(w,1E-9 * w**4,'b-', label='O($n^4$)')\nplt.loglog(w,2.5E-11 * w**3,'--', label='O(n^3)')\nplt.xlabel('size n')\nplt.ylabel('time (s)')\nplt.grid()\nplt.legend()\nplt.savefig('./cx_out/timemultAkBx.png')\n",
+      "test": {
+        "typ": "werte",
+        "pruefcode": "import numpy as np\n\nrng = np.random.default_rng(20250220)\n\n# --- (a) rechteckiger Fall: erzwingt die richtigen reshape-Dimensionen ---\nm, n, l, k = 5, 4, 3, 6\nAq = rng.random((m, n))\nBq = rng.random((l, k))\nxq = rng.random(n * k)\nref = np.kron(Aq, Bq) @ xq            # unabhaengig nachgerechnet\n\nys = np.asarray(slowKmultiply(Aq, Bq, xq))\nyf = np.asarray(fastKmultiply(Aq, Bq, xq))\n\nassert ys.shape == (m * l,), f'slowKmultiply liefert die Form {ys.shape} statt {(m * l,)}'\nassert yf.shape == (m * l,), f'fastKmultiply liefert die Form {yf.shape} statt {(m * l,)}'\nassert np.allclose(ys, ref), 'slowKmultiply muss (A kron B) @ x liefern'\nassert np.allclose(yf, ref), 'fastKmultiply muss dasselbe liefern wie (A kron B) @ x'\nassert np.allclose(ys, yf), 'schnelle und langsame Variante muessen uebereinstimmen'\nassert np.linalg.norm(ref) > 1e-6, 'das Ergebnis darf nicht trivial 0 sein'\n\n# Gegenprobe: die Reihenfolge der Faktoren ist nicht egal\nassert not np.allclose(ref, np.kron(Bq, Aq) @ xq), 'Testdaten zu symmetrisch'\n\n# --- (b) quadratischer Fall wie im Zeitexperiment ---\nq = 7\nAq2 = rng.random((q, q))\nBq2 = rng.random((q, q))\nxq2 = rng.random(q * q)\nref2 = np.kron(Aq2, Bq2) @ xq2\nassert np.allclose(np.asarray(slowKmultiply(Aq2, Bq2, xq2)), ref2), 'slowKmultiply: quadratischer Fall'\nassert np.allclose(np.asarray(fastKmultiply(Aq2, Bq2, xq2)), ref2), 'fastKmultiply: quadratischer Fall'\n# hier faellt eine vertauschte oder transponierte reshape-Form auf, weil die Form noch passt\nassert not np.allclose(ref2, np.kron(Aq2, Bq2) @ xq2.reshape(q, q).T.ravel()), 'Testdaten zu symmetrisch'\n"
+      },
+      "referenzPlot": "assets/ref/ce-w2-kronecker.png"
+    },
+    {
+      "id": "ce-w2-lowrank",
+      "titel": "Multiplikation mit dem oberen Teil einer Matrix von kleinem Rang",
+      "quelle": "codeexpert/Multiplikation mit dem oberen Teil einer Matrix von kleinem Rang - Student attempt .rtf",
+      "skriptRef": {
+        "abschnitt": "1.3",
+        "seite": 37,
+        "nummer": "Bsp. 1.3.19, Abb. 1.3.20"
+      },
+      "braucht": [
+        "numpy",
+        "matplotlib"
+      ],
+      "beschreibung": "<p>Seien $\\mathbf{A},\\mathbf{B}\\in\\mathbb{R}^{n,p}$ mit $p\\ll n$, also $\\mathbf{A}\\mathbf{B}^{T}$ von kleinem Rang, und sei $\\mathbf{R}=\\operatorname{triu}(\\mathbf{A}\\mathbf{B}^{T})$ der obere Teil davon. Gesucht ist $\\mathbf{y}=\\mathbf{R}\\mathbf{x}$:</p><ul><li><code>slowmultiply</code> — direkt als <code>np.triu(A @ B.T) @ x</code>. Dabei entsteht die volle $n\\times n$-Matrix, der Aufwand ist $\\mathcal{O}(pn^{2})$.</li><li><code>fastmultiply</code> — über <b>Teilsummen</b>. Für $p=1$ ist $y_i=a_i\\sum_{j\\ge i}b_jx_j$: das Ergebnis besteht also aus den Teilsummen des elementweisen Produkts $\\mathbf{b}\\odot\\mathbf{x}$, von hinten aufsummiert. Die rechnet <code>np.cumsum</code> in $\\mathcal{O}(n)$. Für allgemeines $p$ summiert man das wegen $\\mathbf{A}\\mathbf{B}^{T}=\\sum_{\\ell=1}^{p}\\mathbf{A}_{:,\\ell}\\bigl(\\mathbf{B}_{:,\\ell}\\bigr)^{T}$ über die $p$ Spalten — insgesamt $\\mathcal{O}(np)$ statt $\\mathcal{O}(pn^{2})$.</li></ul><p>Der doppelt-logarithmische Plot vergleicht beide über wachsendes $n$ mit den Geraden $\\mathcal{O}(n^{2})$ und $\\mathcal{O}(n)$ und reproduziert Abb. 1.3.20.</p>",
+      "hinweisUmgebung": "<p>Das Original geht bis <code>maxlev = 12</code>, also $n=4096$ — die direkte Variante würde dort eine $4096\\times 4096$-Matrix aufbauen ($134$ MB) und im Browser den Speicher sprengen. Hier steht <code>maxlev = 9</code>, also $n$ bis $512$. Die Konstanten der beiden Referenzgeraden sind entsprechend angepasst.</p><p>Geprüft wird nur die <b>Korrektheit</b> — die schnelle Variante muss dasselbe liefern wie <code>np.triu(A @ B.T) @ x</code> —, nicht die gemessene Laufzeit.</p>",
+      "luecken_template": "import numpy as np\nimport time\n\ndef mytimeit(rep=1): # decorator with argument\n    def mytimeit_real_decorator(func): # actual decorator\n        def wrapper(*args, **kwargs):\n            ts = [] # measured times\n            for k in range(rep):\n                start = time.perf_counter()\n                #start = time.process_time()\n                result = func(*args, **kwargs)\n                #end = time.process_time()\n                end = time.perf_counter()\n                ts.append(end - start)\n            print(f'Min. Time taken: {min(ts):.6f} seconds in ',func.__name__)\n            wrapper.ats.append(min(ts)) # record the minimal measured time\n            return result\n        wrapper.ats = [] # declare atribute to use later\n        return wrapper\n    return mytimeit_real_decorator\n\nnrEXP = 3\n\n@mytimeit(rep=nrEXP)\ndef slowmultiply(A, B, x):\n    # direkt: erst die volle Matrix bauen, dann multiplizieren  ->  O(p n^2)\n    R = «L1»\n    y = R @ x\n    return y\n\n@mytimeit(rep=nrEXP)\ndef fastmultiply(A, B, x):\n    n, p = A.shape\n    y = np.zeros(n)\n    for k in range(p):\n        a_k = A[:, k]\n        b_k = B[:, k]\n        # elementweises Produkt: der Vektor, von dem Teilsummen gebraucht werden\n        z = «L2»\n        # Teilsummen von hinten: w[i] = z[i] + z[i+1] + ... + z[n-1]\n        w = «L3»\n        # Beitrag der k-ten Spalte aufaddieren\n        y += «L4»\n    return y\n\n# ---- kurze Kontrolle (das volle Zeitexperiment mit Plot steht in Stufe 3) ----\nn, p = 256, 5\nA = np.random.rand(n, p)\nB = np.random.rand(n, p)\nx = np.random.rand(n)\n\nys = slowmultiply(A, B, x)\nyf = fastmultiply(A, B, x)\nprint('gleiches Ergebnis:', np.allclose(ys, yf))\nprint('groesste Abweichung:', np.abs(np.asarray(ys) - np.asarray(yf)).max())\n",
+      "luecken": [
+        {
+          "id": "L1",
+          "loesung": "np.triu(A @ B.T)",
+          "optionen": [
+            "np.tril(A @ B.T)",
+            "np.triu(A.T @ B)",
+            "np.triu(A @ B.T)",
+            "np.triu(B @ A.T)"
+          ],
+          "richtig": 2,
+          "erklaerung": "<p>$\\mathbf{A}\\mathbf{B}^{T}$ ist das $n\\times n$-Produkt der beiden schmalen Matrizen (Rang höchstens $p$), <code>np.triu</code> schneidet den oberen Teil inklusive Diagonale heraus. <code>np.tril</code> nimmt den unteren Teil, <code>A.T @ B</code> ist nur $p\\times p$ gross (die Formen passen dann nicht mehr zu $\\mathbf{x}$), und <code>B @ A.T</code> ist die Transponierte von $\\mathbf{A}\\mathbf{B}^{T}$ — nach dem <code>triu</code> etwas ganz anderes.</p>",
+          "hinweis": "Welche Form muss das Produkt haben, damit <code>R @ x</code> mit $\\mathbf{x}\\in\\mathbb{R}^{n}$ überhaupt funktioniert?"
+        },
+        {
+          "id": "L2",
+          "loesung": "b_k * x",
+          "optionen": [
+            "b_k * x",
+            "a_k * x",
+            "b_k * x[::-1]",
+            "b_k @ x"
+          ],
+          "richtig": 0,
+          "erklaerung": "<p>Aus $y_i=\\sum_{j\\ge i}a_ib_jx_j=a_i\\sum_{j\\ge i}b_jx_j$ sieht man: der Faktor $a_i$ hängt am <b>Zeilenindex</b> und bleibt draussen, summiert wird über $b_jx_j$ — also über das elementweise Produkt von $\\mathbf{b}$ und $\\mathbf{x}$. Mit <code>a_k * x</code> würden die Rollen von $\\mathbf{a}$ und $\\mathbf{b}$ vertauscht; <code>b_k @ x</code> ist das Skalarprodukt und liefert nur eine Zahl statt des Vektors, von dem noch Teilsummen gebraucht werden.</p>",
+          "hinweis": "Welcher der beiden Vektoren läuft in $\\operatorname{triu}(\\mathbf{a}\\mathbf{b}^{T})$ über den Spaltenindex — also über genau den Index, über den summiert wird?"
+        },
+        {
+          "id": "L3",
+          "loesung": "np.cumsum(z[::-1])[::-1]",
+          "optionen": [
+            "np.cumsum(z)",
+            "np.cumsum(z)[::-1]",
+            "np.cumsum(z[::-1])",
+            "np.cumsum(z[::-1])[::-1]"
+          ],
+          "richtig": 3,
+          "erklaerung": "<p>Gebraucht werden die Teilsummen <b>von hinten</b>: $w_i=z_i+z_{i+1}+\\dots+z_{n-1}$. <code>np.cumsum</code> summiert aber von vorn. Also erst den Vektor umdrehen, dann kumulieren — und das Ergebnis wieder umdrehen, damit es zur ursprünglichen Indizierung passt. Lässt man eines der beiden <code>[::-1]</code> weg, stehen die richtigen Zahlen in der falschen Reihenfolge; ohne beide bekommt man die Teilsummen der <b>unteren</b> Dreiecksmatrix.</p>",
+          "hinweis": "Zwei Umdrehungen sind nötig: eine, damit überhaupt von hinten summiert wird, und eine, damit die Einträge wieder am richtigen Platz stehen."
+        },
+        {
+          "id": "L4",
+          "loesung": "a_k * w",
+          "optionen": [
+            "a_k * w",
+            "b_k * w",
+            "a_k * w[::-1]",
+            "a_k @ w"
+          ],
+          "richtig": 0,
+          "erklaerung": "<p>Zum Schluss wird die Teilsumme $w_i$ noch mit dem Zeilenfaktor $a_i$ multipliziert: $y_i=a_iw_i$. Mit <code>b_k</code> wären die Rollen vertauscht, <code>w[::-1]</code> dreht die Teilsummen noch einmal um, und <code>a_k @ w</code> ist ein Skalarprodukt — das Ergebnis muss aber ein Vektor der Länge $n$ bleiben.</p>",
+          "hinweis": "$\\mathbf{y}$ ist ein Vektor der Länge $n$, kein Skalar. Welcher Faktor gehört zum Zeilenindex?"
+        }
+      ],
+      "template": "import numpy as np\nimport time\n\ndef mytimeit(rep=1): # decorator with argument\n    def mytimeit_real_decorator(func): # actual decorator\n        def wrapper(*args, **kwargs):\n            ts = [] # measured times\n            for k in range(rep):\n                start = time.perf_counter()\n                #start = time.process_time()\n                result = func(*args, **kwargs)\n                #end = time.process_time()\n                end = time.perf_counter()\n                ts.append(end - start)\n            print(f'Min. Time taken: {min(ts):.6f} seconds in ',func.__name__)\n            wrapper.ats.append(min(ts)) # record the minimal measured time\n            return result\n        wrapper.ats = [] # declare atribute to use later\n        return wrapper\n    return mytimeit_real_decorator\n\nnrEXP = 4\n\nmaxlev = 9   # Original: 12 -- fuer den Browser verkleinert\nminlev = 4\nN = 2**maxlev\np = 5\n\nA = np.random.rand(N,p)\nB = np.random.rand(N,p)\nx = np.random.rand(N)\n\n@mytimeit(rep=nrEXP)\ndef slowmultiply(A,B,x):\n    #TODO: implemetieren Sie hier die standrad und langsame Mehtode\n    return None\n\n\n@mytimeit(rep=nrEXP)\ndef fastmultiply(A,B,x):\n    n, p = A.shape\n    # TODO: implemenieren Sie hier die effizientere Methode\n    return None\n\n# work with submatrices of various dimensions\nw = 2**np.arange(minlev,maxlev+1)\nfor n in w:\n    print('n =', n)\n    An = A[:n,:] # view, no copy\n    Bn = B[:n,:] # view, no copy\n    xn = x[:n] # view, no copy\n\n    print('slowmult...')\n    ys = slowmultiply(An, Bn, xn)\n    print('fastmult...')\n    yf = fastmultiply(An, Bn, xn)\n\n    err = ((ys-yf)**2).sum()\n    if err > np.finfo(np.float64).eps :\n        print('Error:',  err )\n\nimport matplotlib.pyplot as plt\nparams = {'axes.labelsize': 20,\n          'figure.figsize' : (12,12),\n          'axes.titlesize': 16,\n          'legend.fontsize': 16,\n          'xtick.labelsize': 16,\n          'lines.markersize'  : 12,\n          'axes.linewidth' : 3,\n          'ytick.labelsize': 16#,\n          #'text.usetex': True\n          }\nplt.rcParams.update(params)\nplt.rcParams['figure.constrained_layout.use'] = True\nplt.loglog(w, slowmultiply.ats,'*', label = 'direct way')\nplt.loglog(w, fastmultiply.ats,'D', label = 'partial sums')\nplt.loglog(w,1E-9 * w**2,'b-', label='O($n^2$)')\nplt.loglog(w,5E-8 * w,'--', label='O(n)')\nplt.xlabel('size n')\nplt.ylabel('time (s)')\nplt.grid()\nplt.legend()\nplt.savefig('./cx_out/timemultUPrankP.png')\n",
+      "loesung": "import numpy as np\nimport time\n\ndef mytimeit(rep=1): # decorator with argument\n    def mytimeit_real_decorator(func): # actual decorator\n        def wrapper(*args, **kwargs):\n            ts = [] # measured times\n            for k in range(rep):\n                start = time.perf_counter()\n                #start = time.process_time()\n                result = func(*args, **kwargs)\n                #end = time.process_time()\n                end = time.perf_counter()\n                ts.append(end - start)\n            print(f'Min. Time taken: {min(ts):.6f} seconds in ',func.__name__)\n            wrapper.ats.append(min(ts)) # record the minimal measured time\n            return result\n        wrapper.ats = [] # declare atribute to use later\n        return wrapper\n    return mytimeit_real_decorator\n\nnrEXP = 4\n\nmaxlev = 9   # Original: 12 -- fuer den Browser verkleinert\nminlev = 4\nN = 2**maxlev\np = 5\n\nA = np.random.rand(N,p)\nB = np.random.rand(N,p)\nx = np.random.rand(N)\n\n@mytimeit(rep=nrEXP)\ndef slowmultiply(A,B,x):\n    # standard und langsam: erst die volle Matrix bauen, dann multiplizieren\n    R = np.triu(A @ B.T)\n    y = R @ x\n    return(y)\n\n\n@mytimeit(rep=nrEXP)\ndef fastmultiply(A,B,x):\n    n, p = A.shape\n    # effizient: Teilsummen statt voller Matrix\n    y = np.zeros(n)\n\n    for k in range(p):\n      a_k = A[:, k]\n      b_k = B[:, k]\n\n      z = b_k * x\n\n      w = np.cumsum(z[::-1])[::-1]\n\n      y += a_k * w\n\n    return(y)\n\n# work with submatrices of various dimensions\nw = 2**np.arange(minlev,maxlev+1)\nfor n in w:\n    print('n =', n)\n    An = A[:n,:] # view, no copy\n    Bn = B[:n,:] # view, no copy\n    xn = x[:n] # view, no copy\n\n    print('slowmult...')\n    ys = slowmultiply(An, Bn, xn)\n    print('fastmult...')\n    yf = fastmultiply(An, Bn, xn)\n\n    err = ((ys-yf)**2).sum()\n    if err > np.finfo(np.float64).eps :\n        print('Error:',  err )\n\nimport matplotlib.pyplot as plt\nparams = {'axes.labelsize': 20,\n          'figure.figsize' : (12,12),\n          'axes.titlesize': 16,\n          'legend.fontsize': 16,\n          'xtick.labelsize': 16,\n          'lines.markersize'  : 12,\n          'axes.linewidth' : 3,\n          'ytick.labelsize': 16#,\n          #'text.usetex': True\n          }\nplt.rcParams.update(params)\nplt.rcParams['figure.constrained_layout.use'] = True\nplt.loglog(w, slowmultiply.ats,'*', label = 'direct way')\nplt.loglog(w, fastmultiply.ats,'D', label = 'partial sums')\nplt.loglog(w,1E-9 * w**2,'b-', label='O($n^2$)')\nplt.loglog(w,5E-8 * w,'--', label='O(n)')\nplt.xlabel('size n')\nplt.ylabel('time (s)')\nplt.grid()\nplt.legend()\nplt.savefig('./cx_out/timemultUPrankP.png')\n",
+      "test": {
+        "typ": "werte",
+        "pruefcode": "import numpy as np\n\nrng = np.random.default_rng(20250221)\n\n# --- (a) p = 3 ---\nn, p = 23, 3\nAq = rng.random((n, p))\nBq = rng.random((n, p))\nxq = rng.random(n)\nref = np.triu(Aq @ Bq.T) @ xq          # unabhaengig nachgerechnet\n\nys = np.asarray(slowmultiply(Aq, Bq, xq))\nyf = np.asarray(fastmultiply(Aq, Bq, xq))\n\nassert ys.shape == (n,), f'slowmultiply liefert die Form {ys.shape} statt {(n,)}'\nassert yf.shape == (n,), f'fastmultiply liefert die Form {yf.shape} statt {(n,)}'\nassert np.allclose(ys, ref), 'slowmultiply muss triu(A @ B.T) @ x liefern'\nassert np.allclose(yf, ref), 'fastmultiply muss dasselbe liefern wie triu(A @ B.T) @ x'\nassert np.allclose(ys, yf), 'schnelle und langsame Variante muessen uebereinstimmen'\nassert np.linalg.norm(ref) > 1e-6, 'das Ergebnis darf nicht trivial 0 sein'\n\n# Gegenprobe: der UNTERE Teil liefert etwas anderes -> Teilsummen in der richtigen Richtung\nassert not np.allclose(ref, np.tril(Aq @ Bq.T) @ xq), 'Testdaten zu symmetrisch'\n# letzter Eintrag ist der einfachste Testfall: y[n-1] = sum_k a_k[n-1] * b_k[n-1] * x[n-1]\nassert abs(yf[-1] - (Aq[-1, :] @ Bq[-1, :]) * xq[-1]) < 1e-10, 'der letzte Eintrag stimmt nicht'\n\n# --- (b) Spezialfall p = 1, Rang-1-Matrix ---\nn1 = 17\na1 = rng.random((n1, 1))\nb1 = rng.random((n1, 1))\nx1 = rng.random(n1)\nref1 = np.triu(a1 @ b1.T) @ x1\nassert np.allclose(np.asarray(slowmultiply(a1, b1, x1)), ref1), 'slowmultiply: Fall p = 1'\nassert np.allclose(np.asarray(fastmultiply(a1, b1, x1)), ref1), 'fastmultiply: Fall p = 1'\n\n# --- (c) groesseres p, damit die Schleife ueber die Spalten wirklich zaehlt ---\nn2, p2 = 31, 4\nA2 = rng.random((n2, p2))\nB2 = rng.random((n2, p2))\nx2 = rng.random(n2)\nref2 = np.triu(A2 @ B2.T) @ x2\nassert np.allclose(np.asarray(fastmultiply(A2, B2, x2)), ref2), 'fastmultiply: Fall p = 4'\n"
+      },
+      "referenzPlot": "assets/ref/ce-w2-lowrank.png"
+    },
+    {
+      "id": "ce-w2-vandermonde",
+      "titel": "Effiziente Konstruktion einer Vandermonde-Matrix",
+      "quelle": "codeexpert/Effiziente Konstruktion einer Vandermonde Matrix - Student attempt .rtf",
+      "skriptRef": {
+        "abschnitt": "1.3",
+        "seite": 33,
+        "nummer": "Bem. 1.3.8 (Denken vor Rechnen), Bsp. 1.3.9"
+      },
+      "braucht": [
+        "numpy"
+      ],
+      "beschreibung": "<p>Zu Stützstellen $t_0,\\dots,t_{m-1}$ ist die Vandermonde-Matrix $\\mathbf{Z}\\in\\mathbb{R}^{m,n}$ mit $Z_{ij}=t_i^{\\,j}$ aufzubauen — zweimal:</p><ul><li><code>dirZ</code> — <b>direkt</b> und vollständig vektorisiert: alle Potenzen auf einmal über Broadcasting von $(m,1)$ gegen $(n,)$.</li><li><code>indirZ</code> — <b>indirekt</b> über die Rekursion $\\mathbf{Z}_{:,j}=\\mathbf{Z}_{:,j-1}\\odot\\mathbf{t}$: jede Spalte entsteht aus der vorherigen durch eine einzige elementweise Multiplikation. Das spart Potenzierungen (nur noch $mn$ Multiplikationen statt $mn$ Aufrufen von <code>**</code>), kostet aber eine Python-Schleife über die $n$ Spalten.</li></ul><p>Beide werden mit <code>mytimeit</code> gemessen. Welche gewinnt, ist genau die Frage von Bem. 1.3.8 — <i>Denken vor Rechnen</i>: die mathematisch billigere Variante ist nicht automatisch die schnellere, wenn sie dafür eine Schleife im Interpreter braucht.</p><p>Zum Schluss wird <code>np.linalg.cond</code> der Matrix ausgegeben. Der Wert ist riesig — ein erster Vorgeschmack darauf, warum man die Monombasis zur Polynominterpolation (Woche 3) lieber nicht verwendet.</p>",
+      "hinweisUmgebung": "<p>Das Original baut eine $1000\\times 1000$-Matrix auf und ruft anschliessend <code>np.linalg.cond</code> darauf auf — eine Singulärwertzerlegung dieser Grösse dauert in Pyodide spürbar lange. Hier steht $m=n=256$; am Ergebnis ändert das qualitativ nichts, die Konditionszahl ist auch so astronomisch.</p><p>Diese Aufgabe erzeugt — wie im Original — <b>keinen Plot</b>, sondern gibt die gemessenen Zeiten und die Konditionszahl aus. Geprüft wird allein, dass beide Konstruktionen dieselbe Vandermonde-Matrix liefern.</p>",
+      "luecken_template": "import numpy as np\nimport time\n\ndef mytimeit(rep=1): # decorator with argument\n    def mytimeit_real_decorator(func): # actual decorator\n        def wrapper(*args, **kwargs):\n            ts = [] # measured times\n            for k in range(rep):\n                start = time.perf_counter()\n                #start = time.process_time()\n                result = func(*args, **kwargs)\n                #end = time.process_time()\n                end = time.perf_counter()\n                ts.append(end - start)\n            print(f'Min. Time taken: {min(ts):.6f} seconds in ',func.__name__)\n            wrapper.ats.append(min(ts)) # record the minimal measured time\n            return result\n        wrapper.ats = [] # declare atribute to use later\n        return wrapper\n    return mytimeit_real_decorator\n\nnrEXP = 3\n\nm = 256; n = 256\nt = np.linspace(0, 1, m)\n\n@mytimeit(rep=nrEXP)\ndef dirZ(Z):\n    # direkt: alle Potenzen auf einmal, per Broadcasting\n    n = Z.shape[1]\n    Z = «L1»\n    return Z\n\n@mytimeit(rep=nrEXP)\ndef indirZ(Z):\n    # indirekt: spaltenweise Rekursion, jede Spalte aus der vorherigen\n    n = Z.shape[1]\n    for j in range(1, n):\n        Z[:, j] = «L2»\n    return Z\n\n# ---- kurze Kontrolle ----\nX = dirZ(np.ones((m, n)))\nY = indirZ(np.ones((m, n)))\nprint('gleiches Ergebnis:', np.allclose(X, Y))\nprint('erste Zeilen von X:')\nprint(np.asarray(X)[:3, :5])\n",
+      "luecken": [
+        {
+          "id": "L1",
+          "loesung": "t[:, np.newaxis] ** np.arange(n)",
+          "optionen": [
+            "t ** np.arange(n)[:, np.newaxis]",
+            "t[:, np.newaxis] ** np.arange(n)",
+            "np.arange(n) ** t[:, np.newaxis]",
+            "t[np.newaxis, :] ** np.arange(n)"
+          ],
+          "richtig": 1,
+          "erklaerung": "<p>Gesucht ist $Z_{ij}=t_i^{\\,j}$: der <b>Zeilenindex</b> gehört zu den Stützstellen, der <b>Spaltenindex</b> zum Exponenten. Beim Broadcasting muss $\\mathbf{t}$ also die Form $(m,1)$ bekommen und <code>np.arange(n)</code> bleibt $(n,)$ — Ergebnis $(m,n)$. Option a dreht das um und liefert eine $(n,m)$-Matrix, Option d lässt die Formen gar nicht erst zusammenpassen, und Option c vertauscht Basis und Exponent: das wäre $j^{\\,t_i}$.</p>",
+          "hinweis": "Welcher Index läuft über die Stützstellen, welcher über die Exponenten? Welche Form muss jeder der beiden Vektoren dafür haben?"
+        },
+        {
+          "id": "L2",
+          "loesung": "Z[:, j - 1] * t",
+          "optionen": [
+            "Z[:, j] * t",
+            "Z[:, j - 1] * t",
+            "Z[:, j - 1] * t[j]",
+            "Z[:, j - 1] + t"
+          ],
+          "richtig": 1,
+          "erklaerung": "<p>Wegen $t_i^{\\,j}=t_i^{\\,j-1}\\cdot t_i$ entsteht jede Spalte aus der <b>bereits fertigen</b> vorherigen durch elementweise Multiplikation mit $\\mathbf{t}$. <code>Z[:, j] * t</code> greift auf die noch uninitialisierte Spalte zu (die ist noch lauter Einsen) und liefert deshalb in jeder Spalte $\\mathbf{t}$. <code>t[j]</code> ist nur eine einzelne Stützstelle — ein Skalar, der alle Zeilen gleich behandelt. Addieren statt multiplizieren ist keine Potenz.</p>",
+          "hinweis": "Welche Spalte ist zum Zeitpunkt des Zuweisens schon fertig berechnet — und womit muss man sie multiplizieren, um eine Potenz höher zu kommen?"
+        }
+      ],
+      "template": "import numpy as np\nimport time\n\ndef mytimeit(rep=1): # decorator with argument\n    def mytimeit_real_decorator(func): # actual decorator\n        def wrapper(*args, **kwargs):\n            ts = [] # measured times\n            for k in range(rep):\n                start = time.perf_counter()\n                #start = time.process_time()\n                result = func(*args, **kwargs)\n                #end = time.process_time()\n                end = time.perf_counter()\n                ts.append(end - start)\n            print(f'Min. Time taken: {min(ts):.6f} seconds in ',func.__name__)\n            wrapper.ats.append(min(ts)) # record the minimal measured time\n            return result\n        wrapper.ats = [] # declare atribute to use later\n        return wrapper\n    return mytimeit_real_decorator\n\nnrEXP = 4\n\nm = 256; n = 256   # Original: 1000 x 1000 -- fuer den Browser verkleinert\nt = np.linspace(0,1,m)\nZ = np.ones((m,n)) # Vandermonde Matrix\nZ1 = Z.copy()\n\n@mytimeit(rep=nrEXP)\ndef dirZ(Z):\n    # TODO impement efficient construction\n    n = Z.shape[1]\n\n    return Z\n\n@mytimeit(rep=nrEXP)\ndef indirZ(Z):\n    #TODO:  implement standard construction\n    n = Z.shape[1]\n\n    return Z\n\nX = dirZ(Z1)\nY = indirZ(Z)\n\nprint(dirZ.ats)\nprint(indirZ.ats)\n\nprint(np.linalg.cond(X))\n",
+      "loesung": "import numpy as np\nimport time\n\ndef mytimeit(rep=1): # decorator with argument\n    def mytimeit_real_decorator(func): # actual decorator\n        def wrapper(*args, **kwargs):\n            ts = [] # measured times\n            for k in range(rep):\n                start = time.perf_counter()\n                #start = time.process_time()\n                result = func(*args, **kwargs)\n                #end = time.process_time()\n                end = time.perf_counter()\n                ts.append(end - start)\n            print(f'Min. Time taken: {min(ts):.6f} seconds in ',func.__name__)\n            wrapper.ats.append(min(ts)) # record the minimal measured time\n            return result\n        wrapper.ats = [] # declare atribute to use later\n        return wrapper\n    return mytimeit_real_decorator\n\nnrEXP = 4\n\nm = 256; n = 256   # Original: 1000 x 1000 -- fuer den Browser verkleinert\nt = np.linspace(0,1,m)\nZ = np.ones((m,n)) # Vandermonde Matrix\nZ1 = Z.copy()\n\n@mytimeit(rep=nrEXP)\ndef dirZ(Z):\n    # effiziente Konstruktion: alle Potenzen auf einmal, per Broadcasting\n    n = Z.shape[1]\n\n    Z = t[:, np.newaxis] ** np.arange(n)\n    return Z\n\n@mytimeit(rep=nrEXP)\ndef indirZ(Z):\n    # Standard-Konstruktion: spaltenweise Rekursion\n    n = Z.shape[1]\n\n    for j in range(1, n):\n      Z[:,j] = Z[:, j - 1] * t\n    return Z\n\nX = dirZ(Z1)\nY = indirZ(Z)\n\nprint(dirZ.ats)\nprint(indirZ.ats)\n\nprint(np.linalg.cond(X))\n",
+      "test": {
+        "typ": "werte",
+        "pruefcode": "import numpy as np\n\n# --- (a) rechteckig und aequidistant, wie im Original ---\nmq, nq = 7, 5\nt = np.linspace(0.0, 1.0, mq)          # die Funktionen lesen t als globale Groesse\nref = np.vander(t, nq, increasing=True)   # unabhaengig nachgerechnet\n\nZd = np.asarray(dirZ(np.ones((mq, nq))))\nZi = np.asarray(indirZ(np.ones((mq, nq))))\n\nassert Zd.shape == (mq, nq), f'dirZ liefert die Form {Zd.shape} statt {(mq, nq)}'\nassert Zi.shape == (mq, nq), f'indirZ liefert die Form {Zi.shape} statt {(mq, nq)}'\nassert np.allclose(Zd, ref), 'dirZ muss die Vandermonde-Matrix Z[i,j] = t_i**j liefern'\nassert np.allclose(Zi, ref), 'indirZ muss dieselbe Vandermonde-Matrix liefern'\nassert np.allclose(Zd, Zi), 'beide Konstruktionen muessen uebereinstimmen'\nassert np.allclose(Zd[:, 0], 1.0), 'die erste Spalte ist t**0, also lauter Einsen'\nassert not np.allclose(Zd[:, 1], 1.0), 'die zweite Spalte ist t selbst, nicht konstant 1'\n\n# --- (b) andere, nicht aequidistante Stuetzstellen und mehr Spalten als Zeilen ---\nt = np.array([0.3, 1.2, 2.0, 0.7, 1.5, 0.4])\nmq, nq = 6, 9\nref2 = np.vander(t, nq, increasing=True)\nassert np.allclose(np.asarray(dirZ(np.ones((mq, nq)))), ref2), 'dirZ: zweite Stuetzstellenmenge'\nassert np.allclose(np.asarray(indirZ(np.ones((mq, nq)))), ref2), 'indirZ: zweite Stuetzstellenmenge'\n\n# --- (c) die Rekursion muss wirklich spaltenweise fortschreiten ---\nZc = np.asarray(indirZ(np.ones((mq, nq))))\nfor j in range(1, nq):\n    assert np.allclose(Zc[:, j], Zc[:, j - 1] * t), f'Spalte {j} entsteht nicht aus Spalte {j - 1}'\n"
+      }
+    }
+  ]
+}

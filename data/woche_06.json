@@ -1,0 +1,756 @@
+{
+  "woche": 6,
+  "titel": "Stückweise polynomiale Interpolation",
+  "status": "vollstaendig",
+  "skript": {
+    "kapitel": "4.1–4.3",
+    "seiten": "110–118"
+  },
+  "vorlage": "wochenplan/Vorlage06_StkwPolyInterpolation.pdf",
+  "aufgabenUebersicht": {
+    "moodle": 17,
+    "codeexpert": 0
+  },
+  "einleitung": "<p>Woche 3 endete mit einer Warnung und zwei Auswegen. Die Warnung: bei äquidistanten Stützstellen wächst die Lebesgue-Konstante exponentiell, das Interpolationspolynom oszilliert an den Rändern (<b>Runge-Phänomen</b>, Bsp. 2.3.11). Die beiden Auswege standen schon dort: <i>(1) die Stützstellen ideal verteilen</i> — das war Woche 4 mit den Chebyshev-Knoten — oder <i>(2) das Intervall in kleine Teile zerlegen und stückweise interpolieren</i>. Weg (2) wird diese Woche ausgeführt.</p><p>Die Logik dahinter steckt in der alten Fehlerformel (2.2.11): der Fehler eines Interpolationspolynoms vom Grad $n$ auf $[a,b]$ ist durch $(b-a)^{n+1}\\|f^{(n+1)}\\|_\\infty/(n+1)!$ beschränkt. Statt $n$ zu erhöhen (was $\\|f^{(n+1)}\\|_\\infty$ explodieren lässt), hält man $n$ <b>klein</b> und macht die Intervalllänge klein: aus $b-a$ wird die Subintervalllänge $h$, und man bekommt (4.0.1).</p><ul><li><b>4.1 Stückweise linear</b> — Grad 1, denkbar einfach, lokal, aber an den Knoten nur stetig und nicht differenzierbar.</li><li><b>4.2 Kubische Hermite-Interpolation</b> — Grad 3; zusätzlich werden die <i>Ableitungswerte</i> $c_j$ vorgeschrieben, damit wird $s\\in C^1$. Vier Basisfunktionen $\\varphi(t),\\varphi(1-t),\\psi(t),\\psi(1-t)$ gewichten die vier Daten pro Subintervall.</li><li><b>4.3 Splines</b> — dieselbe kubische Darstellung, aber die $c_j$ werden <i>nicht</i> vorgegeben, sondern so <b>berechnet</b>, dass auch $s''$ an den inneren Knoten stetig ist. Das koppelt alle Subintervalle über ein tridiagonales Gleichungssystem und liefert $s\\in C^2$ — zum Preis globaler Abhängigkeit.</li></ul><p>Der rote Faden ist also eine Tauschbeziehung: <b>Glattheit gegen Lokalität</b>. Stückweise linear und Hermite sind lokal, der Spline ist glatter, aber jeder Datenpunkt beeinflusst die ganze Kurve.</p><p class=\"faint\">Für diese Woche gibt es kein CodeExpert-Material; dafür ist die Zusammenfassung ausführlicher und das Moodle-Training umfangreicher.</p>",
+  "zusammenfassung": [
+    {
+      "id": "w6-z1",
+      "titel": "Die Idee: zerlegen statt den Grad erhöhen",
+      "ref": {
+        "abschnitt": "4 (Einleitung)",
+        "seite": 110,
+        "nummer": "(4.0.1)"
+      },
+      "text": "<p>Das Skript eröffnet das Kapitel mit der Diagnose: «Globale Interpolation mit Polynomen funktioniert nur dann gut, wenn wir die Interpolationspunkte als die Chebyshev-Knoten oder -Abszissen verwenden und wenn die Funktion sehr glatt ist.»</p><p>Die Fehlerabschätzung (2.2.10) aus Theorem 2.2.12 weist auf die neue Idee hin: man zerlegt $[a,b]$ in viele kleine Intervalle (möglicherweise verschiedener Länge) mit Knoten ($\\textit{breakpoints}$) $a = x_0 &lt; x_1 &lt; \\dots &lt; x_N = b$ und wendet auf jedem kleinen Intervall die Polynominterpolation mit $n+1$ Punkten an. Ergebnis ist ein Interpolant $s$, der <b>stückweise</b> — d.h. auf jedem $[x_{j-1},x_j]$ — ein Polynom vom Grad $n$ ist.</p>",
+      "merke": "Nicht der Grad wird gross, sondern das Gitter fein. Der neue freie Parameter ist die Subintervalllänge $h$ — und über sie steuert man die Genauigkeit."
+    },
+    {
+      "id": "w6-z2",
+      "titel": "Knoten, breakpoints und Subintervalllänge",
+      "ref": {
+        "abschnitt": "4 / 4.1",
+        "seite": 110,
+        "nummer": "Einleitung Kap. 4, (4.1.2)"
+      },
+      "text": "<p>Gegeben sind $N+1$ Messungen $(x_j,y_j)_{j=0,\\dots,N}$; die Messpunkte werden als <b>Knoten</b> («breakpoints») verwendet. Das Gitter ist</p><p>$$a = x_0 &lt; x_1 &lt; \\dots &lt; x_N = b\\,,$$</p><p>es hat also $N+1$ Knoten und $N$ Subintervalle. Zu unterscheiden sind:</p><ul><li>die <b>lokale</b> Schrittweite $h_j = x_j - x_{j-1}$ — sie gehört zum Subintervall $[x_{j-1},x_j]$ und steht in allen Formeln;</li><li>die <b>maximale</b> Subintervalllänge $h = \\max_{j=1,\\dots,N}(x_j-x_{j-1})$ — sie ist der Parameter des Gitters und steht in allen Fehlerabschätzungen.</li></ul><p>Die Knoten dürfen ausdrücklich <i>verschiedene</i> Abstände haben; nur in Theorem 4.3.10 wird ein äquidistantes Gitter vorausgesetzt.</p>",
+      "formeln": [
+        "h_j = x_j - x_{j-1}\\,,\\qquad h = \\max_{j=1,\\dots,N}\\,(x_j-x_{j-1})"
+      ],
+      "merke": "$N$ Subintervalle, $N+1$ Knoten — diese Verschiebung um eins ist die häufigste Fehlerquelle beim Abzählen von Unbekannten und Bedingungen."
+    },
+    {
+      "id": "w6-z3",
+      "titel": "Fehlerabschätzung (4.0.1) — hergeleitet aus (2.2.11)",
+      "ref": {
+        "abschnitt": "4 (Einleitung) / 2.2",
+        "seite": 110,
+        "nummer": "(4.0.1); Herleitung aus Thm. 2.2.12, (2.2.10)–(2.2.11), S. 48"
+      },
+      "text": "<p><b>Theorem 2.2.12</b> (Skriptseite 48): ist $f$ auf $[a,b]$ $(n+1)$-mal stetig differenzierbar und $p$ das Interpolationspolynom in $x_0,\\dots,x_n$, so gibt es zu jedem $x$ ein $\\xi\\in\\,]a,b[$ mit $f(x)-p(x)=(x-x_0)\\cdots(x-x_n)\\frac{f^{(n+1)}(\\xi)}{(n+1)!}$ (2.2.10); daraus folgt die maximale Schranke $(b-a)^{n+1}\\frac{\\|f^{(n+1)}\\|_\\infty}{(n+1)!}$ (2.2.11).</p><p>Wendet man (2.2.11) nicht auf $[a,b]$, sondern auf ein einzelnes Subintervall der Länge $\\le h$ an, so ersetzt $h$ den Faktor $b-a$ — und weil die Schranke auf <i>jedem</i> Subintervall gilt, gilt sie auf ganz $[a,b]$:</p><p>Das Skript kommentiert nüchtern: «Das ist zwar keine exponentielle Konvergenz in $h$, jedoch ermöglicht eine flexible Wahl des Gitters und den praktischen Umständen angepasste Interpolationen.»</p>",
+      "formeln": [
+        "|f(x)-s(x)| &lt; \\frac{h^{n+1}}{(n+1)!}\\,\\|f^{(n+1)}\\|_\\infty"
+      ],
+      "merke": "Konvergenzordnung $n+1$ in $h$ bei stückweisen Polynomen vom Grad $n$: linear ($n=1$) gibt $\\mathcal{O}(h^2)$, kubisch ($n=3$) gibt $\\mathcal{O}(h^4)$. Die Glattheitsforderung bleibt dabei <b>mild</b> ($f\\in C^{n+1}$), während globale Interpolation $f^{(N+1)}$ bräuchte."
+    },
+    {
+      "id": "w6-z4",
+      "titel": "Stückweise lineare Interpolation",
+      "ref": {
+        "abschnitt": "4.1",
+        "seite": 110,
+        "nummer": "(4.1.2)"
+      },
+      "text": "<p>Auf jedem Subintervall wird schlicht die Gerade durch die beiden Randpunkte gelegt. Mit $h_j=x_j-x_{j-1}$:</p><p>Nachrechnen der Interpolationsbedingung: $s_j(x_{j-1}) = y_{j-1}\\frac{h_j}{h_j}+y_j\\cdot 0 = y_{j-1}$ und $s_j(x_j)=y_j$. Die beiden Vorfaktoren summieren sich für jedes $x$ zu $1$ — es ist eine <b>konvexe Kombination</b> der beiden Knotenwerte, der Interpolant bleibt also zwischen $\\min(y_{j-1},y_j)$ und $\\max(y_{j-1},y_j)$.</p><p>Das Skript betont, dass diese Formel zwar offensichtlich ist, es sich aber lohnt, «diese Konstruktion langsamer anzugehen» — denn genau dieselbe Konstruktion trägt anschliessend den kubischen Fall.</p>",
+      "formeln": [
+        "s_j(x)=y_{j-1}\\frac{x_j-x}{h_j}+y_j\\frac{x-x_{j-1}}{h_j}\\,,\\quad \\text{für } x\\in[x_{j-1},x_j]"
+      ],
+      "merke": "Grad 1 pro Stück $\\Rightarrow$ nach (4.0.1) Fehler $\\mathcal{O}(h^2)$, genauer $\\frac{h^2}{2}\\|f''\\|_\\infty$."
+    },
+    {
+      "id": "w6-z5",
+      "titel": "Referenzintervall, $\\chi$ und der Variablenwechsel $t\\in[0,1]$",
+      "ref": {
+        "abschnitt": "4.1",
+        "seite": 111,
+        "nummer": "(4.1.3)"
+      },
+      "text": "<p>Die «langsamere» Konstruktion: man baut das Interpolationsproblem einmal auf dem <b>Referenzintervall</b> $t\\in[0,1]$ und transportiert es dann auf jedes Subintervall. Mit $\\chi(t)=t$ gilt $\\chi(0)=0$ und $\\chi(1)=1$; deshalb hat</p><p>$$f(t)=y_0\\chi(1-t)+y_1\\chi(t)$$</p><p>die Interpolationseigenschaften $f(0)=y_0$, $f(1)=y_1$ und ist linear in $t$. Der <b>Variablenwechsel</b> lautet</p><p>$$t\\in[0,1]\\ \\longleftrightarrow\\ x\\in[x_{j-1},x_j],\\qquad t=\\frac{x-x_{j-1}}{h_j}\\ \\longleftrightarrow\\ x=x_{j-1}+h_jt\\,,$$</p><p>und liefert (4.1.3), also genau (4.1.2) in anderer Schreibweise. Man beachte: $\\chi(t)$ gehört zu $y_j$ (rechter Knoten, dort ist $t=1$), $\\chi(1-t)$ zu $y_{j-1}$ (linker Knoten).</p>",
+      "formeln": [
+        "s_j(x)=y_{j-1}\\,\\chi\\!\\left(\\frac{x_j-x}{h_j}\\right)+y_j\\,\\chi\\!\\left(\\frac{x-x_{j-1}}{h_j}\\right)\\,,\\quad x\\in[x_{j-1},x_j]"
+      ],
+      "merke": "Das Prinzip trägt das ganze Kapitel: <b>eine</b> Basisfunktion auf $[0,1]$ konstruieren, über $t=(x-x_{j-1})/h_j$ auf jedes Subintervall transportieren, und ihr Spiegelbild $t\\mapsto 1-t$ für den anderen Knoten nehmen."
+    },
+    {
+      "id": "w6-z6",
+      "titel": "Lokal, stetig — aber an den Knoten nicht differenzierbar",
+      "ref": {
+        "abschnitt": "4.1",
+        "seite": 111,
+        "nummer": "nach (4.1.3)"
+      },
+      "text": "<p>Zwei Eigenschaften hält das Skript ausdrücklich fest:</p><ul><li><b>Lokal:</b> «Wenn $y_k=\\delta_{kj}$ für $k=0,\\dots,N$, dann ist der Interpolant $s$ überall 0 ausser im Intervall $[x_{j-1},x_{j+1}]$.» Ein Datenpunkt wirkt sich also nur auf seine beiden Nachbarintervalle aus — die zugehörige Basisfunktion ist die bekannte <i>Hutfunktion</i>.</li><li><b>Glattheit:</b> «Die so konstruierte Funktion $s$ ist auf dem ganzen Intervall $[a,b]$ stetig, aber an den Knoten nicht differenzierbar.» Also $s\\in C^0[a,b]$, und an den Knoten entstehen im Allgemeinen Knicke.</li></ul><p>Genau diese fehlende Differenzierbarkeit ist die Motivation für Abschnitt 4.2.</p>",
+      "merke": "Lokalität und Glattheit stehen in Konkurrenz: der stückweise lineare Interpolant ist maximal lokal und minimal glatt ($C^0$); der kubische Spline ist maximal glatt ($C^2$) und nicht mehr lokal."
+    },
+    {
+      "id": "w6-z7",
+      "titel": "Kubische Hermite-Interpolation: die vier Bedingungen pro Subintervall",
+      "ref": {
+        "abschnitt": "4.2",
+        "seite": 111,
+        "nummer": "Anfang 4.2"
+      },
+      "text": "<p>Gesucht ist jetzt ein $s$, das auf $[a,b]$ <b>stetig differenzierbar</b> ist und auf jedem $[x_{j-1},x_j]$ ein Polynom vom Grad 3. Angenommen, man kennt neben den Funktionswerten $y_j$ auch die Ableitungswerte $c_j$ an den Messpunkten. Dann stellen die Bedingungen</p><p>$$s(x_j)=y_j\\,,\\quad j=0,1,\\dots,N\\,,\\qquad s'(x_j)=c_j\\,,\\quad j=0,1,\\dots,N$$</p><p>«automatisch sicher, dass $s$ auf $[a,b]$ stetig differenzierbar ist» — die beiden angrenzenden Stücke haben an $x_j$ denselben Wert <i>und</i> dieselbe Steigung.</p><p><b>Das Abzählen passt:</b> pro Subintervall gibt es vier Bedingungen ($y_{j-1},y_j,c_{j-1},c_j$) und ein Polynom vom Grad 3 hat genau vier Parameter. Jedes Stück ist damit <b>unabhängig</b> von den anderen bestimmt — die Methode bleibt lokal.</p>",
+      "merke": "Hermite verlangt <b>zusätzliche Daten</b> (die $c_j$), der Spline nicht. Das ist der entscheidende Unterschied der beiden Abschnitte."
+    },
+    {
+      "id": "w6-z8",
+      "titel": "Die Basisfunktion $\\varphi$ und der Funktionswert-Anteil $p_j$",
+      "ref": {
+        "abschnitt": "4.2",
+        "seite": 111,
+        "nummer": "(4.2.4)"
+      },
+      "text": "<p>Auf $[0,1]$ setzt man $\\varphi(t)=t^2(3-2t)=3t^2-2t^3$. Eigenschaften:</p><ul><li>$\\varphi(0)=0$, $\\varphi(1)=1$ — daher erfüllt $f(t)=y_0\\varphi(1-t)+y_1\\varphi(t)$ die Interpolationsbedingungen $f(0)=y_0$, $f(1)=y_1$;</li><li>$\\varphi'(t)=6t-6t^2=6t(1-t)$, also $\\varphi'(0)=\\varphi'(1)=0$: <b>die Ableitung verschwindet an beiden Enden</b>.</li></ul><p>Mit dem Variablenwechsel $t=(x-x_{j-1})/h_j$ ergibt sich der Funktionswert-Anteil (4.2.4). Weil $\\varphi'$ an beiden Rändern null ist, «leistet $p_j$ keinen Beitrag zu den Ableitungen von $s$ an den Knoten» — die Funktionswerte und die Ableitungswerte lassen sich also <b>getrennt</b> einstellen.</p>",
+      "formeln": [
+        "p_j(x)=y_{j-1}\\,\\varphi\\!\\left(\\frac{x_j-x}{h_j}\\right)+y_j\\,\\varphi\\!\\left(\\frac{x-x_{j-1}}{h_j}\\right)\\,,\\quad x\\in[x_{j-1},x_j]"
+      ],
+      "merke": "$\\varphi$ ist der kubische Ersatz für $\\chi$: gleiche Werte an den Enden ($0$ und $1$), aber zusätzlich <b>waagrechte</b> Tangenten dort."
+    },
+    {
+      "id": "w6-z9",
+      "titel": "Die Basisfunktion $\\psi$, der Ableitungs-Anteil $q_j$ und $s_j=p_j+q_j$",
+      "ref": {
+        "abschnitt": "4.2",
+        "seite": 112,
+        "nummer": "(4.2.5)"
+      },
+      "text": "<p>Für die Ableitungen braucht es eine zweite Funktion: $\\psi(t)=t^2(t-1)=t^3-t^2$. Sie verschwindet an beiden Enden ($\\psi(0)=\\psi(1)=0$, stört also die Funktionswerte nicht) und hat $\\psi'(t)=3t^2-2t=t(3t-2)$, somit $\\psi'(0)=0$ und $\\psi'(1)=1$.</p><p>Beim Transport auf $[x_{j-1},x_j]$ ist die <b>Kettenregel</b> zu beachten: $\\frac{d}{dx}\\psi(t(x))=\\psi'(t)\\,t'(x)=\\psi'(t)/h_j$. Deshalb steht in (4.2.5) der Faktor $h_j$ — er kompensiert genau diesen $1/h_j$:</p><p>Der vollständige Interpolant ist die Summe beider Teile: $s_j(x)=p_j(x)+q_j(x)$ für $x\\in[x_{j-1},x_j]$. In der Variablen $t$ ausgeschrieben (Skriptseite 114) sieht man alle vier Basisfunktionen nebeneinander:</p><p>$$s_j = s(x_{j-1})(1-3t^2+2t^3)+s(x_j)(3t^2-2t^3)+h_j s'(x_{j-1})(t-2t^2+t^3)+h_j s'(x_j)(-t^2+t^3)\\,.$$</p><p>Die vier Funktionen $\\varphi(1-t),\\ \\varphi(t),\\ \\psi(1-t),\\ \\psi(t)$ <b>gewichten</b> also genau die vier Daten $y_{j-1},\\ y_j,\\ c_{j-1},\\ c_j$ des Subintervalls.</p>",
+      "formeln": [
+        "q_j(x)=c_j h_j\\,\\psi\\!\\left(\\frac{x-x_{j-1}}{h_j}\\right)-c_{j-1}h_j\\,\\psi\\!\\left(\\frac{x_j-x}{h_j}\\right)\\,,\\quad x\\in[x_{j-1},x_j]"
+      ],
+      "merke": "Arbeitsteilung der Basis: $\\varphi$-Paar trägt die <b>Werte</b> (und hat Ableitung 0 an den Enden), $\\psi$-Paar trägt die <b>Steigungen</b> (und hat Wert 0 an den Enden). Deshalb addieren sich die Teile störungsfrei."
+    },
+    {
+      "id": "w6-z10",
+      "titel": "Woher nimmt man die $c_j$? Akima, makima, PCHIP",
+      "ref": {
+        "abschnitt": "4.2",
+        "seite": 112,
+        "nummer": "nach (4.2.5), Abb. 4.2.1"
+      },
+      "text": "<p>Liegen nur die Werte $(x_j,y_j)$ vor, bleibt die Freiheit, die $c_j$ zu <b>wählen</b> — daraus entstehen verschiedene kubische Hermite-Interpolanten. In <code>scipy.interpolate</code> stehen bereit:</p><ul><li><code>Akima1DInterpolator</code> (und mit <code>method='makima'</code> eine neuere, modifizierte Variante),</li><li><code>PchipInterpolator</code> — <b>CHIP</b>, der einzige der drei, für den man beweisen kann, dass er <b>formerhaltend</b> ist: ist die ursprüngliche Funktion lokal monoton, so ist es auch der Interpolant.</li></ul><p>Abb. 4.2.1 zeigt genau das: «Die Monotonieerhaltung wird nur von der CHIP-Interpolationsmethode garantiert» — Akima und naive Ansätze für die $c_j$ überschwingen dort, wo die Daten monoton sind.</p><p>Der Preis der Mittelung, die CHIP für die Monotonie braucht: man beobachtet «eine deutlich niedrigere Konvergenzordnung» als bei exakt gegebenen Ableitungen.</p>",
+      "merke": "Die naheliegende Schätzung $c_j\\approx$ Steigung der Nachbarsehne ist bequem, aber nicht formerhaltend. Wer Monotonie braucht, nimmt PCHIP und nimmt die schlechtere Ordnung in Kauf."
+    },
+    {
+      "id": "w6-z11",
+      "titel": "Fehler der kubischen Hermite-Interpolation",
+      "ref": {
+        "abschnitt": "4.2",
+        "seite": 113,
+        "nummer": "Thm. 4.2.2"
+      },
+      "text": "<p><b>Theorem 4.2.2.</b> Sei $f\\in C^4[a,b]$ und $s$ der stückweise kubische Hermite-Interpolant mit <b>exakten</b> Werten der Ableitungen, $s'(x_j)=f'(x_j)$, $s(x_j)=f(x_j)$, und sei $s_{|[x_{j-1},x_j]}$ ein Polynom vom Grad 3. Dann gilt für $k=0,1$ und $h=\\max_{j}(x_j-x_{j-1})$:</p><p>Für $k=0$ ist das $\\mathcal{O}(h^4)$ — die von (4.0.1) für $n=3$ versprochene Ordnung, nur mit der schärferen Konstante $\\frac{1}{384}$ statt $\\frac{1}{4!}=\\frac{1}{24}$. Für $k=1$ bleibt $\\mathcal{O}(h^3)$: <b>jede Ableitung kostet eine Ordnung</b>.</p>",
+      "formeln": [
+        "\\|f^{(k)}-s^{(k)}\\|_{L^\\infty}\\le\\frac{1}{384}h^{4-k}\\|f^{(4)}\\|_{L^\\infty}\\,,\\qquad k=0,1"
+      ],
+      "merke": "Die Voraussetzung «<b>exakte</b> Ableitungswerte» ist wesentlich. Werden die $c_j$ nur geschätzt (Akima, PCHIP), sinkt die beobachtete Ordnung deutlich."
+    },
+    {
+      "id": "w6-z12",
+      "titel": "Splines: Definition des Raums $\\mathcal{S}_{d,\\mathcal{G}}$",
+      "ref": {
+        "abschnitt": "4.3",
+        "seite": 114,
+        "nummer": "Def. 4.3.1, Bem. 4.3.2"
+      },
+      "text": "<p><b>Definition 4.3.1.</b> Zu einem Gitter $\\mathcal{G}=\\{a=x_0 &lt; x_1 &lt; \\dots &lt; x_N=b\\}$ von Knoten und $d\\in\\mathbb{N},\\ d\\ge 1$ heisst</p><p>der <b>Raum der Splines vom Grad $d$</b> (von der <b>Ordnung</b> $d+1$).</p><p>Die Glattheit steckt im Exponenten: $s\\in C^{d-1}[a,b]$. <b>Bemerkung 4.3.2</b> buchstabiert das aus: $\\mathcal{S}_{1,\\mathcal{G}}$ ist die Menge der stückweise linearen, auf $[a,b]$ stetigen Funktionen (Abschnitt 4.1); für $d=3$ enthält $\\mathcal{S}_{3,\\mathcal{G}}$ Funktionen, die <b>zweimal</b> stetig differenzierbar sind und stückweise Polynome vom Grad 3. «Dadurch unterscheiden sich diese Funktionen von den kubischen Hermite-Interpolanten aus Abschnitt 4.2, die nur einmal stetig differenzierbar waren.»</p><p class=\"faint\">Für $d=0$ funktioniert die Definition nicht, man kann $\\mathcal{S}_{0,\\mathcal{G}}$ aber als die stückweise konstanten Funktionen ansehen.</p>",
+      "formeln": [
+        "\\mathcal{S}_{d,\\mathcal{G}}=\\bigl\\{s\\in C^{d-1}[a,b]\\,,\\ s_j:=s_{|[x_{j-1},x_j]}\\ \\text{ist ein Polynom vom Grad höchstens } d\\bigr\\}"
+      ],
+      "merke": "<b>Grad $d$ $\\Rightarrow$ Glattheit $C^{d-1}$.</b> Kubisch ($d=3$) heisst $C^2$ — das ist der ganze Unterschied zum Hermite-Interpolanten, der nur $C^1$ ist."
+    },
+    {
+      "id": "w6-z13",
+      "titel": "Freiheitsgrade: warum genau zwei Bedingungen fehlen",
+      "ref": {
+        "abschnitt": "4.3",
+        "seite": 114,
+        "nummer": "Bem. 4.3.3"
+      },
+      "text": "<p><b>Bemerkung 4.3.3</b> zählt formal ab (Anzahl Polynomkoeffizienten minus Anzahl Stetigkeitsbedingungen):</p><ul><li>$N$ Subintervalle mit je einem Polynom vom Grad $d$ $\\Rightarrow$ $N(d+1)$ Koeffizienten;</li><li>an den $N-1$ <b>inneren</b> Knoten je $d$ Stetigkeitsbedingungen (für $s,s',\\dots,s^{(d-1)}$) $\\Rightarrow$ $(N-1)d$ Bedingungen;</li><li>also $\\dim\\mathcal{S}_{d,\\mathcal{G}}=N(d+1)-(N-1)d=N+d$.</li></ul><p>Im kubischen Fall: $\\dim\\mathcal{S}_{3,\\mathcal{G}}=N+3$. Vorgegeben sind aber nur die $N+1$ Funktionswerte $(y_0,y_1,\\dots,y_N)$, «so dass noch zwei Freiheitsgrade übrig bleiben, die wir je nach Anwendung wählen müssen»:</p><p>$$(N+3)-(N+1)=\\boxed{2}\\,.$$</p>",
+      "formeln": [
+        "\\dim\\mathcal{S}_{d,\\mathcal{G}}=N(d+1)-(N-1)d=N+d\\,,\\qquad \\dim\\mathcal{S}_{3,\\mathcal{G}}=N+3"
+      ],
+      "merke": "Die Zahl <b>2</b> hängt weder von $N$ noch von der Zahl der Datenpunkte ab — sie ist $d-1$ für Grad $d$, im kubischen Fall also immer genau zwei."
+    },
+    {
+      "id": "w6-z14",
+      "titel": "Das tridiagonale Gleichungssystem für die Steigungen",
+      "ref": {
+        "abschnitt": "4.3",
+        "seite": 114,
+        "nummer": "(4.3.6), Bem. 4.3.7 (S. 116)"
+      },
+      "text": "<p>Die kubische Darstellung aus 4.2 ist «per Konstruktion einmal stetig differenzierbar»; zu bestimmen bleiben die Steigungen $s'(x_j)$, $j=0,\\dots,N$. Die Spline-Forderung ist nun, dass auch $s''$ an allen <b>inneren</b> Knoten stetig ist:</p><p>$$s''_{|[x_{j-1},x_j]}(x_j)=s''_{|[x_j,x_{j+1}]}(x_j)\\,,\\quad j=1,\\dots,N-1\\,.$$</p><p>«Eine längere Rechnung, bei der die Kettenregel beim Ableiten eine wichtige Rolle spielt», ergibt ein lineares Gleichungssystem mit <b>$N+1$ Unbekannten</b> $c_j=s'(x_j)$ und <b>$N-1$ Gleichungen</b>; die $j$-te lautet:</p><p>In Matrixform (4.3.6) ist das eine $(N-1)\\times(N+1)$-Matrix mit <b>tridiagonaler</b> Struktur, mit</p><p>$$b_j:=\\frac{1}{h_{j+1}}\\,,\\qquad a_j:=\\frac{2}{h_j}+\\frac{2}{h_{j+1}}\\,,\\qquad j=0,1,\\dots,N-1\\,,$$</p><p>wobei $b_j,a_j>0$ und $a_j=2(b_j+b_{j-1})$ — die Matrix ist also strikt diagonaldominant. Zwei Gleichungen fehlen: genau die zwei Freiheitsgrade aus Bem. 4.3.3. <b>Bemerkung 4.3.7:</b> in allen Fällen lässt sich das entstehende Gleichungssystem mit $\\mathcal{O}(N)$ Operationen lösen.</p>",
+      "formeln": [
+        "\\frac{1}{h_j}c_{j-1}+\\left(\\frac{2}{h_j}+\\frac{2}{h_{j+1}}\\right)c_j+\\frac{1}{h_{j+1}}c_{j+1}=3\\left(\\frac{y_j-y_{j-1}}{h_j^2}+\\frac{y_{j+1}-y_j}{h_{j+1}^2}\\right)\\,,\\quad j=1,\\dots,N-1"
+      ],
+      "merke": "Hier wird die Interpolation <b>global</b>: jede Gleichung koppelt drei benachbarte $c_j$, und über die Kette hängt am Ende jeder Spline-Wert von <i>allen</i> Datenpunkten ab. Dank Tridiagonalität kostet das trotzdem nur $\\mathcal{O}(N)$."
+    },
+    {
+      "id": "w6-z15",
+      "titel": "Die vier Zusatzbedingungen: vollständig, natürlich, periodisch, not-a-knot",
+      "ref": {
+        "abschnitt": "4.3",
+        "seite": 115,
+        "nummer": "Def. 4.3.4 (S. 115), Def. 4.3.5/4.3.6 (S. 116), Bem. 4.3.8 (S. 117), (4.3.7)–(4.3.8)"
+      },
+      "text": "<p>Alle Ansätze «beinhalten nur lineare Bedingungen in den Daten» und liefern je zwei fehlende Gleichungen:</p><ol><li><b>Vollständig / «eingespannt» (clamped), Def. 4.3.4:</b> $s'(x_0)=c_0$, $s'(x_N)=c_N$ mit <b>vorgegebenen</b> $c_0,c_N$. Da diese beiden Unbekannten nun bekannt sind, lässt man die erste und die letzte Spalte von (4.3.6) weg und schiebt die Terme auf die rechte Seite — es bleibt ein quadratisches $(N-1)\\times(N-1)$-System für $c_1,\\dots,c_{N-1}$ (4.3.7).</li><li><b>Natürlich, Def. 4.3.5:</b> $s''(x_0)=0$, $s''(x_N)=0$. Das fügt zwei Gleichungen hinzu, $\\frac{2}{h_1}c_0+\\frac{1}{h_1}c_1=3\\frac{y_1-y_0}{h_1^2}$ und $\\frac{1}{h_N}c_{N-1}+\\frac{2}{h_N}c_N=3\\frac{y_N-y_{N-1}}{h_N^2}$, und führt auf ein $(N+1)\\times(N+1)$-System mit <b>tridiagonaler, symmetrischer, positiv definiter</b> Systemmatrix (4.3.8) — erkennbar an den Randzeilen $[2\\ 1\\ 0\\ \\cdots]$ und $[\\cdots\\ 0\\ 1\\ 2]$.</li><li><b>Periodisch, Def. 4.3.6:</b> $s'(x_0)=s'(x_N)$ und $s''(x_0)=s''(x_N)$; sinnvoll nur, wenn $y_0=y_N$. Man hat dann «eine Unbekannte weniger, $c_0=c_N$, und eine Gleichung mehr»; die Systemmatrix bekommt Einträge in den Ecken.</li><li><b>not-a-knot, Bem. 4.3.8:</b> $s'''$ ist stetig in $x_1$ und $x_{N-1}$. Dafür braucht man mindestens $N=3$, d.h. 4 Knoten. Bei Polynomen vom Grad höchstens 3 erzwingt diese Bedingung, «dass nur ein Polynom in den ersten beiden und ein anderes in den letzten beiden Subintervallen erscheint»: $s_1=s_2$ und $s_{N-1}=s_N$ — die Knoten $x_1$ und $x_{N-1}$ sind also effektiv keine Knoten mehr.</li></ol><p>In <code>scipy.interpolate</code> ist <code>CubicSpline</code> implizit <b>not-a-knot</b>; die übrigen Varianten bekommt man über <code>bc_type</code>.</p>",
+      "merke": "«Natürlich» = <b>zweite</b> Ableitung am Rand null; «eingespannt/vollständig» = <b>erste</b> Ableitung am Rand vorgegeben. Diese beiden werden am häufigsten verwechselt."
+    },
+    {
+      "id": "w6-z16",
+      "titel": "Minimaleigenschaft, Fehler und der Vergleich $C^2$ gegen $C^1$",
+      "ref": {
+        "abschnitt": "4.3",
+        "seite": 117,
+        "nummer": "Bem. 4.3.9, Thm. 4.3.10"
+      },
+      "text": "<p><b>Bemerkung 4.3.9 (Minimaleigenschaft).</b> Der natürliche Spline ist diejenige Interpolationsfunktion, welche die Gesamtkrümmung des Funktionsgraphen minimiert:</p><p>$$\\int_a^b|s''(x)|^2dx\\le\\int_a^b|g''(x)|^2dx$$</p><p>für <b>alle</b> zweimal stetig differenzierbaren $g$ mit $g(x_j)=y_j$, $j=0,\\dots,N$. Das ist die mathematische Fassung der «biegsamen Latte», von der der Name <i>spline</i> stammt.</p><p><b>Theorem 4.3.10 (Interpolationsfehler vollständiger kubischer Splines).</b> Ist $f\\in C^4[a,b]$ und $s$ der <b>vollständige</b> kubische Spline-Interpolant auf einem <b>äquidistanten</b> Gitter mit Gitterweite $h$, so gilt für die Ableitungen $k=0,1,2,3$:</p><p><b>Vergleich mit Theorem 4.2.2:</b> dieselbe Ordnung $h^{4-k}$, aber die Konstante ist $\\frac{5}{384}$ statt $\\frac{1}{384}$ — der Spline ist also (bei exakt bekannten Ableitungen) eine Spur ungenauer, dafür gilt die Schranke bis $k=3$ und man braucht <b>keine</b> Ableitungsdaten.</p><p><b>Die Bilanz der Woche:</b></p><ul><li>stückweise linear: $C^0$, lokal, $\\mathcal{O}(h^2)$;</li><li>stückweise kubisch Hermite: $C^1$, lokal, $\\mathcal{O}(h^4)$ — braucht aber die $c_j$;</li><li>kubischer Spline: $C^2$, <b>global</b> (tridiagonales System), $\\mathcal{O}(h^4)$ — braucht nur die $y_j$ plus zwei Randbedingungen.</li></ul>",
+      "formeln": [
+        "\\|f^{(k)}-s^{(k)}\\|_{L^\\infty}\\le\\frac{5}{384}h^{4-k}\\|f^{(4)}\\|_{L^\\infty}\\,,\\qquad k=0,1,2,3"
+      ],
+      "merke": "Glattheit kostet Lokalität. Wer eine $C^2$-Kurve will, zahlt mit einem Gleichungssystem über alle Knoten — und damit damit, dass ein einziger geänderter Datenpunkt die ganze Kurve verändert."
+    }
+  ],
+  "moodleHinweis": "Die ersten sieben Fragen stammen wörtlich aus <code>moodle quizes/Quiz4/</code> (inklusive der Eigenheiten des Originals — in mehreren Screenshots ist das LaTeX nicht gerendert und steht als roher Text da). In <b>keinem</b> Screenshot ist die korrekte Antwort markiert — alle Lösungen sind von mir erarbeitet und mit Skript-Verweis begründet. Danach folgen zehn Zusatzfragen im gleichen Stil, mit Schwerpunkt auf dem Abzählen von Unbekannten, Bedingungen und Freiheitsgraden.",
+  "moodle": [
+    {
+      "id": "m-w6-01",
+      "quelle": {
+        "typ": "original",
+        "datei": "moodle quizes/Quiz4/Bildschirmfoto 2026-10-17 um 13.29.07.png"
+      },
+      "typ": "mc-single",
+      "thema": "Spline-Bedingung an den inneren Knoten",
+      "frageHtml": "<p>Welche Bedingung muss ein kubischer Spline an den inneren Stützstellen (Knoten) erfüllen?</p>",
+      "optionen": [
+        "Die dritte Ableitung muss stetig sein, sonst nichts.",
+        "Die Funktion muss an den Knoten Null sein, sonst nichts.",
+        "Die erste Ableitung muss stetig sein, sonst nichts.",
+        "Die zweite Ableitung muss stetig sein, sonst nichts."
+      ],
+      "loesung": 3,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Nach <b>Definition 4.3.1</b> ist ein Spline vom Grad $d$ eine Funktion aus $C^{d-1}[a,b]$, die stückweise ein Polynom vom Grad höchstens $d$ ist. Für $d=3$ heisst das $s\\in C^2[a,b]$: $s$, $s'$ und $s''$ müssen an den inneren Knoten stetig sein. Die <i>stärkste</i> dieser Forderungen — und die, die den Spline überhaupt erst festlegt — ist die Stetigkeit von $s''$. Genau sie wird auf Skriptseite 114 als Bestimmungsgleichung benutzt: $s''_{|[x_{j-1},x_j]}(x_j)=s''_{|[x_j,x_{j+1}]}(x_j)$ für $j=1,\\dots,N-1$.</p><p><b>Die falschen Optionen:</b></p><ul><li><b>c</b> ist die Bedingung des <i>kubischen Hermite-Interpolanten</i> aus Abschnitt 4.2 — der ist nur $C^1$ (Bem. 4.3.2: «…die nur einmal stetig differenzierbar waren»). Das ist die häufigste Verwechslung.</li><li><b>a</b> ist die <i>not-a-knot</i>-Zusatzbedingung (Bem. 4.3.8), und die wird gerade <b>nicht</b> an allen inneren Knoten gefordert, sondern nur in $x_1$ und $x_{N-1}$ — dort hebt sie den Knoten faktisch auf ($s_1=s_2$, $s_{N-1}=s_N$).</li><li><b>b</b> verwechselt die Interpolationsbedingung $s(x_j)=y_j$ mit «null sein»; die $y_j$ sind im Allgemeinen nicht null.</li></ul><p class=\"faint\">Die Formulierung «sonst nichts» ist etwas unglücklich: aus der Stetigkeit von $s''$ folgt bei stückweisen Polynomen nicht automatisch die von $s$ und $s'$ — beide werden zusätzlich verlangt. Gemeint ist offensichtlich die <i>höchste</i> geforderte Ableitungsordnung, und die ist 2.</p>",
+      "skriptRef": {
+        "abschnitt": "4.3",
+        "seite": 114,
+        "nummer": "Def. 4.3.1, Bem. 4.3.2"
+      }
+    },
+    {
+      "id": "m-w6-02",
+      "quelle": {
+        "typ": "original",
+        "datei": "moodle quizes/Quiz4/Bildschirmfoto 2026-10-17 um 13.30.26.png"
+      },
+      "typ": "mc-single",
+      "thema": "Anzahl der Zusatzbedingungen",
+      "frageHtml": "<p>Wie viele zusätzliche Bedingungen sind erforderlich, um einen kubischen Spline für $n+1$ Datenpunkte eindeutig zu bestimmen?</p>",
+      "hinweisOriginal": "Im Original-Screenshot ist das LaTeX im Fragetext nicht gerendert — dort steht wörtlich «$n+1$» als roher Text, während die Antwortoptionen gerendert erscheinen.",
+      "optionen": [
+        "2",
+        "$n$",
+        "1",
+        "$n+1$"
+      ],
+      "loesung": 0,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>$n+1$ Datenpunkte bedeuten $n+1$ Knoten, also $n$ Subintervalle (in der Notation des Skripts: $N=n$). <b>Bemerkung 4.3.3</b> gibt die Dimension des Spline-Raums an:</p><p>$$\\dim\\mathcal{S}_{3,\\mathcal{G}}=N(d+1)-(N-1)d=N+d=n+3\\,.$$</p><p>Die Interpolationsbedingungen $s(x_j)=y_j$ sind $n+1$ Stück. Es bleiben</p><p>$$(n+3)-(n+1)=2$$</p><p>Freiheitsgrade übrig — wörtlich im Skript: «…so dass noch zwei Freiheitsgrade übrig bleiben, die wir je nach Anwendung wählen müssen». Genau diese zwei werden anschliessend durch eine der vier Randbedingungen gefüllt: vollständig/eingespannt (Def. 4.3.4), natürlich (Def. 4.3.5), periodisch (Def. 4.3.6) oder not-a-knot (Bem. 4.3.8) — und jede dieser Varianten liefert <b>genau zwei</b> Gleichungen.</p><p><b>Die falschen Optionen:</b> $n$ und $n+1$ sind die Anzahl der Subintervalle bzw. der Datenpunkte — Zahlen, die in der Rechnung vorkommen, sich aber genau wegheben. Dass das Ergebnis <i>unabhängig von $n$</i> ist, ist der Kern der Aufgabe. Die Antwort 1 entspräche $d=2$ (quadratische Splines), denn allgemein fehlen $d-1$ Bedingungen.</p>",
+      "skriptRef": {
+        "abschnitt": "4.3",
+        "seite": 114,
+        "nummer": "Bem. 4.3.3"
+      }
+    },
+    {
+      "id": "m-w6-03",
+      "quelle": {
+        "typ": "original",
+        "datei": "moodle quizes/Quiz4/Bildschirmfoto 2026-10-17 um 13.31.44.png"
+      },
+      "typ": "mc-single",
+      "thema": "Natürlicher kubischer Spline",
+      "frageHtml": "<p>Was versteht man unter einem 'natürlichen' kubischen Spline?</p>",
+      "optionen": [
+        "Ein Spline, der durch alle Datenpunkte perfekt verläuft.",
+        "Ein Spline, bei dem die zweiten Ableitungen an den Endpunkten Null sind.",
+        "Ein Spline, bei dem die ersten Ableitungen an den Endpunkten Null sind.",
+        "Ein Spline, der nur aus natürlichen Zahlen besteht."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p><b>Definition 4.3.5</b> ist eindeutig: natürliche kubische Spline-Interpolation heisst, dass man die Zusatzbedingungen $s''(x_0)=0$ und $s''(x_N)=0$ stellt — also <b>zweite</b> Ableitung null an beiden Rändern.</p><p>Anschaulich: $s''$ ist (bis auf Normierung) die Krümmung, der Spline läuft an den Enden also gerade aus. Dazu passt <b>Bemerkung 4.3.9</b>: der natürliche Spline minimiert $\\int_a^b|s''(x)|^2dx$ unter allen interpolierenden $C^2$-Funktionen — die Krümmung wird insgesamt so klein wie möglich gehalten.</p><p><b>Die falschen Optionen:</b></p><ul><li><b>c</b> ist die klassische Verwechslung mit dem <i>vollständigen</i> bzw. <i>eingespannten</i> (clamped) Spline (Def. 4.3.4): dort wird die <b>erste</b> Ableitung am Rand vorgeschrieben, $s'(x_0)=c_0$ und $s'(x_N)=c_N$ — und zwar mit beliebigen vorgegebenen Werten, nicht notwendig null.</li><li><b>a</b> beschreibt die Interpolationsbedingung, die <i>jeder</i> interpolierende Spline erfüllt; sie unterscheidet die Varianten also gerade nicht.</li><li><b>d</b> ist ein Wortspiel mit «natürlich» und hat keinen mathematischen Gehalt.</li></ul>",
+      "skriptRef": {
+        "abschnitt": "4.3",
+        "seite": 116,
+        "nummer": "Def. 4.3.5, (4.3.8); Abgrenzung Def. 4.3.4"
+      }
+    },
+    {
+      "id": "m-w6-04",
+      "quelle": {
+        "typ": "original",
+        "datei": "moodle quizes/Quiz4/Bildschirmfoto 2026-10-17 um 13.32.39.png"
+      },
+      "typ": "mc-single",
+      "thema": "Hermite gegen Spline — welche Daten?",
+      "frageHtml": "<p>Was ist die wesentliche zusätzliche Information, die für die kubische Hermite-Interpolation im Vergleich zur kubischen Spline-Interpolation an den Datenpunkten benötigt wird?</p>",
+      "optionen": [
+        "Die Werte der zweiten Ableitung.",
+        "Zusätzliche Interpolationspunkte im Inneren der Subintervallen.",
+        "Die Werte der ersten Ableitung",
+        "Die Krümmung an den Endpunkten."
+      ],
+      "loesung": 2,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Abschnitt 4.2 beginnt genau damit: «Nehmen wir an, wir kennen die Funktionswerte $y_j$ und die Werte der Ableitung der Funktion, $c_j$, an den Messpunkten $x_0,\\dots,x_N$.» Die Bedingungen sind $s(x_j)=y_j$ <b>und</b> $s'(x_j)=c_j$, $j=0,\\dots,N$ — es werden also die Werte der <b>ersten</b> Ableitung zusätzlich gebraucht.</p><p>Der kubische Spline kommt dagegen mit den Funktionswerten aus: dort werden die $c_j$ nicht vorgegeben, sondern aus der Forderung «$s''$ stetig an allen inneren Knoten» <i>berechnet</i> — das ist das tridiagonale System (4.3.6). Das Skript hält den Gegensatz ausdrücklich fest: «Wenn uns nur die Werte $(x_j,y_j)$ vorliegen, dann haben wir noch die Freiheit, die $c_j$ zu wählen.»</p><p><b>Die falschen Optionen:</b></p><ul><li><b>a</b> verwechselt die Ordnung: $s''$ taucht beim <i>Spline</i> auf (Stetigkeit an inneren Knoten, Randbedingung beim natürlichen Spline) — nie als vorgegebene Hermite-Daten.</li><li><b>d</b> ist die Randbedingung des natürlichen Splines ($s''=0$ am Rand), betrifft also wieder den Spline und nur zwei Punkte.</li><li><b>b</b> wäre ein anderer Weg zu vier Bedingungen pro Subintervall (Lagrange-artig mit inneren Punkten); die Hermite-Konstruktion nutzt stattdessen zwei Werte <i>und</i> zwei Steigungen an den Rändern — genau das macht sie global $C^1$.</li></ul><p class=\"faint\">«Subintervallen» steht so im Original.</p>",
+      "skriptRef": {
+        "abschnitt": "4.2",
+        "seite": 111,
+        "nummer": "Anfang 4.2; Gegenstück: (4.3.6), S. 115"
+      }
+    },
+    {
+      "id": "m-w6-05",
+      "quelle": {
+        "typ": "original",
+        "datei": "moodle quizes/Quiz4/Bildschirmfoto 2026-10-17 um 13.33.44.png"
+      },
+      "typ": "mc-single",
+      "thema": "Glattheit: Spline gegen Hermite",
+      "frageHtml": "<p>Welche Eigenschaft unterscheidet einen kubischen Spline massgeblich von einem stückweise kubischen Hermite-Polynom in Bezug auf die Glattheit an den inneren Knoten?</p>",
+      "hinweisOriginal": "Im Original-Screenshot ist das LaTeX in den Antwortoptionen nicht gerendert — dort stehen wörtlich «$C^1$», «$C^2$» und «$C^0$» als roher Text.",
+      "optionen": [
+        "Ein Spline ist $C^1$-stetig, ein Hermite-Polynom $C^2$-stetig.",
+        "Es gibt keinen Unterschied in der Glattheit.",
+        "Ein Spline ist $C^2$-stetig, ein Hermite-Polynom ist im Allgemeinen nur $C^1$-stetig.",
+        "Ein Spline ist $C^0$-stetig, ein Hermite-Polynom nicht."
+      ],
+      "loesung": 2,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p><b>Bemerkung 4.3.2</b> sagt es wörtlich: «Für $d=3$ (kubische Splines) enthält $\\mathcal{S}_{3,\\mathcal{G}}$ Funktionen, die <i>zweimal</i> stetig differenzierbar sind und stückweise Polynome vom Grad 3 sind. Dadurch unterscheiden sich diese Funktionen von den kubischen Hermite-Interpolanten aus Abschnitt 4.2, die nur einmal stetig differenzierbar waren.» Also Spline $\\in C^2$, Hermite $\\in C^1$.</p><p><b>Warum das so ist:</b> der Hermite-Interpolant erzwingt an jedem Knoten die Gleichheit von Wert und Steigung ($s(x_j)=y_j$, $s'(x_j)=c_j$) — das reicht für $C^1$, mehr nicht. Beim Spline kommt die Forderung $s''_{|[x_{j-1},x_j]}(x_j)=s''_{|[x_j,x_{j+1}]}(x_j)$ hinzu; sie legt die Steigungen fest und hebt die Glattheit auf $C^2$.</p><p><b>Die falschen Optionen:</b> <b>a</b> vertauscht die beiden genau — die typische Falle. <b>d</b> unterstellt, der Hermite-Interpolant sei nicht einmal stetig; $C^0$ allein wäre das Niveau der stückweise <i>linearen</i> Interpolation aus 4.1. <b>b</b> ignoriert den ganzen Punkt von Abschnitt 4.3.</p><p class=\"faint\">Merkregel: Grad $d$ $\\Rightarrow$ Spline in $C^{d-1}$ (Def. 4.3.1). Der Hermite-Interpolant ist zwar auch stückweise kubisch, aber eben <b>kein</b> Element von $\\mathcal{S}_{3,\\mathcal{G}}$.</p>",
+      "skriptRef": {
+        "abschnitt": "4.3",
+        "seite": 114,
+        "nummer": "Def. 4.3.1, Bem. 4.3.2"
+      }
+    },
+    {
+      "id": "m-w6-06",
+      "quelle": {
+        "typ": "original",
+        "datei": "moodle quizes/Quiz4/Bildschirmfoto 2026-10-17 um 13.34.38.png"
+      },
+      "typ": "mc-single",
+      "thema": "Warum überhaupt stückweise?",
+      "frageHtml": "<p>Was ist der Hauptvorteil der stückweisen Interpolation gegenüber der Interpolation mit einem einzigen Polynom hohen Grades?</p>",
+      "optionen": [
+        "Sie ist immer genauer.",
+        "Sie vermeidet das Runge-Phänomen (= weite Schwingungen bei äquidistanten Punkte)",
+        "Sie ist einfacher zu berechnen.",
+        "Sie erfordert weniger Datenpunkte."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Die Einleitung zu Kapitel 4 (Skriptseite 110) begründet das ganze Kapitel genau so: globale Polynominterpolation funktioniert nur mit Chebyshev-Knoten und sehr glatten Funktionen; die Fehlerabschätzung (2.2.10) weist auf die neue Idee hin, das Intervall zu zerlegen. Damit bleibt der <b>Grad klein</b> ($n$ fest), und die Genauigkeit kommt über $h\\to 0$ statt über $n\\to\\infty$: $|f(x)-s(x)| &lt; \\frac{h^{n+1}}{(n+1)!}\\|f^{(n+1)}\\|_\\infty$ (4.0.1). Genau das war in Bsp. 2.3.11 der erste der beiden genannten Auswege aus dem Runge-Phänomen.</p><p><b>Die falschen Optionen:</b></p><ul><li><b>a</b> «immer» ist zu stark: für sehr glatte (analytische) Funktionen mit Chebyshev-Knoten konvergiert die globale Interpolation <i>exponentiell</i>, während (4.0.1) nur algebraische Ordnung $h^{n+1}$ liefert — das Skript schreibt ausdrücklich: «Das ist zwar keine exponentielle Konvergenz in $h$».</li><li><b>c</b> stimmt für den stückweise linearen Fall, aber nicht allgemein: der kubische Spline verlangt ein Gleichungssystem über alle Knoten (4.3.6) — einfacher ist das nicht, nur robuster.</li><li><b>d</b> ist falsch; die Zahl der Datenpunkte ist dieselbe, nur werden sie anders verwendet.</li></ul><p class=\"faint\">«weite Schwingungen bei äquidistanten Punkte» steht so im Original.</p>",
+      "skriptRef": {
+        "abschnitt": "4 (Einleitung)",
+        "seite": 110,
+        "nummer": "(4.0.1); Rückbezug Bsp. 2.3.11, S. 53"
+      }
+    },
+    {
+      "id": "m-w6-07",
+      "quelle": {
+        "typ": "original",
+        "datei": "moodle quizes/Quiz4/Bildschirmfoto 2026-10-17 um 13.35.30.png"
+      },
+      "typ": "mc-single",
+      "thema": "Rolle der Hermite-Basisfunktionen",
+      "frageHtml": "<p>Die in der Vorlesung mit $\\varphi(t)$, $\\varphi(1-t)$ und $\\psi(t)$, $\\psi(1-t)$ kubischen Hermite-Basisfunktionen dienen dazu:</p>",
+      "hinweisOriginal": "Der Satz ist im Original unvollständig («Die in der Vorlesung mit … <i>bezeichneten</i> Basisfunktionen»); die Formeln sind hier im Gegensatz zu anderen Fragen des Quiz gerendert.",
+      "optionen": [
+        "Ein globales Polynom über alle Punkte zu definieren.",
+        "Den Einfluss der Funktionswerte und der Ableitungswerte auf das Polynomsegment zu gewichten.",
+        "Die Anzahl der benötigten Datenpunkte zu minimieren.",
+        "Die Glattheit der Kurve an den Endpunkten des gesamten Intervalls zu kontrollieren."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Auf jedem Subintervall $[x_{j-1},x_j]$ stehen vier Daten zur Verfügung: $y_{j-1},y_j$ (Werte) und $c_{j-1},c_j$ (Steigungen). Die vier Basisfunktionen sind genau die zugehörigen Gewichte. In der Variablen $t=(x-x_{j-1})/h_j$ lautet der Interpolant (Skriptseite 114):</p><p>$$s_j = y_{j-1}(1-3t^2+2t^3)+y_j(3t^2-2t^3)+h_j c_{j-1}(t-2t^2+t^3)+h_j c_j(-t^2+t^3)\\,,$$</p><p>und die vier Klammern sind der Reihe nach $\\varphi(1-t)$, $\\varphi(t)$, $-\\psi(1-t)$ und $\\psi(t)$.</p><p>Die Arbeitsteilung ist sauber: $\\varphi(t)=t^2(3-2t)$ hat $\\varphi(0)=0$, $\\varphi(1)=1$ und $\\varphi'(0)=\\varphi'(1)=0$ — sie transportiert <b>nur Werte</b>; $\\psi(t)=t^2(t-1)$ hat $\\psi(0)=\\psi(1)=0$ und $\\psi'(0)=0$, $\\psi'(1)=1$ — sie transportiert <b>nur Steigungen</b>. Deshalb ist $s_j=p_j+q_j$ (4.2.4)+(4.2.5) störungsfrei zusammensetzbar.</p><p><b>Die falschen Optionen:</b> <b>a</b> ist das Gegenteil — die Konstruktion ist ausdrücklich <i>lokal</i>, pro Subintervall. <b>c</b> verwechselt Basiswahl mit Datenbedarf; Hermite braucht eher <i>mehr</i> Information (die $c_j$). <b>d</b> beschreibt die Randbedingungen der Spline-Interpolation (Def. 4.3.4/4.3.5), die nur die beiden äussersten Punkte betreffen und mit der lokalen Basis nichts zu tun haben.</p>",
+      "skriptRef": {
+        "abschnitt": "4.2",
+        "seite": 111,
+        "nummer": "(4.2.4), (4.2.5); Darstellung in $t$ auf S. 114"
+      }
+    },
+    {
+      "id": "m-w6-08",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Freiheitsgrade abzählen",
+      "frageHtml": "<p>Ein Gitter $\\mathcal{G}$ habe $N=5$ Subintervalle (also 6 Knoten $a=x_0 &lt; x_1 &lt; \\dots &lt; x_5=b$). Betrachtet werden <b>kubische</b> Splines ($d=3$). Geben Sie an (<b>ganze Zahlen</b>):</p>",
+      "felder": [
+        {
+          "label": "\\text{Anzahl Polynomkoeffizienten } N(d+1)",
+          "wert": 20,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "\\text{Anzahl Stetigkeitsbedingungen } (N-1)d",
+          "wert": 12,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "\\dim\\mathcal{S}_{3,\\mathcal{G}}",
+          "wert": 8,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "\\text{Anzahl Interpolationsbedingungen}",
+          "wert": 6,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "\\text{verbleibende Freiheitsgrade}",
+          "wert": 2,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Das ist das Zählargument aus <b>Bemerkung 4.3.3</b>, Schritt für Schritt:</p><ul><li>Auf jedem der $N=5$ Subintervalle ein Polynom vom Grad $\\le 3$, also $d+1=4$ Koeffizienten: $5\\cdot 4=\\mathbf{20}$.</li><li>Innere Knoten gibt es $N-1=4$; an jedem müssen $s,s',s''$ stetig sein, das sind $d=3$ Bedingungen: $4\\cdot 3=\\mathbf{12}$.</li><li>$\\dim\\mathcal{S}_{3,\\mathcal{G}}=20-12=\\mathbf{8}=N+d=5+3$ ✓.</li><li>Interpolationsbedingungen $s(x_j)=y_j$: eine pro Knoten, also $N+1=\\mathbf{6}$.</li><li>Es bleiben $8-6=\\mathbf{2}$ Freiheitsgrade — unabhängig von $N$.</li></ul><p><b>Typische Fallen:</b> $N$ Subintervalle, aber $N+1$ Knoten und nur $N-1$ <i>innere</i> Knoten. Wer an allen $N+1$ Knoten Stetigkeit fordert, zählt die beiden Ränder mit und landet bei einer zu kleinen Dimension.</p>",
+      "skriptRef": {
+        "abschnitt": "4.3",
+        "seite": 114,
+        "nummer": "Bem. 4.3.3"
+      }
+    },
+    {
+      "id": "m-w6-09",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Stückweise lineare Interpolation",
+      "frageHtml": "<p>Welche Aussage über den stückweise linearen Interpolanten aus Abschnitt 4.1 ist <b>korrekt</b>?</p>",
+      "optionen": [
+        "Er ist auf $[a,b]$ stetig, an den Knoten aber im Allgemeinen nicht differenzierbar; die Konstruktion ist lokal, und der Fehler ist $\\mathcal{O}(h^2)$.",
+        "Er ist auf $[a,b]$ stetig differenzierbar, weil die Geradenstücke an den Knoten denselben Wert annehmen.",
+        "Er ist nur in den Knoten stetig, dazwischen können Sprünge auftreten.",
+        "Er gehört zu $\\mathcal{S}_{3,\\mathcal{G}}$ und ist daher $C^2$."
+      ],
+      "loesung": 0,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Skriptseite 111 fasst beides zusammen: «Diese Interpolation ist lokal […] Die so konstruierte Funktion $s$ ist auf dem ganzen Intervall $[a,b]$ stetig, aber an den Knoten nicht differenzierbar.» Also $s\\in C^0=\\mathcal{S}_{1,\\mathcal{G}}$ (Bem. 4.3.2: Grad $d=1$ $\\Rightarrow$ $C^{d-1}=C^0$). Die Fehlerordnung folgt aus (4.0.1) mit $n=1$: $|f(x)-s(x)| &lt; \\frac{h^2}{2}\\|f''\\|_\\infty$.</p><p><b>Die falschen Optionen:</b> <b>b</b> verwechselt Stetigkeit mit Differenzierbarkeit — gleiche <i>Werte</i> an den Knoten genügen nur für $C^0$; für $C^1$ bräuchte man gleiche <i>Steigungen</i>, und genau dafür gibt es Abschnitt 4.2. <b>c</b> steht im Widerspruch zur Interpolationsbedingung: innerhalb eines Subintervalls ist $s$ ein Polynom, also glatt, und an den Knoten stimmen die einseitigen Werte überein. <b>d</b> verwechselt die Grade: der stückweise lineare Interpolant liegt in $\\mathcal{S}_{1,\\mathcal{G}}$.</p>",
+      "skriptRef": {
+        "abschnitt": "4.1",
+        "seite": 111,
+        "nummer": "(4.1.3) und Text danach; Bem. 4.3.2, S. 114"
+      }
+    },
+    {
+      "id": "m-w6-10",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Die Basisfunktionen $\\varphi$ und $\\psi$",
+      "frageHtml": "<p>Die kubischen Hermite-Basisfunktionen auf dem Referenzintervall sind $\\varphi(t)=t^2(3-2t)$ und $\\psi(t)=t^2(t-1)$. Berechnen Sie (mindestens drei signifikante Ziffern):</p>",
+      "felder": [
+        {
+          "label": "\\varphi(1)",
+          "wert": 1,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "\\varphi'(1)",
+          "wert": 0,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "\\psi'(1)",
+          "wert": 1,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "\\varphi(1/2)",
+          "wert": 0.5,
+          "tol": 0.002,
+          "tolTyp": "abs",
+          "anzeige": "1/2 = 0.5"
+        },
+        {
+          "label": "\\psi(1/2)",
+          "wert": -0.125,
+          "tol": 0.002,
+          "tolTyp": "abs",
+          "anzeige": "-1/8 = -0.125"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>$\\varphi(t)=3t^2-2t^3$, also $\\varphi(1)=3-2=\\mathbf{1}$ und $\\varphi(0)=0$ — das sind genau die Interpolationseigenschaften, wegen derer $f(t)=y_0\\varphi(1-t)+y_1\\varphi(t)$ in $t=0$ den Wert $y_0$ und in $t=1$ den Wert $y_1$ hat.</p><p>$\\varphi'(t)=6t-6t^2=6t(1-t)$, also $\\varphi'(0)=\\varphi'(1)=\\mathbf{0}$: der Werte-Anteil $p_j$ «leistet keinen Beitrag zu den Ableitungen von $s$ an den Knoten» (Skriptseite 112).</p><p>$\\psi(t)=t^3-t^2$ mit $\\psi'(t)=3t^2-2t=t(3t-2)$, also $\\psi'(0)=0$ und $\\psi'(1)=3-2=\\mathbf{1}$. Zusammen mit $\\psi(0)=\\psi(1)=0$ heisst das: $\\psi$ transportiert Steigungen, ohne die Werte zu verändern.</p><p>In der Mitte: $\\varphi(\\tfrac12)=\\tfrac14\\cdot(3-1)=\\mathbf{0.5}$ (die Symmetrie $\\varphi(t)+\\varphi(1-t)=1$ erzwingt das) und $\\psi(\\tfrac12)=\\tfrac14\\cdot(-\\tfrac12)=\\mathbf{-0.125}$.</p><p class=\"faint\">Kontrolle: $\\varphi(t)+\\varphi(1-t)=1$ für alle $t$ — die beiden Werte-Gewichte bilden eine Partition der Eins, genau wie $\\chi(t)+\\chi(1-t)=1$ im linearen Fall.</p>",
+      "skriptRef": {
+        "abschnitt": "4.2",
+        "seite": 111,
+        "nummer": "vor (4.2.4) und nach (4.2.4)"
+      }
+    },
+    {
+      "id": "m-w6-11",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Natürlicher Spline von Hand",
+      "frageHtml": "<p>Gegeben die Daten $x=(0,1,2)$, $y=(0,1,0)$, also $N=2$ und $h_1=h_2=1$. Bestimmen Sie den <b>natürlichen</b> kubischen Spline, d.h. lösen Sie das System aus der inneren Gleichung</p><p>$$\\tfrac{1}{h_1}c_0+\\left(\\tfrac{2}{h_1}+\\tfrac{2}{h_2}\\right)c_1+\\tfrac{1}{h_2}c_2=3\\left(\\tfrac{y_1-y_0}{h_1^2}+\\tfrac{y_2-y_1}{h_2^2}\\right)$$</p><p>und den beiden Randgleichungen $\\tfrac{2}{h_1}c_0+\\tfrac{1}{h_1}c_1=3\\tfrac{y_1-y_0}{h_1^2}$, $\\tfrac{1}{h_2}c_1+\\tfrac{2}{h_2}c_2=3\\tfrac{y_2-y_1}{h_2^2}$. Gesucht sind die Steigungen $c_j=s'(x_j)$ und der Wert in der Mitte des ersten Subintervalls:</p>",
+      "felder": [
+        {
+          "label": "c_0=s'(0)",
+          "wert": 1.5,
+          "tol": 0.002,
+          "tolTyp": "abs",
+          "anzeige": "3/2 = 1.5"
+        },
+        {
+          "label": "c_1=s'(1)",
+          "wert": 0.0,
+          "tol": 0.002,
+          "tolTyp": "abs",
+          "anzeige": "0"
+        },
+        {
+          "label": "c_2=s'(2)",
+          "wert": -1.5,
+          "tol": 0.002,
+          "tolTyp": "abs",
+          "anzeige": "-3/2 = -1.5"
+        },
+        {
+          "label": "s(0.5)",
+          "wert": 0.6875,
+          "tol": 0.002,
+          "tolTyp": "abs",
+          "anzeige": "11/16 = 0.6875"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Mit $h_1=h_2=1$, $y=(0,1,0)$ lauten die drei Gleichungen:</p><ul><li>Rand links: $2c_0+c_1=3\\cdot 1=3$;</li><li>innen ($j=1$): $c_0+4c_1+c_2=3\\bigl(1+(-1)\\bigr)=0$;</li><li>Rand rechts: $c_1+2c_2=3\\cdot(-1)=-3$.</li></ul><p>Aus der ersten $c_1=3-2c_0$, aus der dritten $c_2=\\frac{-3-c_1}{2}=c_0-3$. Einsetzen in die mittlere: $c_0+4(3-2c_0)+c_0-3=0 \\Rightarrow -6c_0+9=0 \\Rightarrow c_0=\\tfrac32$, also $c_1=0$ und $c_2=-\\tfrac32$.</p><p><b>Plausibilität:</b> die Daten sind symmetrisch zu $x=1$, also muss $c_1=0$ (Scheitel) und $c_2=-c_0$ sein ✓.</p><p>Mit der Darstellung in $t=(x-x_0)/h_1$ (Skriptseite 114) folgt auf $[0,1]$ $s(t)=y_0(1-3t^2+2t^3)+y_1(3t^2-2t^3)+h_1c_0(t-2t^2+t^3)+h_1c_1(-t^2+t^3)=3t^2-2t^3+\\tfrac32(t-2t^2+t^3)=\\tfrac32 t-\\tfrac12 t^3$. Für $t=\\tfrac12$: $\\tfrac34-\\tfrac1{16}=\\tfrac{11}{16}=0.6875$.</p><p class=\"faint\">Probe der natürlichen Randbedingung: $s(t)=\\tfrac32t-\\tfrac12t^3$ hat $s''\\propto -3t$, also $s''(0)=0$ ✓.</p>",
+      "skriptRef": {
+        "abschnitt": "4.3",
+        "seite": 115,
+        "nummer": "(4.3.6), Def. 4.3.5 und (4.3.8), S. 116"
+      }
+    },
+    {
+      "id": "m-w6-12",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "not-a-knot",
+      "frageHtml": "<p>Was besagt die «not-a-knot»-Bedingung, und warum heisst sie so?</p>",
+      "optionen": [
+        "Die ersten und letzten Knoten werden aus dem Gitter entfernt, man interpoliert also nur die inneren Datenpunkte.",
+        "$s'''$ ist stetig in $x_1$ und $x_{N-1}$. Bei Polynomen vom Grad höchstens 3 erzwingt das $s_1=s_2$ und $s_{N-1}=s_N$ — die beiden Knoten $x_1$ und $x_{N-1}$ sind also effektiv keine Knoten mehr.",
+        "Die zweite Ableitung verschwindet an $x_1$ und $x_{N-1}$.",
+        "Die Steigungen $c_0$ und $c_N$ werden gleich null gesetzt."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p><b>Bemerkung 4.3.8</b> wörtlich: «$s'''$ ist stetig in $x_1$ und $x_{N-1}$; dabei braucht man mindestens $N=3$, d.h. 4 Knoten. Da es sich um Polynome vom Grad höchstens 3 handelt, erzwingt diese Bedingung, dass nur ein Polynom in den ersten beiden und ein anderes in den letzten beiden Subintervallen erscheint: $s_1=s_2$ und $s_{N-1}=s_N$.»</p><p>Der Grund ist einfach: bei Grad 3 ist $s'''$ auf jedem Stück <i>konstant</i>. Stimmen die Konstanten überein und sind zusätzlich $s,s',s''$ stetig, so sind die beiden Polynome identisch. Der Knoten wird also nicht entfernt — die Daten dort werden weiterhin interpoliert —, er verliert nur seine Funktion als Bruchstelle. Daher der Name.</p><p><b>Die falschen Optionen:</b> <b>a</b> würde die Interpolationsbedingung in $x_1$ und $x_{N-1}$ aufgeben — das passiert gerade nicht. <b>c</b> ist eine Mischung aus not-a-knot und der <i>natürlichen</i> Bedingung (Def. 4.3.5), die $s''$ allerdings an den <b>Endpunkten</b> $x_0,x_N$ null setzt. <b>d</b> wäre ein eingespannter Spline mit waagrechten Enden (Def. 4.3.4 mit $c_0=c_N=0$).</p><p class=\"faint\">Praktisch relevant: <code>scipy.interpolate.CubicSpline</code> verwendet «zurzeit implizit die not-a-knot-Bedingung»; die anderen Varianten bekommt man über <code>bc_type</code>.</p>",
+      "skriptRef": {
+        "abschnitt": "4.3",
+        "seite": 117,
+        "nummer": "Bem. 4.3.8"
+      }
+    },
+    {
+      "id": "m-w6-13",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Grösse des Gleichungssystems",
+      "frageHtml": "<p>Ein Gitter habe $N=8$ Subintervalle. Betrachtet wird das Gleichungssystem (4.3.6) für die Steigungen $c_j=s'(x_j)$ eines kubischen Splines. Geben Sie an (<b>ganze Zahlen</b>):</p>",
+      "felder": [
+        {
+          "label": "\\text{Anzahl Unbekannte } c_j",
+          "wert": 9,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "\\text{Anzahl Gleichungen aus der Stetigkeit von } s''",
+          "wert": 7,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "\\text{Anzahl fehlender Gleichungen}",
+          "wert": 2,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "k \\text{ mit } s\\in C^k \\text{ (kubischer Spline)}",
+          "wert": 2,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "k \\text{ mit } s\\in C^k \\text{ (stückweise kubisch Hermite)}",
+          "wert": 1,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Skriptseite 115: «…ein lineares Gleichungssystem mit $N+1$ Unbekannten $c_j=s'(x_j)$ für $j=0,\\dots,N$ und $N-1$ Gleichungen; die $j$-te Gleichung ($j=1,\\dots,N-1$) ist …». Für $N=8$ also $\\mathbf{9}$ Unbekannte und $\\mathbf{7}$ Gleichungen — eine pro <b>innerem</b> Knoten.</p><p>Es fehlen $9-7=\\mathbf{2}$ Gleichungen; das sind genau die zwei Freiheitsgrade aus Bem. 4.3.3, die durch eine Randbedingung (vollständig, natürlich, periodisch, not-a-knot) gefüllt werden.</p><p>Die Glattheit: kubischer Spline $s\\in C^{d-1}=C^{\\mathbf{2}}$ (Def. 4.3.1), stückweise kubischer Hermite-Interpolant nur $C^{\\mathbf{1}}$ (Bem. 4.3.2) — der Unterschied ist genau die Stetigkeit von $s''$.</p><p class=\"faint\">Die Matrix ist tridiagonal und (im natürlichen Fall) symmetrisch positiv definit; nach Bem. 4.3.7 lässt sich das System in allen Fällen mit $\\mathcal{O}(N)$ Operationen lösen.</p>",
+      "skriptRef": {
+        "abschnitt": "4.3",
+        "seite": 115,
+        "nummer": "(4.3.6); Bem. 4.3.3 (S. 114), Bem. 4.3.7 (S. 116)"
+      }
+    },
+    {
+      "id": "m-w6-14",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Vollständig gegen natürlich",
+      "frageHtml": "<p>Worin unterscheiden sich die <b>vollständige</b> («eingespannte», clamped) und die <b>natürliche</b> kubische Spline-Interpolation?</p>",
+      "optionen": [
+        "Die vollständige verlangt $s''(x_0)=s''(x_N)=0$, die natürliche $s'(x_0)=c_0$, $s'(x_N)=c_N$.",
+        "Die vollständige interpoliert alle Datenpunkte, die natürliche nur die inneren.",
+        "Die vollständige gibt die <b>ersten</b> Ableitungen am Rand vor ($s'(x_0)=c_0$, $s'(x_N)=c_N$), die natürliche setzt die <b>zweiten</b> Ableitungen am Rand null ($s''(x_0)=s''(x_N)=0$).",
+        "Es ist dasselbe; «natürlich» ist nur der englische Name für «vollständig»."
+      ],
+      "loesung": 2,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p><b>Definition 4.3.4</b> (vollständig / eingespannt / clamped): $s'(x_0)=c_0$, $s'(x_N)=c_N$ mit vorgegebenen $c_0,c_N$. <b>Definition 4.3.5</b> (natürlich): $s''(x_0)=0$, $s''(x_N)=0$.</p><p>Auch die entstehenden Systeme unterscheiden sich sichtbar:</p><ul><li><b>vollständig:</b> $c_0$ und $c_N$ sind bekannt, man streicht die erste und die letzte Spalte von (4.3.6) und schiebt die Terme $-c_0b_0$ bzw. $-c_Nb_{N-1}$ auf die rechte Seite — ein $(N-1)\\times(N-1)$-System (4.3.7);</li><li><b>natürlich:</b> zwei Gleichungen kommen <i>hinzu</i>, es entsteht ein $(N+1)\\times(N+1)$-System (4.3.8) mit den Randzeilen $[2\\ 1\\ 0\\cdots]$ und $[\\cdots 0\\ 1\\ 2]$, tridiagonal, symmetrisch und positiv definit.</li></ul><p><b>Die falschen Optionen:</b> <b>a</b> vertauscht die beiden Definitionen genau — die klassische Falle. <b>b</b> ist falsch, beide interpolieren alle Datenpunkte. <b>d</b> ist falsch; die Namen stehen für verschiedene Randbedingungen (auch die Fehlerabschätzung Thm. 4.3.10 ist ausdrücklich für den <i>vollständigen</i> Spline formuliert).</p>",
+      "skriptRef": {
+        "abschnitt": "4.3",
+        "seite": 115,
+        "nummer": "Def. 4.3.4, (4.3.7); Def. 4.3.5, (4.3.8), S. 116"
+      }
+    },
+    {
+      "id": "m-w6-15",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Lokal gegen global",
+      "frageHtml": "<p>Man ändert einen einzigen Datenwert $y_k$ in der Mitte des Gitters. Welche Interpolanten ändern sich daraufhin <b>nur in der Nähe von $x_k$</b>?</p>",
+      "optionen": [
+        "Alle drei Verfahren sind lokal; eine Änderung von $y_k$ wirkt sich nie ausserhalb von $[x_{k-1},x_{k+1}]$ aus.",
+        "Der stückweise lineare Interpolant und — bei fest vorgegebenen $c_j$ — der stückweise kubische Hermite-Interpolant; der kubische Spline dagegen ändert sich im Prinzip überall, weil die $c_j$ aus einem Gleichungssystem über alle Knoten stammen.",
+        "Nur der kubische Spline, weil seine Systemmatrix tridiagonal ist und tridiagonale Systeme lokal sind.",
+        "Keiner; jede Interpolation ist global."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Für die stückweise lineare Interpolation hält Skriptseite 111 die Lokalität explizit fest: «Wenn $y_k=\\delta_{kj}$ für $k=0,\\dots,N$, dann ist der Interpolant $s$ überall 0 ausser im Intervall $[x_{j-1},x_{j+1}]$.» Beim kubischen Hermite-Interpolanten ist jedes Stück allein durch $y_{j-1},y_j,c_{j-1},c_j$ bestimmt (vier Bedingungen, vier Parameter) — sind die $c_j$ vorgegeben, bleibt die Wirkung ebenfalls auf die Nachbarintervalle beschränkt.</p><p>Beim Spline ist das anders: die $c_j$ lösen das System (4.3.6), in dem jede Gleichung drei benachbarte $c_j$ koppelt. Die Inverse einer tridiagonalen Matrix ist im Allgemeinen <b>voll besetzt</b>; eine Änderung auf der rechten Seite wirkt sich deshalb auf alle $c_j$ aus — wenn auch mit rasch abklingender Amplitude. Genau das ist der Preis für $C^2$.</p><p><b>Die falschen Optionen:</b> <b>c</b> verwechselt die <i>Besetzungsstruktur</i> der Matrix (tridiagonal, daher $\\mathcal{O}(N)$ lösbar nach Bem. 4.3.7) mit der <i>Lokalität der Lösung</i> — zwei verschiedene Dinge. <b>a</b> und <b>d</b> verallgemeinern jeweils in die falsche Richtung.</p>",
+      "skriptRef": {
+        "abschnitt": "4.1 / 4.3",
+        "seite": 111,
+        "nummer": "Lokalität nach (4.1.3); (4.3.6) und Bem. 4.3.7, S. 115–116"
+      }
+    },
+    {
+      "id": "m-w6-16",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Einträge der tridiagonalen Matrix",
+      "frageHtml": "<p>Für das System (4.3.6) sind $b_j:=\\frac{1}{h_{j+1}}$ und $a_j:=\\frac{2}{h_j}+\\frac{2}{h_{j+1}}$. Ein Gitter beginne mit $h_1=1$ und $h_2=2$. Berechnen Sie:</p>",
+      "felder": [
+        {
+          "label": "b_0",
+          "wert": 1.0,
+          "tol": 0.002,
+          "tolTyp": "abs",
+          "anzeige": "1/h_1 = 1"
+        },
+        {
+          "label": "b_1",
+          "wert": 0.5,
+          "tol": 0.002,
+          "tolTyp": "abs",
+          "anzeige": "1/h_2 = 0.5"
+        },
+        {
+          "label": "a_1",
+          "wert": 3.0,
+          "tol": 0.002,
+          "tolTyp": "abs",
+          "anzeige": "2/h_1 + 2/h_2 = 3"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Direkt eingesetzt: $b_0=\\frac{1}{h_1}=1$, $b_1=\\frac{1}{h_2}=\\frac12$, $a_1=\\frac{2}{h_1}+\\frac{2}{h_2}=2+1=3$.</p><p><b>Kontrolle mit der im Skript notierten Identität</b> $a_j=2(b_j+b_{j-1})$: $2(b_1+b_0)=2(\\tfrac12+1)=3$ ✓. Zusammen mit $a_j,b_j>0$ folgt daraus sofort strikte Diagonaldominanz — die Zeilensumme der Nebendiagonalen ist $b_{j-1}+b_j=\\tfrac{a_j}{2}$, also halb so gross wie das Diagonalelement. Deshalb ist das System eindeutig lösbar und numerisch gutartig.</p><p><b>Typische Falle:</b> der Index-Versatz. In $b_j$ steht $h_{j+1}$, nicht $h_j$ — $b_0$ gehört also zum <i>ersten</i> Subintervall.</p>",
+      "skriptRef": {
+        "abschnitt": "4.3",
+        "seite": 115,
+        "nummer": "(4.3.6) und die Definition von $a_j,b_j$ darunter"
+      }
+    },
+    {
+      "id": "m-w6-17",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Fehlerschranken konkret",
+      "frageHtml": "<p>Zwei Rechnungen mit den Fehlerabschätzungen des Kapitels (mindestens drei signifikante Ziffern):</p><ol><li>$f$ wird auf $[0,\\pi]$ <b>stückweise linear</b> auf einem äquidistanten Gitter mit $N=10$ Subintervallen interpoliert, $\\|f''\\|_\\infty=1$. Wie gross ist die Schranke aus (4.0.1)?</li><li>$f\\in C^4$ wird durch den <b>vollständigen kubischen Spline</b> auf einem äquidistanten Gitter mit $h=0.1$ interpoliert, $\\|f^{(4)}\\|_\\infty=1$. Wie gross ist die Schranke aus Theorem 4.3.10 für $k=0$?</li></ol>",
+      "felder": [
+        {
+          "label": "\\tfrac{h^2}{2}\\|f''\\|_\\infty \\ \\text{mit}\\ h=\\pi/10",
+          "wert": 0.04934802200544679,
+          "tol": 0.002,
+          "tolTyp": "rel",
+          "anzeige": "\\pi^2/200 \\approx 0.049348"
+        },
+        {
+          "label": "\\tfrac{5}{384}h^{4}\\|f^{(4)}\\|_\\infty \\ \\text{mit}\\ h=0.1",
+          "wert": 1.3020833333333337e-06,
+          "tol": 0.002,
+          "tolTyp": "rel",
+          "anzeige": "5\\cdot10^{-4}/384 \\approx 1.302\\cdot10^{-6}"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p><b>(1)</b> Stückweise linear heisst Grad $n=1$, also sagt (4.0.1): $|f(x)-s(x)| &lt; \\frac{h^{n+1}}{(n+1)!}\\|f^{(n+1)}\\|_\\infty=\\frac{h^2}{2}\\|f''\\|_\\infty$. Mit $h=\\frac{\\pi-0}{10}=\\frac{\\pi}{10}\\approx 0.31416$ ergibt das $\\frac{\\pi^2}{200}\\approx 0.049348$.</p><p><b>(2)</b> Theorem 4.3.10 gibt für $k=0$ die Schranke $\\frac{5}{384}h^4\\|f^{(4)}\\|_\\infty$; mit $h=0.1$ also $\\frac{5\\cdot 10^{-4}}{384}\\approx 1.302\\cdot 10^{-6}$.</p><p><b>Zum Vergleich:</b> Theorem 4.2.2 liefert für den kubischen Hermite-Interpolanten mit <i>exakten</i> Ableitungswerten dieselbe Ordnung, aber die Konstante $\\frac{1}{384}$ — also einen fünfmal kleineren Wert ($\\approx 2.604\\cdot 10^{-7}$). Dafür braucht der Spline keine Ableitungsdaten, und seine Schranke gilt bis $k=3$.</p><p class=\"faint\">Beachte die typischen Stolpersteine: $h$ ist die <i>Subintervall</i>länge $(b-a)/N$, nicht $b-a$; und die Ordnung ist $n+1$ (Grad plus eins), nicht $n$.</p>",
+      "skriptRef": {
+        "abschnitt": "4 / 4.3",
+        "seite": 110,
+        "nummer": "(4.0.1); Thm. 4.3.10, S. 117; Thm. 4.2.2, S. 113"
+      }
+    }
+  ],
+  "codeexpert": []
+}

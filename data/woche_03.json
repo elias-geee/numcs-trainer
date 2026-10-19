@@ -1,0 +1,658 @@
+{
+  "woche": 3,
+  "titel": "Polynominterpolation",
+  "status": "vollstaendig",
+  "skript": {
+    "kapitel": "2.1–2.3",
+    "seiten": "41–53"
+  },
+  "vorlage": "wochenplan/Vorlage03_PolynomInterpolation.pdf",
+  "aufgabenUebersicht": {
+    "moodle": 12,
+    "codeexpert": 2
+  },
+  "einleitung": "<p>Ein Interpolationspolynom durch $n+1$ Punkte ist nach Theorem 2.1.10 <b>eindeutig</b>. Die ganze Woche geht es also nicht um verschiedene Polynome, sondern um verschiedene <b>Basen</b>, in denen man dasselbe Polynom darstellt — und darum, dass die Wahl der Basis über Rechenaufwand und numerische Stabilität entscheidet.</p><ul><li><b>Monombasis</b> — anschaulich, aber die Vandermonde-Matrix ist schlecht konditioniert.</li><li><b>Newton-Basis</b> — neue Datenpunkte lassen sich hinzufügen, ohne alles neu zu rechnen; Koeffizienten über dividierte Differenzen in $\\mathcal{O}(n^2)$.</li><li><b>Lagrange-Basis</b> — theoretisch ideal (Fehleranalyse), praktisch untauglich; stattdessen nutzt man die daraus abgeleitete <b>baryzentrische Formel</b>.</li></ul><p>Am Ende steht die Erkenntnis, die ins nächste Kapitel führt: bei äquidistanten Stützstellen wächst die Lebesgue-Konstante exponentiell (Runge-Phänomen) — also <i>niemals</i> äquidistante Stützstellen für Interpolation hohen Grades.</p>",
+  "zusammenfassung": [
+    {
+      "id": "w3-z1",
+      "titel": "Interpolationsbedingung und Basiswahl",
+      "ref": {
+        "abschnitt": "2.1",
+        "seite": 41,
+        "nummer": "(2.1.1)"
+      },
+      "text": "<p>Gegeben Datenpunkte $\\begin{bmatrix}x_0&\\cdots&x_n\\\\ y_0&\\cdots&y_n\\end{bmatrix}$ mit <b>Stützstellen</b> (Knoten) $x_i$ und Werten $y_i$; gesucht ist $\\tilde f$ mit $\\tilde f(x_i)=y_i$ für alle $i$ — <b>exakt</b>, nicht im Sinne der Ausgleichsrechnung (Bem. 2.1.1).</p><p>Man sucht $\\tilde f$ in einem endlichdimensionalen Unterraum $\\mathcal{V}_n$ mit Basis $b_1,\\dots,b_n$, also $f(x)\\approx\\sum_j\\alpha_j b_j(x)$. Die drei Basen der Vorlesung (Bsp. 2.1.3): $b_j(x)=x^{j-1}$ (polynomiell), $b_j(x)=\\cos((j-1)\\arccos x)$ (Chebyshev), $b_j(x)=e^{i2\\pi jx}$ (trigonometrisch).</p><p>Nach dem <b>Satz von Peano</b> (Thm. 2.1.5) lässt sich jede stetige Funktion in der $\\|\\cdot\\|_\\infty$-Norm beliebig gut durch ein Polynom approximieren — die Existenz ist also nie das Problem, nur die Konstruktion.</p>",
+      "merke": "Die Taylor-Formel (Bsp. 2.1.4) ist für numerische Zwecke untauglich: sie approximiert nur <i>lokal</i> und braucht Ableitungen, die man oft nicht hat."
+    },
+    {
+      "id": "w3-z2",
+      "titel": "Der Raum $\\mathcal{P}_k$ und die Monombasis",
+      "ref": {
+        "abschnitt": "2.1",
+        "seite": 43,
+        "nummer": "Def. 2.1.7, Thm. 2.1.9/2.1.10"
+      },
+      "text": "<p>$\\mathcal{P}_k=\\{x\\mapsto\\alpha_kx^k+\\dots+\\alpha_1x+\\alpha_0\\}$ ist ein Vektorraum der Dimension $\\boxed{k+1}$, und $\\mathcal{P}_k\\subset C^\\infty(\\mathbb{R})$. Die Monome $1,x,\\dots,x^k$ bilden eine Basis — daher $k+1$, nicht $k$.</p><p><b>Theorem 2.1.10 (Eindeutigkeit):</b> Ein Polynom vom Grad $k$ ist durch $k+1$ Punkte eindeutig bestimmt. Alle Methoden dieser Woche liefern also <i>dasselbe</i> Polynom, nur anders dargestellt.</p><p>In der Monombasis führt die Interpolationsbedingung auf ein LGS mit der <b>Vandermonde-Matrix</b>:</p>",
+      "formeln": [
+        "\\begin{bmatrix}1&x_0&\\cdots&x_0^{n}\\\\ 1&x_1&\\cdots&x_1^{n}\\\\ \\vdots&\\vdots&\\ddots&\\vdots\\\\ 1&x_n&\\cdots&x_n^{n}\\end{bmatrix}\\begin{bmatrix}\\alpha_0\\\\ \\alpha_1\\\\ \\vdots\\\\ \\alpha_n\\end{bmatrix}=\\begin{bmatrix}y_0\\\\ y_1\\\\ \\vdots\\\\ y_n\\end{bmatrix}"
+      ],
+      "merke": "Die Vandermonde-Matrix ist <b>sehr schlecht konditioniert</b> (Bem. 2.1.12). Deshalb warnt <code>np.polyfit</code> mit <code>RankWarning: Polyfit may be poorly conditioned</code>, und deshalb wird die Monombasis praktisch kaum benutzt."
+    },
+    {
+      "id": "w3-z3",
+      "titel": "Horner-Schema",
+      "ref": {
+        "abschnitt": "2.1",
+        "seite": 44,
+        "nummer": "Def. 2.1.13, (2.1.4), Code 2.1.15"
+      },
+      "text": "<p>Statt jede Potenz einzeln auszuwerten, klammert man aus:</p><p>Das kostet $n$ Multiplikationen und $n$ Additionen, also $\\mathcal{O}(n)$ statt $\\mathcal{O}(n^2)$. In NumPy ist das <code>np.polyval(p, x)</code>, wobei $\\texttt{p}=[\\alpha_n,\\alpha_{n-1},\\dots,\\alpha_0]$ — also <b>absteigend</b> sortiert.</p><pre class=\"code\">def horner(p, x):\n    y = p[0]\n    for i in range(1, len(p)):\n        y = x * y + p[i]\n    return y</pre>",
+      "formeln": [
+        "p(x)=\\bigl(x\\dots x\\left(x(\\alpha_nx+\\alpha_{n-1})+\\dots+\\alpha_1\\right)+\\alpha_0\\bigr)"
+      ],
+      "merke": "Horner wirkt <b>stabilisierend</b> (Bem. 2.1.16): obwohl <code>polyfit</code> grosse Fehler in den Koeffizienten produziert, liefert <code>polyval</code> wieder relativ gute Werte."
+    },
+    {
+      "id": "w3-z4",
+      "titel": "Newton-Basis und dividierte Differenzen",
+      "ref": {
+        "abschnitt": "2.2",
+        "seite": 44,
+        "nummer": "Thm. 2.2.3, (2.2.5)"
+      },
+      "text": "<p>Motivation (Bsp. 2.2.1): In der Monombasis muss man beim Hinzufügen eines Datenpunkts alles neu rechnen. Die Newton-Basis erlaubt es, das bisherige Polynom zu <b>behalten</b> und nur einen Term zu ergänzen:</p><p>$p_1(x)=p_0(x)+(x-x_0)\\frac{y_1-y_0}{x_1-x_0}$, dann $p_2(x)=p_1(x)+\\ldots\\,(x-x_0)(x-x_1)$, und so weiter.</p><p>Das zugehörige LGS ist <b>untere Dreiecksmatrix</b> — daher die effiziente Lösung über dividierte Differenzen.</p>",
+      "formeln": [
+        "N_0(x)=1,\\quad N_1(x)=x-x_0,\\quad N_2(x)=(x-x_0)(x-x_1),\\ \\dots,\\ N_n(x)=\\prod_{i=0}^{n-1}(x-x_i)"
+      ],
+      "merke": "Die Newton-Basis hängt von den Knoten ab — aber nur von $x_0,\\dots,x_{n-1}$, nicht von $x_n$. Genau deshalb lässt sich ein Punkt anhängen."
+    },
+    {
+      "id": "w3-z5",
+      "titel": "Dividierte Differenzen — Definition, Schema, Aufwand",
+      "ref": {
+        "abschnitt": "2.2",
+        "seite": 46,
+        "nummer": "Def. 2.2.5, (2.2.6)–(2.2.7), Thm. 2.2.8"
+      },
+      "text": "<p>Rekursiv definiert durch $y[x_i]=y_i$ und</p><p>Das Dreiecksschema (2.2.7) arbeitet sich spaltenweise vor; nach <b>Theorem 2.2.8 (Newton, 1676)</b> sind die Koeffizienten in der Newton-Basis genau $\\beta_j=y[x_0,\\dots,x_j]$:</p><p>$$p(x)=y[x_0]+y[x_0,x_1](x-x_0)+\\dots+y[x_0,\\dots,x_n](x-x_0)\\cdots(x-x_{n-1}).$$</p><p><b>Aufwand (Bem. 2.2.9):</b> $\\mathcal{O}(n^2)$ für die Berechnung der dividierten Differenzen, danach $\\mathcal{O}(n)$ für <b>jede</b> Auswertung (abgewandeltes Horner-Schema).</p><p>Bem. 2.2.10: man braucht nur die Diagonale des Schemas, also einen Vektor der Länge $n$ statt einer $n\\times n$-Matrix — das ist die In-place-Variante <code>y[i:] = (y[i:] - y[i-1:-1]) / (x[i:] - x[:-i])</code>.</p><p>Bei <b>äquidistanten</b> Knoten $x_j=x_0+jh$ vereinfacht sich alles zu $y[x_0,\\dots,x_n]=\\frac{1}{n!\\,h^n}\\Delta^n y_0$ (2.2.8).</p>",
+      "formeln": [
+        "y[x_i,\\dots,x_{i+k}]=\\frac{y[x_{i+1},\\dots,x_{i+k}]-y[x_i,\\dots,x_{i+k-1}]}{x_{i+k}-x_i}"
+      ],
+      "merke": "Der führende Koeffizient $\\beta_n=y[x_0,\\dots,x_n]$ ist nach Thm. 2.2.11 gleich $\\frac{f^{(n)}(\\xi)}{n!}$ — die dividierte Differenz ist also eine diskrete Version der $n$-ten Ableitung."
+    },
+    {
+      "id": "w3-z6",
+      "titel": "Interpolationsfehler",
+      "ref": {
+        "abschnitt": "2.2",
+        "seite": 48,
+        "nummer": "Thm. 2.2.12, (2.2.10)–(2.2.11)"
+      },
+      "text": "<p>Ist $f$ auf $[a,b]$ $(n+1)$-mal stetig differenzierbar und $p$ das Interpolationspolynom in $x_0,\\dots,x_n$, so gibt es zu jedem $x$ ein $\\xi\\in\\,]a,b[$ mit</p><p>woraus die maximale Fehlerschranke $(b-a)^{n+1}\\frac{\\|f^{(n+1)}\\|_\\infty}{(n+1)!}$ folgt.</p><p>Entscheidend für alles Weitere: der Faktor $(x-x_0)\\cdots(x-x_n)$ hängt <b>nur von der Wahl der Stützstellen</b> ab. Die naheliegende Frage «für welche $x_1,\\dots,x_n$ wird $\\max_{x\\in[a,b]}|(x-x_0)\\cdots(x-x_n)|$ minimal?» führt direkt zu den Chebyshev-Knoten (Kapitel 2.4).</p>",
+      "formeln": [
+        "f(x)-p(x)=(x-x_0)\\cdots(x-x_n)\\,\\frac{f^{(n+1)}(\\xi)}{(n+1)!}"
+      ],
+      "merke": "Zwei Stellschrauben: die Glattheit von $f$ (gegeben) und die Lage der Stützstellen (frei wählbar)."
+    },
+    {
+      "id": "w3-z7",
+      "titel": "Lagrange-Polynome",
+      "ref": {
+        "abschnitt": "2.3",
+        "seite": 49,
+        "nummer": "Def. 2.3.1, (2.3.12), Thm. 2.3.3, Bem. 2.3.4"
+      },
+      "text": "<p>Zu den Knoten $x_0,\\dots,x_n$ definiert man</p><p>Damit ist das Interpolationspolynom direkt hingeschrieben, ohne jedes Gleichungssystem: $p(x)=\\sum_{i=0}^{n}y_i\\ell_i(x)$ (2.3.13).</p><p><b>Eigenschaften (Bem. 2.3.4):</b> $\\ell_i(x_j)=0$ für $j\\neq i$, $\\ell_i(x_i)=1$ (zusammen: $\\ell_i(x_j)=\\delta_{ij}$); $\\deg\\ell_i=n$ für <b>alle</b> $i$; und $\\sum_{k=0}^n\\ell_k(x)=1$ für alle $x$, während $\\sum_k\\ell_k^{(m)}(x)=0$ für $m>0$.</p>",
+      "formeln": [
+        "\\ell_i(x)=\\prod_{\\substack{j=0\\\\ j\\neq i}}^{n}\\frac{x-x_j}{x_i-x_j}"
+      ],
+      "merke": "$\\sum_k\\ell_k(x)=1$ ist die Partition der Eins — sie folgt daraus, dass das Interpolationspolynom der konstanten Funktion $1$ eben $1$ ist. Praktische Kontrolle beim Rechnen von Hand!"
+    },
+    {
+      "id": "w3-z8",
+      "titel": "Baryzentrische Interpolationsformel",
+      "ref": {
+        "abschnitt": "2.3",
+        "seite": 51,
+        "nummer": "(2.3.14)"
+      },
+      "text": "<p>Mit $L(x)=(x-x_0)\\cdots(x-x_n)$ und den <b>baryzentrischen Gewichten</b></p><p>$$\\lambda_k=\\prod_{j\\neq k}\\frac{1}{x_k-x_j}$$</p><p>lässt sich $p$ umschreiben zu $p(x)=L(x)\\sum_k\\frac{\\lambda_k}{x-x_k}y_k$. Für das konstante Polynom $1$ gilt $1=L(x)\\sum_k\\frac{\\lambda_k}{x-x_k}$; Division beider Gleichungen eliminiert $L(x)$ und ergibt die <b>baryzentrische Formel</b>:</p><p><b>Aufwand:</b> die $\\lambda_k$ einmal in $\\mathcal{O}(n^2)$ vorab, danach kostet jede Auswertung nur noch $\\mathcal{O}(n)$. Die Formel ist <b>skalierungsinvariant</b> und für $x\\in[a,b]$ extrem stabil. Zusätzliche Stützstellen lassen sich leicht ergänzen.</p><p>Für die $n+1$ Chebyshev-Abszissen $x_k=\\cos(k\\pi/n)$ sind die Gewichte besonders einfach: $\\lambda_k=(-1)^k\\delta_k$ mit $\\delta_0=\\delta_n=\\tfrac12$ und $\\delta_k=1$ sonst.</p>",
+      "formeln": [
+        "p(x)=\\frac{\\displaystyle\\sum_{k=0}^{n}\\frac{\\lambda_k}{x-x_k}y_k}{\\displaystyle\\sum_{k=0}^{n}\\frac{\\lambda_k}{x-x_k}}"
+      ],
+      "merke": "Die Formel hat eine Division durch $x-x_k$ — <b>Sonderfall abfangen</b>, wenn $x$ genau ein Knoten ist: dann ist $p(x)=y_k$. Genau diese Abfrage steckt in der CodeExpert-Aufgabe."
+    },
+    {
+      "id": "w3-z9",
+      "titel": "Lebesgue-Konstante und Messfehler",
+      "ref": {
+        "abschnitt": "2.3",
+        "seite": 52,
+        "nummer": "Def. 2.3.5, (2.3.17), Thm. 2.3.7/2.3.8"
+      },
+      "text": "<p>Sind die Werte $\\tilde y_i$ mit Messfehlern behaftet, folgt aus der Lagrange-Darstellung $|p(x)-\\tilde p(x)|\\le\\max_i|y_i-\\tilde y_i|\\cdot\\sum_i|\\ell_i(x)|$. Das motiviert die <b>Lebesgue-Konstante</b></p><p>Sie hängt <b>nur von der Wahl der Stützstellen</b> ab (Bem. 2.3.6) und ist die bestmögliche Konstante in $\\max_x|p(x)-\\tilde p(x)|\\le\\Lambda_n\\max_i|y_i-\\tilde y_i|$ (Thm. 2.3.7). Nach Thm. 2.3.8 gilt ausserdem $\\|f-p\\|_\\infty\\le(1+\\Lambda_n)\\min_{q\\in\\mathcal{P}_n}\\|f-q\\|_\\infty$ — $\\Lambda_n$ misst also, wie weit die Interpolation von der <i>besten</i> Approximation entfernt ist.</p><p><b>Bei äquidistanten Stützstellen auf $[-1,1]$ (Bsp. 2.3.9):</b> $\\Lambda_{10}\\approx 40$, $\\Lambda_{20}\\approx 30\\,000$, $\\Lambda_{40}\\approx 10^{10}$ — asymptotisch $\\Lambda_n\\approx\\frac{2^{n+1}}{n\\log n}$, also exponentiell.</p>",
+      "formeln": [
+        "\\Lambda_n:=\\max_{x\\in[a,b]}\\sum_{i=0}^{n}|\\ell_i(x)|"
+      ],
+      "merke": "$\\Lambda_{40}\\approx10^{10}$ heisst: ein Messfehler von $10^{-10}$ macht das Ergebnis wertlos. Die Lebesgue-Konstante ist die Konditionszahl der Interpolation."
+    },
+    {
+      "id": "w3-z10",
+      "titel": "Runge-Phänomen",
+      "ref": {
+        "abschnitt": "2.3",
+        "seite": 53,
+        "nummer": "Bsp. 2.3.11, Abb. 2.2/2.3"
+      },
+      "text": "<p>Die Runge-Funktion $f(x)=\\frac{1}{1+x^2}$ auf $[-5,5]$ mit äquidistanten Knoten zeigt starke Oszillationen an den Rändern — und ein <b>höherer</b> Polynomgrad macht den Fehler <b>grösser</b>, nicht kleiner (Abb. 2.3). Ursache ist die exponentiell wachsende Lebesgue-Konstante.</p><p>Daraus die Grundregel des Skripts, fett gesetzt: <b>Verwende für eine Interpolation hohen Grades niemals äquidistant verteilte Stützstellen!</b></p><p>Zwei Auswege, die die restliche Vorlesung strukturieren:</p><ol><li>Das Intervall in kleine Teile zerlegen und stückweise interpolieren → <b>Splines und finite Elemente</b> (Kapitel 4).</li><li>Die Stützstellen ideal verteilen → <b>Chebyshev-Knoten</b> (Kapitel 2.4).</li></ol>",
+      "merke": "Das Runge-Phänomen ist kein Rundungsfehler — es tritt auch in exakter Arithmetik auf. Es ist ein Approximationsproblem der äquidistanten Knotenwahl."
+    }
+  ],
+  "moodleHinweis": "Die ersten sechs Fragen stammen wörtlich aus <code>moodle quizes/Quiz2/</code> (inklusive der Tippfehler des Originals). In <b>keinem</b> Screenshot ist die korrekte Antwort markiert — alle Lösungen sind von mir erarbeitet und mit Skript-Verweis begründet. Danach folgen sechs Zusatzfragen im gleichen Stil.",
+  "moodle": [
+    {
+      "id": "m-w3-01",
+      "quelle": {
+        "typ": "original",
+        "datei": "moodle quizes/Quiz2/Bildschirmfoto 2026-09-25 um 10.46.23.png"
+      },
+      "typ": "mc-single",
+      "thema": "Komplexität, mehrere Auswertungspunkte",
+      "frageHtml": "<p>Was ist die Komplexität der <b>baryzentrischen Interpolationsformel</b> und der <b>dividierten Differenzen</b> (in diese Reihenfolge) für die Berechnung und Auswertung des Lagrange polynomialen Interpolants in mehreren Punkten $x_j\\in\\mathbb{R},\\ j=0,\\dots,N$, gegeben die Daten $\\{t_i,y_i\\}\\in\\mathbb{R}^2,\\ i=0,\\dots,n$.</p>",
+      "optionen": [
+        "$\\mathcal{O}(n^2+nN),\\ \\mathcal{O}(n^2)$",
+        "$\\mathcal{O}(n^2),\\ \\mathcal{O}(n^2)$",
+        "$\\mathcal{O}(n^2),\\ \\mathcal{O}(n^2+nN)$",
+        "$\\mathcal{O}(n^2+nN),\\ \\mathcal{O}(n^2+nN)$"
+      ],
+      "loesung": 3,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Beide Verfahren zerfallen in <b>Vorbereitung</b> und <b>Auswertung</b>:</p><ul><li><b>Baryzentrisch:</b> die Gewichte $\\lambda_k$ kosten einmalig $\\mathcal{O}(n^2)$ (jedes $\\lambda_k$ ist ein Produkt über $n$ Faktoren), danach jede Auswertung $\\mathcal{O}(n)$ — bei $N$ Punkten also $\\mathcal{O}(n^2+nN)$.</li><li><b>Dividierte Differenzen:</b> das Schema kostet $\\mathcal{O}(n^2)$ (Bem. 2.2.9 (1)), jede Auswertung mit dem abgewandelten Horner-Schema $\\mathcal{O}(n)$ (Bem. 2.2.9 (2)) — ebenfalls $\\mathcal{O}(n^2+nN)$.</li></ul><p>Die Verfahren unterscheiden sich in der <i>Stabilität</i> und darin, wie leicht sich Punkte ergänzen lassen — asymptotisch kosten sie dasselbe.</p>",
+      "skriptRef": {
+        "abschnitt": "2.2/2.3",
+        "seite": 47,
+        "nummer": "Bem. 2.2.9, (2.3.14)"
+      }
+    },
+    {
+      "id": "m-w3-02",
+      "quelle": {
+        "typ": "original",
+        "datei": "moodle quizes/Quiz2/Bildschirmfoto 2026-09-25 um 10.49.41.png"
+      },
+      "typ": "numeric-multi",
+      "thema": "Lagrange-Polynome auswerten",
+      "frageHtml": "<p>Finden Sie die Lagrange Polynome $L_0(x),L_1(x),L_2(x),L_3(x)$ und den Lagrange polynomialen Interpolant $y=p(x)$ für die Interpolationsknoten $\\mathbf{x}=[1,2,4,7]$ und Werte $\\mathbf{y}=[3,4,8,1]$.</p><p>Ausgewertet in $x=3$, die Werte sind (<b>mit midnestens drei signifikante Ziffern</b>)</p>",
+      "hinweisOriginal": "«midnestens» steht so im Original-Screenshot.",
+      "felder": [
+        {
+          "label": "L_0(3)",
+          "wert": -0.2222222222222222,
+          "tol": 0.002,
+          "tolTyp": "rel",
+          "anzeige": "-2/9 \\approx -0.2222"
+        },
+        {
+          "label": "L_1(3)",
+          "wert": 0.8,
+          "tol": 0.002,
+          "tolTyp": "rel",
+          "anzeige": "4/5 = 0.8"
+        },
+        {
+          "label": "L_2(3)",
+          "wert": 0.4444444444444444,
+          "tol": 0.002,
+          "tolTyp": "rel",
+          "anzeige": "4/9 \\approx 0.4444"
+        },
+        {
+          "label": "L_3(3)",
+          "wert": -0.022222222222222223,
+          "tol": 0.002,
+          "tolTyp": "rel",
+          "anzeige": "-1/45 \\approx -0.02222"
+        },
+        {
+          "label": "p(3)",
+          "wert": 6.066666666666666,
+          "tol": 0.002,
+          "tolTyp": "rel",
+          "anzeige": "91/15 \\approx 6.0667"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Mit $\\ell_i(x)=\\prod_{j\\neq i}\\frac{x-x_j}{x_i-x_j}$ und $x=3$:</p><ul><li>$L_0(3)=\\frac{(3-2)(3-4)(3-7)}{(1-2)(1-4)(1-7)}=\\frac{1\\cdot(-1)\\cdot(-4)}{(-1)(-3)(-6)}=\\frac{4}{-18}=-\\frac{2}{9}$</li><li>$L_1(3)=\\frac{(3-1)(3-4)(3-7)}{(2-1)(2-4)(2-7)}=\\frac{2\\cdot(-1)\\cdot(-4)}{1\\cdot(-2)\\cdot(-5)}=\\frac{8}{10}=\\frac45$</li><li>$L_2(3)=\\frac{(3-1)(3-2)(3-7)}{(4-1)(4-2)(4-7)}=\\frac{2\\cdot1\\cdot(-4)}{3\\cdot2\\cdot(-3)}=\\frac{-8}{-18}=\\frac49$</li><li>$L_3(3)=\\frac{(3-1)(3-2)(3-4)}{(7-1)(7-2)(7-4)}=\\frac{2\\cdot1\\cdot(-1)}{6\\cdot5\\cdot3}=-\\frac{2}{90}=-\\frac{1}{45}$</li></ul><p><b>Kontrolle:</b> $\\sum_i L_i(3)=-\\frac29+\\frac45+\\frac49-\\frac1{45}=\\frac{-10+36+20-1}{45}=1$ ✓ (Partition der Eins, Bem. 2.3.4).</p><p>$p(3)=\\sum_i y_iL_i(3)=3\\cdot(-\\tfrac29)+4\\cdot\\tfrac45+8\\cdot\\tfrac49+1\\cdot(-\\tfrac1{45})=\\frac{-30+144+160-1}{45}=\\frac{273}{45}=\\frac{91}{15}\\approx 6.0667$.</p>",
+      "skriptRef": {
+        "abschnitt": "2.3",
+        "seite": 49,
+        "nummer": "Def. 2.3.1, (2.3.12)–(2.3.13)"
+      }
+    },
+    {
+      "id": "m-w3-03",
+      "quelle": {
+        "typ": "original",
+        "datei": "moodle quizes/Quiz2/Bildschirmfoto 2026-09-25 um 10.54.35.png"
+      },
+      "typ": "mc-single",
+      "thema": "Newton-Basis",
+      "frageHtml": "<p>Wie lauten die Koeffizienten in der Newton Basis zu den Knoten $x=0,\\tfrac13,\\tfrac23,1$ des Polynoms $p(x)=1+2x-3x^2+4x^3$?</p>",
+      "hinweisOriginal": "Hinweis aus dem Original: Werten Sie p(x) in den Interpolationsknoten; die Schema der dividierten Differenzen liefert die Koeffizienten.",
+      "optionen": [
+        "$1,\\ \\tfrac{40}{27},\\ \\tfrac{59}{27},\\ 4$",
+        "$1,\\ \\tfrac{13}{9},\\ 2,\\ 1$",
+        "$1,\\ \\tfrac{13}{9},\\ 1,\\ 4$",
+        "$1,\\ \\tfrac{31}{9},\\ 7,\\ 4$"
+      ],
+      "loesung": 2,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Funktionswerte: $p(0)=1$, $p(\\tfrac13)=1+\\tfrac23-\\tfrac13+\\tfrac4{27}=\\tfrac{40}{27}$, $p(\\tfrac23)=1+\\tfrac43-\\tfrac43+\\tfrac{32}{27}=\\tfrac{59}{27}$, $p(1)=4$.</p><p>Schema der dividierten Differenzen (alle Abstände $\\tfrac13$):</p><ul><li>1. Spalte: $\\frac{40/27-1}{1/3}=\\tfrac{13}{9}$, $\\frac{59/27-40/27}{1/3}=\\tfrac{19}{9}$, $\\frac{4-59/27}{1/3}=\\tfrac{49}{9}$</li><li>2. Spalte: $\\frac{19/9-13/9}{2/3}=1$, $\\frac{49/9-19/9}{2/3}=5$</li><li>3. Spalte: $\\frac{5-1}{1}=4$</li></ul><p>Also $\\beta=\\left(1,\\tfrac{13}{9},1,4\\right)$.</p><p><b>Kontrolle ohne Rechnen:</b> der führende Newton-Koeffizient ist immer gleich dem führenden Monom-Koeffizienten, hier $4$ — das schliesst sofort Option b aus. Option a verwechselt die <i>Funktionswerte</i> $\\tfrac{40}{27},\\tfrac{59}{27}$ mit den Koeffizienten.</p>",
+      "skriptRef": {
+        "abschnitt": "2.2",
+        "seite": 46,
+        "nummer": "Def. 2.2.5, (2.2.7), Thm. 2.2.8"
+      }
+    },
+    {
+      "id": "m-w3-04",
+      "quelle": {
+        "typ": "original",
+        "datei": "moodle quizes/Quiz2/Bildschirmfoto 2026-09-25 um 10.58.57.png"
+      },
+      "typ": "mc-single",
+      "thema": "Darstellungsmatrix eines Funktionals",
+      "frageHtml": "<p>Was ist die Matrix, die die lineare Funktion $\\Phi(p)=\\int_0^1p(t)\\,\\mathrm{d}t,\\ p\\in\\mathcal{P}_{k-1}$ in der Basis der Monome $\\{1,t,t^2,\\dots,t^{k-1}\\}$ von $\\mathcal{P}_{k-1}$ darstellt?</p>",
+      "hinweisOriginal": "Hinweis aus dem Original: anderes gesagt, wir suchen eine Matrix M so dass für a = [α₀,…,α_{k−1}]ᵀ ∈ ℝᵏ gilt Ma = ∫₀¹ Σ α_i tⁱ dt.",
+      "optionen": [
+        "Die $k\\times k$-Matrix $\\begin{bmatrix}1&1/2&\\cdots&1/k\\\\ &1/2&\\cdots&1/k\\\\ &&\\ddots&\\vdots\\\\ &&&1/k\\end{bmatrix}$",
+        "Der Zeilenvektor $\\begin{bmatrix}1&1/2&\\cdots&1/k\\end{bmatrix}$",
+        "Der Spaltenvektor $\\begin{bmatrix}1\\\\ 1/2\\\\ \\vdots\\\\ 1/k\\end{bmatrix}$",
+        "Die $k\\times k$-Matrix $\\begin{bmatrix}1&1&\\cdots&1\\\\ &1/2&\\cdots&1/2\\\\ &&\\ddots&\\vdots\\\\ &&&1/k\\end{bmatrix}$"
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>$\\Phi$ bildet nach $\\mathbb{R}$ ab, ist also ein <b>Funktional</b>. Die Darstellungsmatrix muss daher $1\\times k$ sein — damit scheiden alle quadratischen Matrizen und der Spaltenvektor sofort aus.</p><p>Die Einträge sind die Bilder der Basisvektoren: $\\Phi(t^{i})=\\int_0^1t^{i}\\mathrm{d}t=\\frac{1}{i+1}$ für $i=0,\\dots,k-1$, also $1,\\tfrac12,\\dots,\\tfrac1k$. Damit ist $\\mathbf{M}\\mathbf{a}=\\sum_{i=0}^{k-1}\\frac{\\alpha_i}{i+1}$ wie gefordert.</p><p class=\"faint\">Nebenbei: diese Zeile ist genau die erste Zeile der Hilbert-Matrix — das Paradebeispiel einer schlecht konditionierten Matrix.</p>",
+      "skriptRef": {
+        "abschnitt": "2.1",
+        "seite": 43,
+        "nummer": "Def. 2.1.7, Thm. 2.1.9"
+      }
+    },
+    {
+      "id": "m-w3-05",
+      "quelle": {
+        "typ": "original",
+        "datei": "moodle quizes/Quiz2/Bildschirmfoto 2026-09-25 um 11.02.25.png"
+      },
+      "typ": "numeric-multi",
+      "thema": "Dimension von Polynomräumen",
+      "frageHtml": "<p>Wir betrachten den linearen Raum $\\mathcal{P}_k=\\{t\\mapsto\\alpha_kt^k+\\alpha_{k-1}t^{k-1}+\\dots+\\alpha_1t+\\alpha_0,\\ \\alpha_j\\in\\mathbb{R}\\}$ der Polynome vom Grad $\\le k$, mit $k\\in\\mathbb{N}$. Wir betrachten auch die Unterräume gerader und ungerader Polynome:</p><p>$\\mathcal{P}_k^{\\mathrm{even}}=\\{p\\in\\mathcal{P}_k:p(t)=p(-t),\\ \\forall t\\in\\mathbb{R}\\}$ and $\\mathcal{P}_k^{\\mathrm{odd}}=\\{p\\in\\mathcal{P}_k:p(t)=-p(-t),\\ \\forall t\\in\\mathbb{R}\\}$.</p><p>Was sind die Dimensionen von (<b>ganze Zahlen!</b>):</p>",
+      "felder": [
+        {
+          "label": "\\dim(\\mathcal{P}_5)",
+          "wert": 6,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "\\dim(\\mathcal{P}_5^{\\mathrm{even}})",
+          "wert": 3,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "\\dim(\\mathcal{P}_5^{\\mathrm{odd}})",
+          "wert": 3,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>$\\dim\\mathcal{P}_k=k+1$ (Thm. 2.1.9), für $k=5$ also <b>6</b> — Basis $1,t,t^2,t^3,t^4,t^5$.</p><p>Ein Polynom ist genau dann <b>gerade</b>, wenn alle Koeffizienten zu ungeraden Potenzen verschwinden. Basis von $\\mathcal{P}_5^{\\mathrm{even}}$: $1,t^2,t^4$ → <b>3</b>. Entsprechend ungerade: $t,t^3,t^5$ → <b>3</b>.</p><p><b>Kontrolle:</b> $\\mathcal{P}_5=\\mathcal{P}_5^{\\mathrm{even}}\\oplus\\mathcal{P}_5^{\\mathrm{odd}}$ (jedes $p$ zerlegt sich eindeutig in $\\frac{p(t)+p(-t)}{2}+\\frac{p(t)-p(-t)}{2}$), also $3+3=6$ ✓.</p>",
+      "skriptRef": {
+        "abschnitt": "2.1",
+        "seite": 43,
+        "nummer": "Def. 2.1.7, Thm. 2.1.9"
+      }
+    },
+    {
+      "id": "m-w3-06",
+      "quelle": {
+        "typ": "original",
+        "datei": "moodle quizes/Quiz2/Bildschirmfoto 2026-09-25 um 11.05.20.png"
+      },
+      "typ": "mc-single",
+      "thema": "Komplexität, ein Auswertungspunkt",
+      "frageHtml": "<p>Was ist die Komplexität der <b>baryzentrischen Interpolationsformel</b> und <b>dividierten Differenzen</b> (in diese Reihenfolge) für die Berechnung und Auswertung des Lagrange polynomialen Interpolant in einem Punkt $x_0\\in\\mathbb{R}$ für Daten $\\{t_i,y_i\\}\\in\\mathbb{R}^2,\\ i=0,\\dots,n$.</p>",
+      "optionen": [
+        "$\\mathcal{O}(n^2),\\ \\mathcal{O}(n)$",
+        "$\\mathcal{O}(n),\\ \\mathcal{O}(n)$",
+        "$\\mathcal{O}(n^2),\\ \\mathcal{O}(n^2)$",
+        "$\\mathcal{O}(n),\\ \\mathcal{O}(n^2)$"
+      ],
+      "loesung": 2,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Gefragt ist wieder <b>Berechnung und Auswertung</b> zusammen, diesmal mit $N=1$. Einsetzen in das Ergebnis der ersten Frage ($\\mathcal{O}(n^2+nN)$ für beide) ergibt $\\mathcal{O}(n^2+n)=\\mathcal{O}(n^2)$ für beide Verfahren.</p><p>Die Vorbereitung dominiert also: baryzentrische Gewichte $\\mathcal{O}(n^2)$, dividierte Differenzen $\\mathcal{O}(n^2)$ — die eine Auswertung mit $\\mathcal{O}(n)$ fällt asymptotisch nicht ins Gewicht.</p><p class=\"faint\">Die $\\mathcal{O}(n)$ in den Optionen a, b und d beziehen sich auf die reine Auswertung <i>ohne</i> Vorbereitung — das ist die Falle dieser Frage.</p>",
+      "skriptRef": {
+        "abschnitt": "2.2/2.3",
+        "seite": 47,
+        "nummer": "Bem. 2.2.9, (2.3.14)"
+      }
+    },
+    {
+      "id": "m-w3-07",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Dimension von $\\mathcal{P}_k$",
+      "frageHtml": "<p>Welche Dimension hat der Raum $\\mathcal{P}_k$ der Polynome vom Grad $\\le k$, und warum?</p>",
+      "optionen": [
+        "$k$, weil ein Polynom vom Grad $k$ genau $k$ Nullstellen hat.",
+        "$k+1$, weil die Monome $1,x,x^2,\\dots,x^{k}$ eine Basis bilden.",
+        "$2k$, weil zu jedem Koeffizienten ein Exponent gehört.",
+        "Unendlich, weil $\\mathcal{P}_k\\subset C^\\infty(\\mathbb{R})$ gilt."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Theorem 2.1.9: $\\mathcal{P}_k$ ist ein Vektorraum der Dimension $k+1$; die $k+1$ Monome vom Grad $0$ bis $k$ sind linear unabhängig und erzeugen den Raum. Der konstante Term $\\alpha_0$ wird dabei leicht vergessen — das ist die klassische Verwechslung mit Option a.</p><p>Dass $\\mathcal{P}_k\\subset C^\\infty(\\mathbb{R})$ gilt, stimmt zwar (ebenfalls Thm. 2.1.9), sagt über die Dimension des <i>Unterraums</i> aber nichts aus.</p>",
+      "skriptRef": {
+        "abschnitt": "2.1",
+        "seite": 43,
+        "nummer": "Thm. 2.1.9"
+      }
+    },
+    {
+      "id": "m-w3-08",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Horner-Schema",
+      "frageHtml": "<p>Mit welchem Aufwand wertet das Horner-Schema ein Polynom vom Grad $n$ in <b>einem</b> Punkt aus — und welche zusätzliche Eigenschaft hebt das Skript hervor?</p>",
+      "optionen": [
+        "$\\mathcal{O}(n^2)$; dafür verbessert es die Kondition der Vandermonde-Matrix.",
+        "$\\mathcal{O}(n\\log n)$ mittels schneller Fourier-Transformation.",
+        "$\\mathcal{O}(n)$ ($n$ Multiplikationen und $n$ Additionen); ausserdem wirkt es stabilisierend — obwohl <code>polyfit</code> grosse Fehler in den Koeffizienten produziert, liefert <code>polyval</code> wieder relativ gute Werte.",
+        "$\\mathcal{O}(1)$, weil NumPy die Auswertung vektorisiert."
+      ],
+      "loesung": 2,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Die Klammerung $p(x)=\\bigl(x(\\dots(x(\\alpha_nx+\\alpha_{n-1})+\\dots)+\\alpha_1)+\\alpha_0\\bigr)$ braucht pro Grad genau eine Multiplikation und eine Addition, also $\\mathcal{O}(n)$ statt $\\mathcal{O}(n^2)$ bei naiver Auswertung jeder Potenz.</p><p>Bem. 2.1.16 hält fest: «Das Horner-Schema wirkt aber stabilisierend.» An der Kondition der Vandermonde-Matrix ändert es dagegen <b>nichts</b> — die betrifft die Berechnung der Koeffizienten, nicht die Auswertung. Vektorisierung macht die Auswertung schneller, aber nicht $\\mathcal{O}(1)$.</p>",
+      "skriptRef": {
+        "abschnitt": "2.1",
+        "seite": 44,
+        "nummer": "Def. 2.1.13, Code 2.1.15, Bem. 2.1.16"
+      }
+    },
+    {
+      "id": "m-w3-09",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Dividierte Differenzen von Hand",
+      "frageHtml": "<p>Berechnen Sie die Koeffizienten $\\beta_0,\\beta_1,\\beta_2$ in der <b>Newton-Basis</b> für die Daten $\\mathbf{x}=[0,1,2]$, $\\mathbf{y}=[1,3,2]$.</p>",
+      "felder": [
+        {
+          "label": "\\beta_0",
+          "wert": 1,
+          "tol": 0.002,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "\\beta_1",
+          "wert": 2,
+          "tol": 0.002,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "\\beta_2",
+          "wert": -1.5,
+          "tol": 0.002,
+          "tolTyp": "abs"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>$\\beta_0=y[x_0]=1$.</p><p>$y[x_0,x_1]=\\frac{3-1}{1-0}=2$, $y[x_1,x_2]=\\frac{2-3}{2-1}=-1$, also $\\beta_1=2$.</p><p>$\\beta_2=y[x_0,x_1,x_2]=\\frac{-1-2}{2-0}=-\\frac32$.</p><p>Also $p(x)=1+2x-\\tfrac32x(x-1)$. <b>Probe:</b> $p(0)=1$ ✓, $p(1)=1+2=3$ ✓, $p(2)=1+4-\\tfrac32\\cdot2=2$ ✓.</p>",
+      "skriptRef": {
+        "abschnitt": "2.2",
+        "seite": 46,
+        "nummer": "Def. 2.2.5, (2.2.6)"
+      }
+    },
+    {
+      "id": "m-w3-10",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Lebesgue-Konstante",
+      "frageHtml": "<p>Wie wächst die Lebesgue-Konstante $\\Lambda_n$ bei <b>äquidistanten</b> Stützstellen, und welche praktische Folge hat das?</p>",
+      "optionen": [
+        "$\\Lambda_n\\approx\\log n$ — sie wächst so langsam, dass äquidistante Knoten unproblematisch sind.",
+        "$\\Lambda_n\\approx n^2$ — polynomielles Wachstum, für moderate $n$ unkritisch.",
+        "$\\Lambda_n=1$ für alle $n$, weil $\\sum_k\\ell_k(x)=1$ gilt.",
+        "$\\Lambda_n\\approx\\frac{2^{n+1}}{n\\log n}$ — exponentiell. Schon bei $n\\approx40$ ist $\\Lambda_n\\approx10^{10}$, Messfehler in den $y_i$ werden also um zehn Zehnerpotenzen verstärkt."
+      ],
+      "loesung": 3,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Bem. 2.3.10 gibt genau $\\Lambda_n\\approx\\frac{2^{n+1}}{n\\log n}$ an, Bsp. 2.3.9 die Zahlen: $\\Lambda_{10}\\approx40$, $\\Lambda_{20}\\approx30\\,000$, $\\Lambda_{40}\\approx10^{10}$.</p><p>Option c ist die typische Falle: $\\sum_k\\ell_k(x)=1$ gilt für die <b>vorzeichenbehaftete</b> Summe, $\\Lambda_n$ summiert aber die <b>Beträge</b> $\\sum_k|\\ell_k(x)|$. Genau weil die $\\ell_k$ zwischen den Knoten stark oszillieren und das Vorzeichen wechseln, ist die Betragssumme riesig.</p><p>Das ist der quantitative Kern des Runge-Phänomens — und der Grund für die Regel: niemals äquidistante Knoten bei hohem Grad.</p>",
+      "skriptRef": {
+        "abschnitt": "2.3",
+        "seite": 53,
+        "nummer": "Bsp. 2.3.9, Bem. 2.3.10"
+      }
+    },
+    {
+      "id": "m-w3-11",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Eigenschaften der Lagrange-Polynome",
+      "frageHtml": "<p>Welche Aussage über die Lagrange-Polynome $\\ell_i$ zu den Stützstellen $x_0,\\dots,x_n$ ist <b>korrekt</b>?</p>",
+      "optionen": [
+        "$\\ell_i(x_j)=\\delta_{ij}$, $\\deg\\ell_i=n$ für <b>alle</b> $i$, und $\\sum_{k=0}^{n}\\ell_k(x)=1$ für alle $x$.",
+        "$\\ell_i(x_j)=\\delta_{ij}$ und $\\deg\\ell_i=i$, das heisst $\\ell_0$ ist konstant.",
+        "Die $\\ell_i$ sind orthogonal bezüglich des $L^2$-Skalarprodukts auf $[a,b]$.",
+        "$\\sum_{k=0}^{n}\\ell_k(x)=0$ für alle $x$, weil sich die Vorzeichen aufheben."
+      ],
+      "loesung": 0,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Bem. 2.3.4 listet genau diese Eigenschaften. Besonders wichtig: <b>jedes</b> $\\ell_i$ hat Grad $n$ (es ist ein Produkt über $n$ Linearfaktoren) — Option b verwechselt das mit der Newton-Basis, wo $\\deg N_i=i$ tatsächlich zutrifft.</p><p>$\\sum_k\\ell_k\\equiv1$ folgt aus der Eindeutigkeit: die linke Seite ist das Interpolationspolynom der konstanten Funktion $1$. Für Ableitungen gilt dagegen $\\sum_k\\ell_k^{(m)}(x)=0$ für $m>0$ — daher kommt die Verwechslung in Option d.</p>",
+      "skriptRef": {
+        "abschnitt": "2.3",
+        "seite": 50,
+        "nummer": "Bem. 2.3.4"
+      }
+    },
+    {
+      "id": "m-w3-12",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Monombasis",
+      "frageHtml": "<p>Warum wird die Monombasis zur praktischen Berechnung von Interpolationspolynomen kaum verwendet?</p>",
+      "optionen": [
+        "Weil die Monome keine Basis von $\\mathcal{P}_n$ bilden.",
+        "Weil die Auswertung eines Polynoms in der Monombasis $\\mathcal{O}(n^2)$ kostet.",
+        "Weil Monome nur auf dem Intervall $[-1,1]$ definiert sind.",
+        "Weil die Interpolationsbedingung auf ein Gleichungssystem mit der <b>Vandermonde-Matrix</b> führt, die sehr schlecht konditioniert ist — die berechneten $\\alpha_0,\\dots,\\alpha_n$ fallen entsprechend ungenau aus."
+      ],
+      "loesung": 3,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Bem. 2.1.12: «Dieses Gleichungssystem weist die Vandermonde-Matrix auf; deswegen ist es sehr schlecht konditioniert […] Würden die Koeffizienten daraus berechnet, würden diese sehr ungenau ausfallen.» Genau deshalb gibt <code>np.polyfit</code> die <code>RankWarning</code> aus.</p><p>Option a ist falsch (die Monome <i>sind</i> eine Basis, Thm. 2.1.9), Option b ebenfalls — mit dem Horner-Schema kostet die Auswertung nur $\\mathcal{O}(n)$, und gerade die Auswertung ist der stabile Teil.</p>",
+      "skriptRef": {
+        "abschnitt": "2.1",
+        "seite": 43,
+        "nummer": "Bem. 2.1.12, Bem. 2.1.16"
+      }
+    }
+  ],
+  "codeexpert": [
+    {
+      "id": "ce-w3-newton",
+      "titel": "Newton-Interpolationspolynom",
+      "quelle": "codeexpert/Newton Interpolationspolynom - Student attempt .rtf",
+      "skriptRef": {
+        "abschnitt": "2.2",
+        "seite": 46,
+        "nummer": "Def. 2.2.5, Bem. 2.2.9/2.2.10"
+      },
+      "braucht": [
+        "numpy",
+        "matplotlib",
+        "timerpro"
+      ],
+      "beschreibung": "<p>Vier Teilaufgaben rund um die dividierten Differenzen:</p><ol type=\"a\"><li><code>divdiff_sqw</code> — <b>sequentiell</b>, mit zwei verschachtelten Schleifen. Nach Bem. 2.2.10 soll nur ein Vektor der Länge $n$ gebraucht werden, nicht die ganze $n\\times n$-Matrix: <code>y</code> wird <b>in-place</b> überschrieben. Dafür läuft die innere Schleife <b>rückwärts</b>.</li><li><code>divdiff</code> — dieselbe Rechnung <b>vektorisiert</b>: pro Level eine einzige NumPy-Zeile statt der inneren Schleife.</li><li><code>divdiff_rec</code> — rekursiv. Die Aufgabe fragt ausdrücklich, ob Rekursion hier sinnvoll ist (sie ist es nicht: bei $n=1000$ schlägt Pythons Rekursionslimit zu).</li><li><code>evalNewton</code> — Auswertung des Newton-Polynoms mit dem abgewandelten Horner-Schema, $\\mathcal{O}(n)$ pro Punkt, vektorisiert über alle Auswertungspunkte.</li></ol><p>Zur Kontrolle gibt das Skript ein kleines Beispiel vor: $x=[1,\\dots,6]$, $y=[2,4,6,5,8,2]$ muss auf $[2,\\ 2,\\ 0,\\ -0.5,\\ 0.41667,\\ -0.25]$ führen.</p>",
+      "hinweisUmgebung": "Zwei Abweichungen vom Original, beide der Browser-Umgebung geschuldet: (1) <code>from timerpro import *</code> gibt es nur in CodeExpert — hier liegt ein Ersatzmodul mit demselben Dekorator <code>@time_it_pro(repetitions=...)</code> und <code>.min_time</code> bereit; es kopiert Array-Argumente pro Durchlauf, damit die <i>in-place</i> arbeitenden Funktionen beim Wiederholen nicht auf bereits transformierten Daten rechnen. (2) Der Datensatz für die Zeitmessung ist von $10^{3}$ auf $400$ Punkte verkleinert — die sequentielle Doppelschleife in Pyodide wäre sonst sehr langsam. Das Verhältnis der Laufzeiten bleibt aussagekräftig.",
+      "luecken_template": "import numpy as np\nfrom timerpro import *\n\nnrEXP = 4\n\n# (a) sequentielle Berechnung der Newton-Koeffizienten, in-place\n@time_it_pro(repetitions=nrEXP)\ndef divdiff_sqw(x, y):\n    \"\"\"x = Stuetzstellen (paarweise verschieden)\n       y = Stuetzwerte, wird ueberschrieben\n       Rueckgabe: Koeffizienten in der Newton-Basis\"\"\"\n    n = y.shape[0]\n    for j in range(1, n):\n        for i in range(n-1, j-1, -1):\n            y[i] = «L1»\n    return y\n\n# (b) vektorisierte Berechnung: pro Level eine NumPy-Zeile\n@time_it_pro(repetitions=nrEXP)\ndef divdiff(x, y):\n    n = y.shape[0]\n    for i in range(1, n):\n        «L2»\n    return y\n\n# (d) Auswertung mit dem abgewandelten Horner-Schema\n@time_it_pro(repetitions=nrEXP)\ndef evalNewton(x, dd, xx):\n    \"\"\"x  = Stuetzstellen\n       dd = dividierte Differenzen\n       xx = Auswertungspunkte\"\"\"\n    n = len(dd)\n    r = np.full_like(xx, dd[-1], dtype=float)\n    for i in range(n-2, -1, -1):\n        r = «L3»\n    return r\n\n# ---- kurze Kontrolle (das volle Experiment steht in Stufe 3) ----\nx = np.array([1., 2., 3., 4., 5., 6.])\ny = np.array([2., 4., 6., 5., 8., 2.])\nprint('erwartet     : [ 2.  2.  0. -0.5  0.41667 -0.25]')\nprint('sequentiell  :', divdiff_sqw(x, y.copy()))\nprint('vektorisiert :', divdiff(x, y.copy()))\n\ndd = divdiff(x, y.copy())\nprint('p in den Knoten:', evalNewton(x, dd, x))\nprint('muss y sein    :', y)\n",
+      "luecken": [
+        {
+          "id": "L1",
+          "loesung": "(y[i] - y[i-1]) / (x[i] - x[i-j])",
+          "optionen": [
+            "(y[i] - y[i-1]) / (x[i] - x[i-1])",
+            "(y[i] - y[i-j]) / (x[i] - x[i-j])",
+            "(y[i] - y[i-1]) / (x[i] - x[i-j])",
+            "(y[i-1] - y[i]) / (x[i] - x[i-j])"
+          ],
+          "richtig": 2,
+          "erklaerung": "Im Zähler stehen zwei <b>benachbarte</b> Einträge des aktuellen Levels, also <code>y[i]</code> und <code>y[i-1]</code>. Im Nenner steht dagegen die Spannweite der <b>gesamten</b> beteiligten Knotengruppe: die dividierte Differenz $y[x_{i-j},\\dots,x_i]$ nutzt $j+1$ Knoten, der Nenner ist $x_{i+k}-x_i$ aus (2.2.6), hier also <code>x[i] - x[i-j]</code>. Genau diese Asymmetrie — Index $i-1$ oben, $i-j$ unten — ist die klassische Fehlerquelle.",
+          "hinweis": "Formel (2.2.6): der Nenner ist die Differenz der <b>äussersten</b> beteiligten Knoten, nicht der benachbarten."
+        },
+        {
+          "id": "L2",
+          "loesung": "y[i:] = (y[i:] - y[i-1:-1]) / (x[i:] - x[:-i])",
+          "optionen": [
+            "y[i:] = (y[i:] - y[:-i]) / (x[i:] - x[:-i])",
+            "y[i:] = (y[i:] - y[i-1:-1]) / (x[i:] - x[:-i])",
+            "y[i:] = (y[i:] - y[i-1:-1]) / (x[i:] - x[i-1:-1])",
+            "y[i:] = (y[i-1:-1] - y[i:]) / (x[i:] - x[:-i])"
+          ],
+          "richtig": 1,
+          "erklaerung": "Dieselbe Formel wie in (a), nur als Slice. <code>y[i:]</code> und <code>y[i-1:-1]</code> sind die um eins gegeneinander verschobenen Werte des aktuellen Levels; <code>x[i:] - x[:-i]</code> ist der um <code>i</code> verschobene Knotenabstand, also $x_{k}-x_{k-i}$. Option a verschiebt auch die $y$ um $i$ statt um $1$, Option c nimmt im Nenner den Abstand benachbarter Knoten.",
+          "hinweis": "Die $y$-Slices sind um <b>eins</b> gegeneinander verschoben, die $x$-Slices um <b>i</b>. Warum ist das nicht derselbe Versatz?"
+        },
+        {
+          "id": "L3",
+          "loesung": "dd[i] + (xx - x[i]) * r",
+          "optionen": [
+            "dd[i] + (xx - x[i+1]) * r",
+            "dd[i] * (xx - x[i]) + r",
+            "dd[i] + (x[i] - xx) * r",
+            "dd[i] + (xx - x[i]) * r"
+          ],
+          "richtig": 3,
+          "erklaerung": "Das Horner-Schema für die Newton-Basis: $p=\\beta_n$, dann wiederholt $p:=(x-x_{k})p+\\beta_{k}$ für $k=n-1,\\dots,0$. Man multipliziert das bisherige Zwischenergebnis mit dem <b>Linearfaktor</b> und addiert den nächsten Koeffizienten — Option b vertauscht genau das. Option c dreht das Vorzeichen des Linearfaktors.",
+          "hinweis": "Vergleiche mit dem gewöhnlichen Horner-Schema <code>y = x*y + p[i]</code>; was tritt hier an die Stelle von <code>x</code>?"
+        }
+      ],
+      "template": "import numpy as np\nfrom timerpro import *\n\nnrEXP = 4\n# -------- start plotting settings ----------------\nimport matplotlib.pyplot as plt\nparams = {'axes.labelsize': 20,\n          'figure.figsize': (18, 12),\n          'axes.titlesize': 16,\n          'legend.fontsize': 16,\n          'xtick.labelsize': 16,\n          'lines.markersize': 18,\n          'axes.linewidth': 6,\n          'lines.linewidth': 3,\n          'ytick.labelsize': 18\n          }\nplt.rcParams.update(params)\nplt.rcParams['figure.constrained_layout.use'] = True\n# -------- end plotting settings ----------------\n\n# (a) sequentielle Berechnung der Newton Koeffizienten\n@time_it_pro(repetitions=nrEXP)\ndef divdiff_sqw(x, y):\n    \"\"\"\n    x = node set (mutually different)\n    y = nodal values, will be overwritten: no copy\n    Returns the coefficients of the polynomial in Newton basis\n    \"\"\"\n    n = y.shape[0]\n    # TODO: implement here the serial version\n\n    return y\n\n# (b) vektorisierte Berechnung der Newton Koeffizienten\n@time_it_pro(repetitions=nrEXP)\ndef divdiff(x, y):\n    \"\"\"\n    vectorized version: fastest possible\n    \"\"\"\n    # TODO: implement here the vectorized version\n\n    return y\n\n# (c) rekursive Berechnung der Newton Koeffizienten\n# DO NOT USE the above decorator for recursive functions\ndef divdiff_rec(x, y):\n    \"\"\"\n    uses recursion\n    \"\"\"\n    # TODO: implement here the recursive version\n\n    return y\n\n# (d) effiziente Auswertung des Newton Interpolationspolynoms\n@time_it_pro(repetitions=nrEXP)\ndef evalNewton(x, dd, xx):\n    \"\"\"\n    Evaluiert das Newton-Polynom\n\n    Input: x  ... Stuetzstellen\n           dd ... dividierte Differenzen\n           xx ... Auswertungspunkte\n\n    Output: yy ... Newton-Polynom ausgewertet an xx\n    \"\"\"\n    # TODO: implement here a vectorized version\n\n    return yy\n\n\nif __name__ == \"__main__\":\n\n    # kleines Beispiel zur Kontrolle der Korrektheit:\n    # x = np.array([1., 2., 3., 4., 5., 6.])\n    # y = np.array([2., 4., 6., 5., 8., 2.])\n    # erwartetes Resultat:\n    # [ 2.00000   2.00000   0.00000  -0.50000   0.41667  -0.25000 ]\n\n    # ein grosser Datensatz fuer die Zeitmessung\n    # (im Original 10**3; hier 400, damit es im Browser laeuft)\n    x = 1.*np.arange(1, 400)\n    y = 2.*np.sin(x)\n\n    yc = y.copy()\n    w = divdiff_sqw(x, yc)\n\n    yc = y.copy()\n    w = divdiff(x, yc)\n    print('vec:', divdiff.min_time, ' seconds')\n    print('Die vektorisierte Version ist ',\n          100*divdiff_sqw.min_time/divdiff.min_time, ' Prozent schneller als die sequentielle')\n\n    # ein visueller Test der Korrektheit\n    n = 20\n    x = np.linspace(0, 1, endpoint=True, num=n+1)\n    f = lambda x: np.sin(10*x*np.cos(x))\n    yx = f(x)\n    y = yx.copy()\n    dd = divdiff(x, y)\n    N = 1000\n    t = np.linspace(0, 1, endpoint=True, num=N+1)\n\n    yt = evalNewton(x, dd, t)\n\n    plt.figure()\n    plt.plot(t, f(t), \"-b\", label=r\"$f(x)$\")\n    plt.plot(x, yx, \"or\")\n    plt.plot(t, yt, \"-r\", label=r\"$p_{20}(x)$\")\n    plt.grid(True)\n    plt.xlabel(r\"$x$\")\n    plt.ylabel(r\"$y$\")\n    plt.legend()\n    plt.savefig('./cx_out/interpdivdiff.png')\n",
+      "loesung": "import numpy as np\nfrom timerpro import *\n\nnrEXP = 4\n# -------- start plotting settings ----------------\nimport matplotlib.pyplot as plt\nparams = {'axes.labelsize': 20,\n          'figure.figsize': (18, 12),\n          'axes.titlesize': 16,\n          'legend.fontsize': 16,\n          'xtick.labelsize': 16,\n          'lines.markersize': 18,\n          'axes.linewidth': 6,\n          'lines.linewidth': 3,\n          'ytick.labelsize': 18\n          }\nplt.rcParams.update(params)\nplt.rcParams['figure.constrained_layout.use'] = True\n# -------- end plotting settings ----------------\n\n# (a) sequentielle Berechnung der Newton Koeffizienten\n@time_it_pro(repetitions=nrEXP)\ndef divdiff_sqw(x, y):\n    \"\"\"\n    x = node set (mutually different)\n    y = nodal values, will be overwritten: no copy\n    Returns the coefficients of the polynomial in Newton basis\n    \"\"\"\n    n = y.shape[0]\n    # serial version: innere Schleife rueckwaerts, damit in-place korrekt bleibt\n    for j in range(1, n):\n        for i in range(n-1, j-1, -1):\n            y[i] = (y[i] - y[i-1]) / (x[i] - x[i-j])\n    return y\n\n# (b) vektorisierte Berechnung der Newton Koeffizienten\n@time_it_pro(repetitions=nrEXP)\ndef divdiff(x, y):\n    \"\"\"\n    vectorized version: fastest possible\n    \"\"\"\n    n = y.shape[0]\n    for i in range(1, n):\n        y[i:] = (y[i:] - y[i-1:-1]) / (x[i:] - x[:-i])\n    return y\n\n# (c) rekursive Berechnung der Newton Koeffizienten\n# DO NOT USE the above decorator for recursive functions\ndef divdiff_rec(x, y):\n    \"\"\"\n    uses recursion\n    \"\"\"\n    n = y.shape[0]\n\n    def recursion_step(i):\n        if i == n:\n            return\n        y[i:] = (y[i:] - y[i-1:-1]) / (x[i:] - x[:-i])\n        recursion_step(i + 1)\n\n    recursion_step(1)\n    return y\n\n# (d) effiziente Auswertung des Newton Interpolationspolynoms\n@time_it_pro(repetitions=nrEXP)\ndef evalNewton(x, dd, xx):\n    \"\"\"\n    Evaluiert das Newton-Polynom\n\n    Input: x  ... Stuetzstellen\n           dd ... dividierte Differenzen\n           xx ... Auswertungspunkte\n\n    Output: yy ... Newton-Polynom ausgewertet an xx\n    \"\"\"\n    n = len(dd)\n    r = np.full_like(xx, dd[-1], dtype=float)\n    for i in range(n-2, -1, -1):\n        r = dd[i] + (xx - x[i]) * r\n    return r\n\n\nif __name__ == \"__main__\":\n\n    # kleines Beispiel zur Kontrolle der Korrektheit:\n    # x = np.array([1., 2., 3., 4., 5., 6.])\n    # y = np.array([2., 4., 6., 5., 8., 2.])\n    # erwartetes Resultat:\n    # [ 2.00000   2.00000   0.00000  -0.50000   0.41667  -0.25000 ]\n\n    # ein grosser Datensatz fuer die Zeitmessung\n    # (im Original 10**3; hier 400, damit es im Browser laeuft)\n    x = 1.*np.arange(1, 400)\n    y = 2.*np.sin(x)\n\n    yc = y.copy()\n    w = divdiff_sqw(x, yc)\n\n    yc = y.copy()\n    w = divdiff(x, yc)\n    print('vec:', divdiff.min_time, ' seconds')\n    print('Die vektorisierte Version ist ',\n          100*divdiff_sqw.min_time/divdiff.min_time, ' Prozent schneller als die sequentielle')\n\n    # ein visueller Test der Korrektheit\n    n = 20\n    x = np.linspace(0, 1, endpoint=True, num=n+1)\n    f = lambda x: np.sin(10*x*np.cos(x))\n    yx = f(x)\n    y = yx.copy()\n    dd = divdiff(x, y)\n    N = 1000\n    t = np.linspace(0, 1, endpoint=True, num=N+1)\n\n    yt = evalNewton(x, dd, t)\n\n    plt.figure()\n    plt.plot(t, f(t), \"-b\", label=r\"$f(x)$\")\n    plt.plot(x, yx, \"or\")\n    plt.plot(t, yt, \"-r\", label=r\"$p_{20}(x)$\")\n    plt.grid(True)\n    plt.xlabel(r\"$x$\")\n    plt.ylabel(r\"$y$\")\n    plt.legend()\n    plt.savefig('./cx_out/interpdivdiff.png')\n",
+      "test": {
+        "typ": "werte",
+        "pruefcode": "import numpy as np\n\ndef _lagrange_ref(xk, yk, t):\n    \"\"\"Unabhaengige Referenz ueber die Lagrange-Formel.\"\"\"\n    s = np.zeros_like(np.asarray(t, dtype=float))\n    for i in range(len(xk)):\n        li = np.ones_like(s)\n        for j in range(len(xk)):\n            if i != j:\n                li = li * (t - xk[j]) / (xk[i] - xk[j])\n        s = s + yk[i] * li\n    return s\n\n# --- das Kontrollbeispiel aus der Aufgabenstellung ---\nxs = np.array([1., 2., 3., 4., 5., 6.])\nys = np.array([2., 4., 6., 5., 8., 2.])\nexpected = np.array([2., 2., 0., -0.5, 5.0/12.0, -0.25])\n\na = np.asarray(divdiff_sqw(xs, ys.copy()), dtype=float)\nb = np.asarray(divdiff(xs, ys.copy()), dtype=float)\nassert a.shape == (6,) and b.shape == (6,), 'die Koeffizienten muessen die Laenge von y haben'\nassert np.allclose(a, expected, rtol=1e-10, atol=1e-12), f'divdiff_sqw liefert {a}, erwartet {expected}'\nassert np.allclose(b, expected, rtol=1e-10, atol=1e-12), f'divdiff liefert {b}, erwartet {expected}'\n\n# --- Interpolationsbedingung ---\ndd = np.asarray(divdiff(xs, ys.copy()), dtype=float)\nassert np.allclose(evalNewton(xs, dd, xs), ys, rtol=1e-10, atol=1e-12), 'p(x_i) muss y_i ergeben'\n\n# --- zweiter Datensatz gegen die Lagrange-Referenz ---\nxt = np.linspace(0., 1., 9)\nf2 = lambda t: np.sin(10*t*np.cos(t))\nyt = f2(xt)\nddt = np.asarray(divdiff(xt, yt.copy()), dtype=float)\ntt = np.linspace(0., 1., 37)\nassert np.allclose(evalNewton(xt, ddt, tt), _lagrange_ref(xt, yt, tt), rtol=1e-8, atol=1e-10), 'das Newton-Polynom stimmt nicht mit der Lagrange-Darstellung ueberein'\n"
+      },
+      "referenzPlot": "assets/ref/ce-w3-newton.png"
+    },
+    {
+      "id": "ce-w3-barycentric",
+      "titel": "Polynomiale Interpolation eines Polynoms",
+      "quelle": "codeexpert/Polynomiale Interpolation eines Polynoms - Student attempt .rtf",
+      "skriptRef": {
+        "abschnitt": "2.3",
+        "seite": 51,
+        "nummer": "(2.3.14), Bem. 2.3.4"
+      },
+      "braucht": [
+        "numpy",
+        "matplotlib"
+      ],
+      "beschreibung": "<p>Interpoliert wird ein Polynom durch ein Polynom — der Fehler müsste also <b>exakt null</b> sein. Das Beispiel ist bösartig gewählt: $f(t)=1+(1+2^{20})t^{4}+t^{8}$ mit 36 äquidistanten Stützstellen auf $[-0.5,0.5]$, also ein Interpolationspolynom vom Grad 35 für ein Polynom vom Grad 8.</p><ol type=\"a\"><li><code>np.polyfit</code> / <code>np.polyval</code> über die Monombasis — und ein Blick auf den Fehler in den Koeffizienten.</li><li>Die <b>baryzentrische Formel</b> mit denselben äquidistanten Knoten.</li><li>Dieselbe Formel mit <b>Chebyshev-Abszissen</b> $x_k=\\cos\\!\\left(\\frac{2k+1}{2n}\\pi\\right)$, auf $[a,b]$ transformiert.</li><li>Alle drei Fehlerkurven in einer Grafik.</li></ol><p>Zu sehen ist, wie stark sich die drei Wege unterscheiden, obwohl sie mathematisch dasselbe Polynom liefern — genau der Punkt von Kapitel 2.1–2.3.</p>",
+      "luecken_template": "import numpy as np\n\ndef barycentric_weights(x):\n    \"\"\"Baryzentrische Gewichte lambda_k zu den Stuetzstellen x.\"\"\"\n    n = len(x)\n    barweight = np.ones(n)\n    for j in range(n):\n        for k in range(n):\n            if j != k:\n                «L1»\n        «L2»\n    return barweight\n\n\ndef interp_barycentric(x, y, barweight, xx):\n    \"\"\"Baryzentrische Interpolationsformel (2.3.14), ausgewertet in xx.\"\"\"\n    pxx = np.zeros_like(xx)\n    for i, xi in enumerate(xx):\n        diff = xi - x\n        if np.any(diff == 0):\n            # xi ist selbst ein Knoten: Division durch 0 vermeiden\n            pxx[i] = y[diff == 0][0]\n        else:\n            terms = barweight / diff\n            pxx[i] = «L3»\n    return pxx\n\n\n# ---- Daten aus der Aufgabenstellung ----\nrc = np.zeros(9)\nrc[0] = 1.; rc[4] = 1 + 2**20; rc[8] = 1.\nf = lambda t: rc[0] + rc[4] * t**4 + rc[8] * t**8\n\nt = np.linspace(-0.5, 0.5, 36)   # Stuetzstellen\ny = f(t)                         # gemessene Werte\nx = np.linspace(t[0], t[-1], 1000)\nfvs = f(x)\n\n# (a) Monombasis\ncoeffs_polyfit = «L4»\np = np.polyval(coeffs_polyfit, x)\n\n# (b) baryzentrisch, aequidistant\nbarweight = barycentric_weights(t)\npx = interp_barycentric(t, y, barweight, x)\n\n# (c) baryzentrisch, Chebyshev-Abszissen in [a, b]\nn = len(t)\na = t[0]\nb = t[-1]\nk = np.arange(n)\ncheb_nodes = «L5»\nxx = 0.5 * (a + b) + 0.5 * (b - a) * cheb_nodes\nbarweight_cheby = barycentric_weights(xx)\npxx = interp_barycentric(xx, f(xx), barweight_cheby, x)\n\nprint('max. Fehler polyfit/polyval      :', np.max(np.abs(fvs - p)))\nprint('max. Fehler baryzentrisch (aequi):', np.max(np.abs(fvs - px)))\nprint('max. Fehler baryzentrisch (cheby):', np.max(np.abs(fvs - pxx)))\n",
+      "luecken": [
+        {
+          "id": "L1",
+          "loesung": "barweight[j] *= (x[j] - x[k])",
+          "optionen": [
+            "barweight[j] *= (x[k] - x[j])",
+            "barweight[j] *= (x[j] - x[k])",
+            "barweight[j] += (x[j] - x[k])",
+            "barweight[j] *= 1.0 / (x[j] - x[k])"
+          ],
+          "richtig": 1,
+          "erklaerung": "Aufgebaut wird zunächst das <b>Produkt</b> $\\prod_{k\\neq j}(x_j-x_k)$; der Kehrwert kommt erst in L2. Die Reihenfolge $x_j-x_k$ ist entscheidend: bei $x_k-x_j$ bekäme jeder Faktor ein zusätzliches Minus, bei $n-1$ Faktoren also insgesamt den Faktor $(-1)^{n-1}$. Option d würde den Kehrwert schon hier bilden und dann in L2 ein zweites Mal — das Ergebnis wäre wieder das Produkt selbst.",
+          "hinweis": "$\\lambda_j=\\prod_{k\\neq j}\\frac{1}{x_j-x_k}$. In dieser Schleife wird erst der Nenner aufgebaut — in welcher Reihenfolge stehen die beiden Knoten?"
+        },
+        {
+          "id": "L2",
+          "loesung": "barweight[j] = 1.0 / barweight[j]",
+          "optionen": [
+            "barweight[j] = 1.0 / barweight[j]",
+            "barweight[j] = barweight[j] / n",
+            "barweight[j] = -barweight[j]",
+            "barweight[j] = abs(barweight[j])"
+          ],
+          "richtig": 0,
+          "erklaerung": "Nach der inneren Schleife steht in <code>barweight[j]</code> das Produkt $\\prod_{k\\neq j}(x_j-x_k)$; das Gewicht ist dessen <b>Kehrwert</b>. Diese Zeile muss ausserhalb der <code>k</code>-Schleife stehen, aber innerhalb der <code>j</code>-Schleife — ein beliebter Einrückungsfehler.",
+          "hinweis": "Was steht nach Abschluss der inneren Schleife in <code>barweight[j]</code>, und was soll dort stehen?"
+        },
+        {
+          "id": "L3",
+          "loesung": "np.sum(terms * y) / np.sum(terms)",
+          "optionen": [
+            "np.sum(terms * y)",
+            "np.sum(terms) / np.sum(terms * y)",
+            "np.sum(terms * y) / np.sum(terms)",
+            "np.sum(terms * y) / len(y)"
+          ],
+          "richtig": 2,
+          "erklaerung": "Das ist Formel (2.3.14): $p(x)=\\frac{\\sum_k\\frac{\\lambda_k}{x-x_k}y_k}{\\sum_k\\frac{\\lambda_k}{x-x_k}}$. Der Nenner ist genau die Summe <i>ohne</i> die $y_k$ — er entsteht daraus, dass man die Darstellung des konstanten Polynoms $1$ heraus dividiert. Option a ist der Zähler allein, also die nicht normierte Form $L(x)\\sum_k\\frac{\\lambda_k}{x-x_k}y_k$ ohne den Faktor $L(x)$ — und damit falsch skaliert.",
+          "hinweis": "Die baryzentrische Formel ist ein <b>Quotient</b> zweier sehr ähnlicher Summen. Worin unterscheiden sich Zähler und Nenner?"
+        },
+        {
+          "id": "L4",
+          "loesung": "np.polyfit(t, y, len(t) - 1)",
+          "optionen": [
+            "np.polyfit(t, y, len(t))",
+            "np.polyfit(y, t, len(t) - 1)",
+            "np.polyfit(t, y, 8)",
+            "np.polyfit(t, y, len(t) - 1)"
+          ],
+          "richtig": 3,
+          "erklaerung": "Für <b>Interpolation</b> durch $m$ Punkte braucht man Grad $m-1$ — bei 36 Stützstellen also 35. Mit <code>len(t)</code> wäre das System unterbestimmt. Option b vertauscht Abszissen und Ordinaten. Option c (Grad 8) wäre zwar der <i>wahre</i> Grad von $f$ und würde hier numerisch sogar besser abschneiden — es ist dann aber eine Ausgleichsrechnung, keine Interpolation, und das ist genau der Unterschied, den Bem. 2.1.1 betont.",
+          "hinweis": "Wie viele Koeffizienten braucht ein Polynom, das durch $m$ vorgegebene Punkte geht?"
+        },
+        {
+          "id": "L5",
+          "loesung": "np.cos((2 * k + 1) / (2 * n) * np.pi)",
+          "optionen": [
+            "np.cos(k / n * np.pi)",
+            "np.cos((2 * k + 1) / (2 * n) * np.pi)",
+            "np.sin((2 * k + 1) / (2 * n) * np.pi)",
+            "np.cos((2 * k + 1) / n * np.pi)"
+          ],
+          "richtig": 1,
+          "erklaerung": "Das sind die <b>Chebyshev-Abszissen</b>, also die Nullstellen von $T_n$: $x_k=\\cos\\!\\left(\\frac{2k+1}{2n}\\pi\\right)$ für $k=0,\\dots,n-1$ (Thm. 2.4.3, Punkt 4). Option a sind die Chebyshev-<i>Extremalstellen</i> $\\cos(k\\pi/n)$ — ebenfalls gebräuchlich, aber eine andere Punktmenge (und für $k=0,\\dots,n-1$ hier nicht symmetrisch). Mit <code>sin</code> statt <code>cos</code> liegen die Punkte alle in $[0,1]$ statt in $[-1,1]$.",
+          "hinweis": "Gesucht sind die Nullstellen des Chebyshev-Polynoms $T_n(x)=\\cos(n\\arccos x)$. Für welche Argumente wird der Kosinus null?"
+        }
+      ],
+      "template": "import numpy as np\nimport matplotlib.pyplot as plt\n\n\ndef barycentric_weights(x):\n    \"\"\"\n    Berechne die baryzentrischen Gewichte zu den Stuetzstellen x\n\n    Input: x ... Stuetzstellen\n    Output: barweight ... baryzentrischen Gewichte\n    \"\"\"\n    n = len(x)\n    barweight = np.ones(n)\n    #TODO: implementieren Sie hier die Berechnung der baryzentrischen Gewichte\n\n    return barweight\n\n\ndef interp_barycentric(x, y, barweight, xx):\n    \"\"\"\n    Purpose: berechnet das Interpolations-Polynom p(xx) mittels\n             baryzentrischer Interpolationsformel mit Stuetzstellen x,\n             Stuetzwerten y und Gewichte barweight\n\n    Input: x         ... Stuetzstellen\n           y         ... Stuetzwerte\n           barweight ... baryzentrische Gewichte zu x\n           xx        ... Auswertungspunkte\n\n    Output: pxx ... Interpolationspolynom ausgewertet an xx\n    \"\"\"\n    pxx = np.zeros_like(xx) # oder pxx = 0.*xx\n\n    # TODO: implementieren Sie hier die Berechnung von pxx\n\n    return pxx\n\n\nif __name__ == \"__main__\":\n    # Polynom aus der Aufgabenstellung\n    rc = np.zeros(9)\n    rc[0] = 1.; rc[4] = 1 + 2**20; rc[8] = 1.\n    f = lambda t: rc[0] + rc[4] * t**4 + rc[8] * t**8\n    # Stuetzstellen\n    t = np.linspace(-0.5, 0.5, 36)\n    # gemessene Werte\n    y = f(t)\n    # Auswertungspunkte\n    x = np.linspace(t[0], t[-1], 1000)\n    # Exakte Funktionswerte fuer Vergleiche\n    fvs = f(x)\n\n    # a) Polynominterpolation mit polyfit und polyval\n    #TODO: berechnen Sie hier die Koeffizienten via polyfit\n    coeffs_polyfit = None\n\n    print(\"Coefficients of the polynomial are:\")\n    print(coeffs_polyfit)\n    erc = np.sum((np.flip(coeffs_polyfit)[:9] - rc)**2) + np.sum(np.flip(coeffs_polyfit)[9:]**2)\n    print(\"(Euklidian) Error in the coefficients is:\", np.sqrt(erc))\n\n    # TODO: werten Sie hier das Interpolationspolynom via polyval aus\n    p = None\n\n    plt.figure()\n    plt.subplot(2, 1, 1)\n    plt.plot(x, fvs, \"r\")\n    plt.plot(x, p, \"b--\")\n    plt.plot(t, f(t), \"k*\")\n    plt.grid(True)\n    plt.legend([\"Funktion $f$\", 'Interpolationspolynom'], loc=\"best\")\n    plt.xlabel(\"x\")\n\n    plt.subplot(2, 1, 2)\n    plt.semilogy(x, abs(fvs - p), 'b--')\n    plt.grid(True)\n    plt.xlabel(\"x\")\n    plt.ylabel(\"Fehler\")\n    plt.title('polyval(polyfit)')\n    plt.tight_layout()\n    plt.savefig('./cx_out/polyfit_polyval.png')\n\n    # b) Baryzentrische Formel\n    plt.figure()\n    plt.subplot(2, 1, 1)\n    barweight = barycentric_weights(t)\n    px = interp_barycentric(t, y, barweight, x)\n    plt.plot(x, fvs, \"r\")\n    plt.plot(x, px, \"b--\")\n    plt.plot(t, f(t), \"k*\")\n    plt.grid(True)\n    plt.legend([\"Funktion $f$\", 'Interpolationspolynom'], loc=\"best\")\n    plt.xlabel(\"x\")\n\n    plt.subplot(2, 1, 2)\n    plt.semilogy(x, abs(fvs - px), 'b--')\n    plt.grid(True)\n    plt.xlabel(\"x\")\n    plt.ylabel(\"Fehler\")\n    plt.title('Baryzentrische Koordinaten')\n    plt.tight_layout()\n    plt.savefig('./cx_out/polyfit_barycentric.png')\n\n    # c) Baryzentrische Gewichte fuer die Chebyshev Abszissen\n    n = len(t)\n    a = t[0]\n    b = t[-1]\n    # TODO: berechnen Sie die Chebyshev Abszissen in [a,b]\n    k = np.arange(n)\n    cheb_nodes = None\n    xx = 0.5 * (a + b) + 0.5 * (b - a) * cheb_nodes\n\n    # Gewichte fuer die baryzentrische Interpolationsformel in den Chebyshev-Abszissen\n    barweight_cheby = barycentric_weights(xx)\n\n    # Auswertung des Interpolationspolynoms\n    pxx = interp_barycentric(xx, f(xx), barweight_cheby, x)\n\n    plt.figure()\n    plt.subplot(2, 1, 1)\n    plt.plot(x, fvs, \"r\")\n    plt.plot(x, pxx, \"b--\")\n    plt.plot(t, f(t), \"k*\")\n    plt.grid(True)\n    plt.xlabel(\"x\")\n    plt.legend([\"Funktion $f$\", 'Interpolationspolynom'], loc=\"best\")\n\n    plt.subplot(2, 1, 2)\n    plt.semilogy(x, abs(fvs - pxx), 'b--')\n    plt.grid(True)\n    plt.xlabel(\"x\")\n    plt.ylabel(\"Fehler\")\n    plt.title('Baryzentrische Koordinaten, Chebyshev-Abszissen')\n    plt.tight_layout()\n    plt.savefig('./cx_out/polyfit_barycentric_chebyshev.png')\n\n    # d) Alle Fehler in einem Bild\n    plt.figure()\n    plt.semilogy(x, abs(fvs - p), label='polyval')\n    plt.semilogy(x, abs(fvs - px), label='aequidistant barycentric')\n    plt.semilogy(x, abs(fvs - pxx), label='Chebyshev barycentric')\n    plt.grid(True)\n    plt.xlabel(\"x\")\n    plt.ylabel(\"Fehler\")\n    plt.legend(loc='best')\n    plt.savefig('./cx_out/errorplot.png')\n",
+      "loesung": "import numpy as np\nimport matplotlib.pyplot as plt\n\n\ndef barycentric_weights(x):\n    \"\"\"\n    Berechne die baryzentrischen Gewichte zu den Stuetzstellen x\n\n    Input: x ... Stuetzstellen\n    Output: barweight ... baryzentrischen Gewichte\n    \"\"\"\n    n = len(x)\n    barweight = np.ones(n)\n    for j in range(n):\n        for k in range(n):\n            if j != k:\n                barweight[j] *= (x[j] - x[k])\n        barweight[j] = 1.0 / barweight[j]\n    return barweight\n\n\ndef interp_barycentric(x, y, barweight, xx):\n    \"\"\"\n    Purpose: berechnet das Interpolations-Polynom p(xx) mittels\n             baryzentrischer Interpolationsformel mit Stuetzstellen x,\n             Stuetzwerten y und Gewichte barweight\n\n    Input: x         ... Stuetzstellen\n           y         ... Stuetzwerte\n           barweight ... baryzentrische Gewichte zu x\n           xx        ... Auswertungspunkte\n\n    Output: pxx ... Interpolationspolynom ausgewertet an xx\n    \"\"\"\n    pxx = np.zeros_like(xx) # oder pxx = 0.*xx\n\n    for i, xi in enumerate(xx):\n        diff = xi - x\n        if np.any(diff == 0):\n            pxx[i] = y[diff == 0][0]\n        else:\n            terms = barweight / diff\n            pxx[i] = np.sum(terms * y) / np.sum(terms)\n\n    return pxx\n\n\nif __name__ == \"__main__\":\n    # Polynom aus der Aufgabenstellung\n    rc = np.zeros(9)\n    rc[0] = 1.; rc[4] = 1 + 2**20; rc[8] = 1.\n    f = lambda t: rc[0] + rc[4] * t**4 + rc[8] * t**8\n    # Stuetzstellen\n    t = np.linspace(-0.5, 0.5, 36)\n    # gemessene Werte\n    y = f(t)\n    # Auswertungspunkte\n    x = np.linspace(t[0], t[-1], 1000)\n    # Exakte Funktionswerte fuer Vergleiche\n    fvs = f(x)\n\n    # a) Polynominterpolation mit polyfit und polyval\n    coeffs_polyfit = np.polyfit(t, y, len(t) - 1)\n\n    print(\"Coefficients of the polynomial are:\")\n    print(coeffs_polyfit)\n    erc = np.sum((np.flip(coeffs_polyfit)[:9] - rc)**2) + np.sum(np.flip(coeffs_polyfit)[9:]**2)\n    print(\"(Euklidian) Error in the coefficients is:\", np.sqrt(erc))\n\n    p = np.polyval(coeffs_polyfit, x)\n\n    plt.figure()\n    plt.subplot(2, 1, 1)\n    plt.plot(x, fvs, \"r\")\n    plt.plot(x, p, \"b--\")\n    plt.plot(t, f(t), \"k*\")\n    plt.grid(True)\n    plt.legend([\"Funktion $f$\", 'Interpolationspolynom'], loc=\"best\")\n    plt.xlabel(\"x\")\n\n    plt.subplot(2, 1, 2)\n    plt.semilogy(x, abs(fvs - p), 'b--')\n    plt.grid(True)\n    plt.xlabel(\"x\")\n    plt.ylabel(\"Fehler\")\n    plt.title('polyval(polyfit)')\n    plt.tight_layout()\n    plt.savefig('./cx_out/polyfit_polyval.png')\n\n    # b) Baryzentrische Formel\n    plt.figure()\n    plt.subplot(2, 1, 1)\n    barweight = barycentric_weights(t)\n    px = interp_barycentric(t, y, barweight, x)\n    plt.plot(x, fvs, \"r\")\n    plt.plot(x, px, \"b--\")\n    plt.plot(t, f(t), \"k*\")\n    plt.grid(True)\n    plt.legend([\"Funktion $f$\", 'Interpolationspolynom'], loc=\"best\")\n    plt.xlabel(\"x\")\n\n    plt.subplot(2, 1, 2)\n    plt.semilogy(x, abs(fvs - px), 'b--')\n    plt.grid(True)\n    plt.xlabel(\"x\")\n    plt.ylabel(\"Fehler\")\n    plt.title('Baryzentrische Koordinaten')\n    plt.tight_layout()\n    plt.savefig('./cx_out/polyfit_barycentric.png')\n\n    # c) Baryzentrische Gewichte fuer die Chebyshev Abszissen\n    n = len(t)\n    a = t[0]\n    b = t[-1]\n    k = np.arange(n)\n    cheb_nodes = np.cos((2 * k + 1) / (2 * n) * np.pi)\n    xx = 0.5 * (a + b) + 0.5 * (b - a) * cheb_nodes\n\n    # Gewichte fuer die baryzentrische Interpolationsformel in den Chebyshev-Abszissen\n    barweight_cheby = barycentric_weights(xx)\n\n    # Auswertung des Interpolationspolynoms\n    pxx = interp_barycentric(xx, f(xx), barweight_cheby, x)\n\n    plt.figure()\n    plt.subplot(2, 1, 1)\n    plt.plot(x, fvs, \"r\")\n    plt.plot(x, pxx, \"b--\")\n    plt.plot(t, f(t), \"k*\")\n    plt.grid(True)\n    plt.xlabel(\"x\")\n    plt.legend([\"Funktion $f$\", 'Interpolationspolynom'], loc=\"best\")\n\n    plt.subplot(2, 1, 2)\n    plt.semilogy(x, abs(fvs - pxx), 'b--')\n    plt.grid(True)\n    plt.xlabel(\"x\")\n    plt.ylabel(\"Fehler\")\n    plt.title('Baryzentrische Koordinaten, Chebyshev-Abszissen')\n    plt.tight_layout()\n    plt.savefig('./cx_out/polyfit_barycentric_chebyshev.png')\n\n    # d) Alle Fehler in einem Bild\n    plt.figure()\n    plt.semilogy(x, abs(fvs - p), label='polyval')\n    plt.semilogy(x, abs(fvs - px), label='aequidistant barycentric')\n    plt.semilogy(x, abs(fvs - pxx), label='Chebyshev barycentric')\n    plt.grid(True)\n    plt.xlabel(\"x\")\n    plt.ylabel(\"Fehler\")\n    plt.legend(loc='best')\n    plt.savefig('./cx_out/errorplot.png')\n",
+      "test": {
+        "typ": "werte",
+        "pruefcode": "import numpy as np\n\ndef _lagrange_ref(xk, yk, tt):\n    s = np.zeros_like(np.asarray(tt, dtype=float))\n    for i in range(len(xk)):\n        li = np.ones_like(s)\n        for j in range(len(xk)):\n            if i != j:\n                li = li * (tt - xk[j]) / (xk[i] - xk[j])\n        s = s + yk[i] * li\n    return s\n\n# --- (1) baryzentrische Gewichte gegen die Definition ---\nxs = np.array([0., 1., 2., 3.])\nys = np.array([1., 2., 0., 5.])\nw = np.asarray(barycentric_weights(xs), dtype=float)\nref_w = np.array([1.0/((0-1)*(0-2)*(0-3)),\n                  1.0/((1-0)*(1-2)*(1-3)),\n                  1.0/((2-0)*(2-1)*(2-3)),\n                  1.0/((3-0)*(3-1)*(3-2))])\nassert w.shape == (4,), 'barycentric_weights muss ein Gewicht pro Stuetzstelle liefern'\nassert np.allclose(w, ref_w, rtol=1e-10), f'die Gewichte stimmen nicht: {w} statt {ref_w}'\n\n# --- (2) baryzentrische Formel gegen die Lagrange-Referenz ---\ntt = np.linspace(0., 3., 17)\npp = np.asarray(interp_barycentric(xs, ys, w, tt), dtype=float)\nassert np.allclose(pp, _lagrange_ref(xs, ys, tt), rtol=1e-8, atol=1e-10), 'die baryzentrische Formel trifft das Interpolationspolynom nicht'\n\n# --- (3) Sonderfall: Auswertung genau in den Knoten ---\nassert np.allclose(interp_barycentric(xs, ys, w, xs), ys, rtol=1e-10, atol=1e-12), 'in den Knoten muss p(x_i) = y_i gelten (Division durch 0 abfangen!)'\n\n# --- (4) polyfit: richtiger Grad UND echte Interpolation der Daten ---\n_c = np.asarray(coeffs_polyfit, dtype=float)\nassert _c.shape[0] == 36, f'polyfit muss Grad len(t)-1 = 35 verwenden, also 36 Koeffizienten liefern (hier {_c.shape[0]})'\n_resid = np.max(np.abs(y - np.polyval(_c, t)))\nassert _resid < 1e-6 * np.max(np.abs(y)), ('das Polynom muss die Daten in den Stuetzstellen treffen; '\n                                           f'groesste Abweichung {_resid:.3e} — sind t und y vertauscht?')\n\n# --- (5) Chebyshev-Abszissen ---\n_k = np.arange(36)\n_ref = 0.5*(-0.5 + 0.5) + 0.5*(0.5 - (-0.5))*np.cos((2*_k + 1)/(2*36)*np.pi)\nassert np.allclose(np.sort(np.asarray(xx, dtype=float)), np.sort(_ref), rtol=1e-12, atol=1e-14), 'die Chebyshev-Abszissen in [a,b] stimmen nicht'\n"
+      },
+      "referenzPlot": [
+        "assets/ref/ce-w3-barycentric-1.png",
+        "assets/ref/ce-w3-barycentric-2.png",
+        "assets/ref/ce-w3-barycentric-3.png",
+        "assets/ref/ce-w3-barycentric-4.png"
+      ]
+    }
+  ]
+}

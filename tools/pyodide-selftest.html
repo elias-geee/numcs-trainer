@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Pyodide-Selbsttest</title>
+<style>
+  body { font-family: ui-monospace, Menlo, monospace; font-size: 13px; padding: 20px; }
+  .ok { color: #1a7f4b; } .fail { color: #c0392b; } .dim { color: #888; }
+  pre { white-space: pre-wrap; background: #f4f5f8; padding: 8px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<h1 id="hdr">Pyodide-Selbsttest läuft …</h1>
+<div id="log"></div>
+
+<script src="../js/pyodide-runner.js"></script>
+<script>
+/* Führt jede CodeExpert-Aufgabe in der ECHTEN Browser-Umgebung aus:
+   Musterlösung + Prüfcode, und zusätzlich den Lückencode mit den
+   ausgewiesenen Lösungen. Das prüft, was tools/check_solutions.py nicht
+   kann — Pyodide-Eigenheiten (Prelude, timerpro-Shim, matplotlib-Backend,
+   Plot-Capture).
+   Aufruf: tools/pyodide-selftest.html?weeks=1,3                        */
+
+const GAP_RE = /«(L\d+)»/g;
+const log = document.getElementById('log');
+
+function line(cls, text) {
+  const d = document.createElement('div');
+  d.className = cls;
+  d.textContent = text;
+  log.appendChild(d);
+}
+
+function pre(text) {
+  const p = document.createElement('pre');
+  p.textContent = text;
+  log.appendChild(p);
+}
+
+async function evaluate(task, code) {
+  const t = task.test || {};
+  const res = await Py.run({
+    code,
+    pruefcode: t.typ === 'plot' ? null : (t.pruefcode || null),
+    packages: task.braucht && task.braucht.length ? task.braucht : ['numpy']
+  });
+  res.bestanden = t.typ === 'plot'
+    ? (res.ok && res.images.length > 0)
+    : (res.ok && res.passed === true);
+  return res;
+}
+
+(async () => {
+  const params = new URLSearchParams(location.search);
+  const weeks = (params.get('weeks') || '1,3').split(',').map(Number);
+
+  let pass = 0, fail = 0;
+
+  for (const n of weeks) {
+    const file = '../data/woche_' + String(n).padStart(2, '0') + '.json';
+    let week;
+    try {
+      week = await (await fetch(file)).json();
+    } catch (e) {
+      line('fail', `FAIL  ${file}: ${e.message}`); fail++; continue;
+    }
+    line('dim', `=== Woche ${n} — ${week.titel} ===`);
+
+    for (const task of (week.codeexpert || [])) {
+      // 1) Musterlösung
+      const t0 = performance.now();
+      const r1 = await evaluate(task, task.loesung);
+      const ms = Math.round(performance.now() - t0);
+      if (r1.bestanden) {
+        line('ok', `OK    ${task.id}: Musterlösung besteht (${ms} ms, ${r1.images.length} Plot(s))`);
+        pass++;
+      } else {
+        line('fail', `FAIL  ${task.id}: Musterlösung besteht NICHT (${ms} ms)`);
+        pre(r1.error || '(kein Fehlertext)');
+        fail++;
+      }
+
+      // 2) Lückencode mit den ausgewiesenen Lösungen
+      if (task.luecken_template && (task.luecken || []).length) {
+        const map = Object.fromEntries(task.luecken.map(g => [g.id, g.loesung]));
+        const filled = task.luecken_template.replace(GAP_RE, (_, id) => map[id] ?? `«${id}»`);
+        const r2 = await evaluate(task, filled);
+        if (r2.bestanden) {
+          line('ok', `OK    ${task.id}: Lückencode besteht`);
+          pass++;
+        } else {
+          line('fail', `FAIL  ${task.id}: Lückencode besteht NICHT`);
+          pre(r2.error || '(kein Fehlertext)');
+          fail++;
+        }
+      }
+
+      // 3) Template darf noch nicht bestehen
+      if (task.template) {
+        const r3 = await evaluate(task, task.template);
+        if (r3.bestanden) {
+          line('fail', `FAIL  ${task.id}: Template besteht bereits — nichts zu tun`);
+          fail++;
+        } else {
+          line('ok', `OK    ${task.id}: Template ist unvollständig (wie es sein soll)`);
+          pass++;
+        }
+      }
+    }
+  }
+
+  const verdict = fail === 0 ? `ALLE ${pass} BESTANDEN` : `${fail} FEHLGESCHLAGEN (${pass} ok)`;
+  document.getElementById('hdr').textContent = 'RESULTAT: ' + verdict;
+  document.title = 'RESULTAT: ' + verdict;
+  report(verdict);
+})().catch(e => {
+  document.getElementById('hdr').textContent = 'RESULTAT: ABBRUCH ' + e.message;
+  document.title = 'RESULTAT: ABBRUCH ' + e.message;
+  pre(e.stack || String(e));
+  report('ABBRUCH ' + e.message);
+});
+
+/* Für automatisierte Läufe: Ergebnis an den Testserver melden, damit ein
+   Skript nicht raten muss, wann Pyodide fertig ist. Ohne Testserver
+   schlägt der POST folgenlos fehl. */
+function report(verdict) {
+  const body = 'RESULTAT: ' + verdict + '\n' + log.innerText;
+  fetch('/result', { method: 'POST', body }).catch(() => {});
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+# Fuer tools/check_solutions.py und tools/check_content.py.
+# Die Website selbst braucht nichts davon - sie laeuft im Browser ueber Pyodide.
+numpy>=1.26
+scipy>=1.11
+matplotlib>=3.8

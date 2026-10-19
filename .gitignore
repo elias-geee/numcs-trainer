@@ -1,0 +1,9 @@
+# lokale Python-Umgebung und Checker-Artefakte
+.venv/
+.cache/
+cx_out/
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store

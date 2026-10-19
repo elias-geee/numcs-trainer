@@ -1,0 +1,13 @@
+{
+  "woche": 10,
+  "titel": "Numerische lineare Algebra I",
+  "status": "platzhalter",
+  "skript": {
+    "kapitel": "7.1.1–7.1.2",
+    "seiten": "234–262"
+  },
+  "vorlage": "wochenplan/Vorlage10_ILAp1.pdf",
+  "zusammenfassung": [],
+  "moodle": [],
+  "codeexpert": []
+}

@@ -1,0 +1,105 @@
+{
+  "kurs": "401-0663-00 Numerische Methoden D-INFK (Numerical Methods for Computer Science)",
+  "skript": "VorlesungsdokumentNumCS.pdf — V. Gradinaru, ETH Zürich",
+  "hinweisSeiten": "Seitenzahlen beziehen sich auf die gedruckte Nummerierung im Skript (PDF-Seite = Skriptseite + 1).",
+  "wochen": [
+    {
+      "woche": 1,
+      "titel": "Rundungsfehler und Fehlerpropagation",
+      "kapitel": "1.1",
+      "seiten": "6–21",
+      "status": "vollstaendig"
+    },
+    {
+      "woche": 2,
+      "titel": "Rechenaufwand und Rechnen mit Matrizen",
+      "kapitel": "1.2–1.3",
+      "seiten": "21–40",
+      "status": "vollstaendig"
+    },
+    {
+      "woche": 3,
+      "titel": "Polynominterpolation",
+      "kapitel": "2.1–2.3",
+      "seiten": "41–53",
+      "status": "vollstaendig"
+    },
+    {
+      "woche": 4,
+      "titel": "Chebyshev-Interpolation",
+      "kapitel": "2.4",
+      "seiten": "54–64",
+      "status": "vollstaendig"
+    },
+    {
+      "woche": 5,
+      "titel": "Trigonometrische Interpolation und DFT",
+      "kapitel": "3.1–3.6",
+      "seiten": "65–109",
+      "status": "vollstaendig"
+    },
+    {
+      "woche": 6,
+      "titel": "Stückweise polynomiale Interpolation",
+      "kapitel": "4.1–4.3",
+      "seiten": "110–118",
+      "status": "vollstaendig"
+    },
+    {
+      "woche": 7,
+      "titel": "Numerische Quadratur",
+      "kapitel": "5.1–5.6",
+      "seiten": "119–153",
+      "status": "platzhalter"
+    },
+    {
+      "woche": 8,
+      "titel": "Quadratur in d Dimensionen und Monte-Carlo",
+      "kapitel": "5.7–5.9",
+      "seiten": "154–193",
+      "status": "platzhalter"
+    },
+    {
+      "woche": 9,
+      "titel": "Nullstellensuche",
+      "kapitel": "6",
+      "seiten": "194–233",
+      "status": "platzhalter"
+    },
+    {
+      "woche": 10,
+      "titel": "Numerische lineare Algebra I",
+      "kapitel": "7.1.1–7.1.2",
+      "seiten": "234–262",
+      "status": "platzhalter"
+    },
+    {
+      "woche": 11,
+      "titel": "Numerische lineare Algebra II",
+      "kapitel": "7.1.2–7.1.3",
+      "seiten": "237–265",
+      "status": "platzhalter"
+    },
+    {
+      "woche": 12,
+      "titel": "Lineare Ausgleichsrechnung",
+      "kapitel": "8.1",
+      "seiten": "266–276",
+      "status": "platzhalter"
+    },
+    {
+      "woche": 13,
+      "titel": "Nichtlineare Ausgleichsrechnung",
+      "kapitel": "8.2",
+      "seiten": "277–297",
+      "status": "platzhalter"
+    },
+    {
+      "woche": 14,
+      "titel": "Deep Neural Networks",
+      "kapitel": "8.3",
+      "seiten": "298–…",
+      "status": "platzhalter"
+    }
+  ]
+}

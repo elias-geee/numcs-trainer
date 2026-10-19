@@ -1,0 +1,13 @@
+{
+  "woche": 11,
+  "titel": "Numerische lineare Algebra II",
+  "status": "platzhalter",
+  "skript": {
+    "kapitel": "7.1.2–7.1.3",
+    "seiten": "237–265"
+  },
+  "vorlage": "wochenplan/Vorlage11_ILAp2.pdf",
+  "zusammenfassung": [],
+  "moodle": [],
+  "codeexpert": []
+}
