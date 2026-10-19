@@ -1,13 +1,290 @@
 {
   "woche": 8,
   "titel": "Quadratur in d Dimensionen und Monte-Carlo",
-  "status": "platzhalter",
-  "skript": {
-    "kapitel": "5.7–5.9",
-    "seiten": "154–193"
-  },
+  "status": "nur_zusammenfassung",
+  "skript": { "kapitel": "5.7–5.9", "seiten": "154–193" },
   "vorlage": "wochenplan/Vorlage08_Quadratur_dD_V0.pdf",
-  "zusammenfassung": [],
-  "moodle": [],
+
+  "einleitung": "<p>In einer Dimension war Quadratur ein gelöstes Problem — Gauss und Clenshaw-Curtis liefern für glatte Integranden exponentielle Konvergenz. In $d$ Dimensionen bricht das zusammen: die naheliegende Tensorprodukt-Konstruktion braucht $n^{d}$ Funktionsauswertungen, und die Konvergenzrate verschlechtert sich von $\\mathcal{O}(N^{-r})$ auf $\\mathcal{O}(N^{-r/d})$. Das ist der <b>Fluch der Dimension</b>.</p><p>Die Woche zeigt zwei Auswege. <b>Dünne Gitter</b> (Smolyak) lassen gezielt die Detailterme weg, die für glatte Funktionen ohnehin vernachlässigbar sind, und kommen mit $\\mathcal{O}(2^{\\ell}\\ell^{d-1})$ statt $\\mathcal{O}(2^{d\\ell})$ Punkten aus — praktikabel für etwa $3\\le d\\le 12$. <b>Monte-Carlo</b> entkommt dem Fluch vollständig: die Rate $\\mathcal{O}(N^{-1/2})$ hängt <i>gar nicht</i> von $d$ ab. Der Preis ist, dass sie quälend langsam ist und das Ergebnis nur noch probabilistisch gilt — «Das Ergebnis kann völlig falsch sein». Weil $N$ zu erhöhen so teuer ist, bleibt als einziger echter Hebel die <b>Reduktion der Varianz</b>.</p>",
+
+  "zusammenfassung": [
+    {
+      "id": "w8-z1",
+      "titel": "Tensorprodukt-Quadratur und der Fluch der Dimension",
+      "ref": { "abschnitt": "5.7", "seite": 155 },
+      "text": "<p>Die naive Übertragung auf $d$ Dimensionen iteriert eindimensionale Formeln. Für $d=2$:</p><p>$$I=\\int_a^b\\!\\!\\int_c^d f(x,y)\\,\\mathrm{d}x\\,\\mathrm{d}y\\approx\\sum_{j_1=1}^{n_1}\\sum_{j_2=1}^{n_2}\\omega^1_{j_1}\\omega^2_{j_2}f(c^1_{j_1},c^2_{j_2}).$$</p><p>Allgemein liegt die <b>Tensor-Produkt-Quadratur</b> vor. Zwei Konsequenzen, beide fatal:</p><ul><li>$f$ muss an $n^{d}$ Stützstellen ausgewertet werden — exponentiell in $d$.</li><li>Die Konvergenzrate ist $K=\\mathcal{O}(N^{-r/d})$, wobei $r$ die Rate der eindimensionalen Formel ist. Sie wird also mit wachsender Dimension immer schlechter.</li></ul>",
+      "formeln": ["I\\approx\\sum_{j_1=1}^{n_1}\\cdots\\sum_{j_d=1}^{n_d}w^1_{j_1}\\cdots w^d_{j_d}\\,f\\bigl(c^1_{j_1},\\dots,c^d_{j_d}\\bigr)"],
+      "merke": "Beide Effekte zusammen sind der <b>Fluch der Dimension</b>: mehr Punkte <i>und</i> jeder Punkt bringt weniger. Besonders bitter, wenn $f$ «eventuell nur als teure Funktionsroutine verfügbar ist»."
+    },
+    {
+      "id": "w8-z2",
+      "titel": "Hierarchischer Überschuss",
+      "ref": { "abschnitt": "5.7", "seite": 156, "nummer": "Abb. 5.7.1" },
+      "text": "<p>Der Schlüssel zu dünnen Gittern ist, das Hinzufügen eines Punktes als <b>Zuwachs</b> zu schreiben statt als Neuberechnung. Mit $T_1$ (Trapez auf $[a,b]$) und $T_2$ (Trapez auf beiden Hälften) gilt</p><p>$$T_2(f,a,b)=T_1(f,a,b)+D_1(f,a,b),$$</p><p>wobei $D_1$ gerade die Fläche des Dreiecks in Abb. 5.7.1 ist:</p><p>$$D_1(f,a,b)=\\underbrace{\\left(f\\!\\left(\\tfrac{a+b}{2}\\right)-\\tfrac{f(a)+f(b)}{2}\\right)}_{=:g_1(f,a,b)}\\cdot\\tfrac{b-a}{2}.$$</p><p>$g_1$ heisst <b>hierarchischer Überschuss</b> von $f$ auf $[a,b]$. Das Skript bemerkt ausdrücklich, dass die naive Formel für $T_2$ den bereits berechneten Wert $T_1$ verwirft — «man verwirft also bereits gesammelte Information. Das muss nicht sein.»</p>",
+      "merke": "Ist $f$ glatt, sind die hierarchischen Überschüsse auf feinen Leveln winzig. Genau diese Terme wird man gleich wegwerfen."
+    },
+    {
+      "id": "w8-z3",
+      "titel": "Teleskopsumme über die Level",
+      "ref": { "abschnitt": "5.7", "seite": 157 },
+      "text": "<p>Mit $Q^1_\\ell$ als klassischer Quadraturformel auf dem Gitter von $2^{\\ell}$ Teilintervallen schreibt man die Prozedur als <b>Teleskopsumme</b>:</p><p>$$Q^1_\\ell f=Q^1_0f+(Q^1_1f-Q^1_0f)+\\cdots+(Q^1_\\ell f-Q^1_{\\ell-1}f)=Q^1_0f+\\Delta^1_1f+\\cdots+\\Delta^1_\\ell f.$$</p><p>In einer Dimension bringt das nichts. In $d$ Dimensionen jedoch: das Tensorprodukt der Level $\\boldsymbol\\ell=(\\ell_1,\\dots,\\ell_d)$ wird zu</p><p>$$Q^d_{\\boldsymbol\\ell}=Q^1_{\\ell_1}\\otimes\\cdots\\otimes Q^1_{\\ell_d}=\\sum_{j=1}^{d}\\sum_{1\\le k_j\\le\\ell_j}\\bigl(\\Delta^1_{k_1}\\otimes\\cdots\\otimes\\Delta^1_{k_d}\\bigr)f,$$</p><p>also eine Summe über <b>Detailbeiträge</b> statt über Gitterpunkte. Jetzt kann man einzeln entscheiden, welche Details man behält.</p>",
+      "merke": "Die Umformulierung ist in 1D «keineswegs» eine Vereinfachung — ihr ganzer Wert liegt im mehrdimensionalen Fall."
+    },
+    {
+      "id": "w8-z4",
+      "titel": "Dünngitter-Quadratur nach Smolyak",
+      "ref": { "abschnitt": "5.7", "seite": 158 },
+      "text": "<p>Ist $f$ glatt, sind die Details $\\bigl(\\Delta^1_{k_1}\\otimes\\cdots\\otimes\\Delta^1_{k_d}\\bigr)f$ so klein, dass man sie vernachlässigen kann — und man lässt alle, die ungefähr gleich gross sind, auf einmal weg. Das führt auf die klassische <b>Dünngitter-Quadraturformel</b>:</p><p>$$S^d_\\ell f:=\\sum_{|\\mathbf k|_1\\le\\ell+d-1}\\bigl(\\Delta^1_{k_1}\\otimes\\cdots\\otimes\\Delta^1_{k_d}\\bigr)f.$$</p><p>In der Praxis rechnet man sie über die <b>Kombinationsformel</b>, eine vorzeichenbehaftete Summe über anisotrope volle Gitter:</p><p>$$S^d_\\ell f=\\sum_{\\ell\\le|\\mathbf k|_1\\le\\ell+d-1}(-1)^{\\ell+d-|\\mathbf k|_1-1}\\binom{d-1}{|\\mathbf k|_1-\\ell}\\bigl(Q^1_{k_1}\\otimes\\cdots\\otimes Q^1_{k_d}\\bigr)f.$$</p><p><b>Aufwand und Fehler:</b> $N=\\mathcal{O}(2^{\\ell}\\ell^{d-1})$ Punkte statt $\\mathcal{O}(2^{d\\ell})$ beim vollen Gitter; der Fehler ist $\\mathcal{O}\\!\\left(N^{-r}\\log^{(d-1)(r+1)}(N)\\right)$ für $f$ mit Glattheit $r$.</p>",
+      "merke": "Die Dimension $d$ steht nicht mehr im Exponenten von $2^{\\ell}$, sondern nur noch im (viel harmloseren) Faktor $\\ell^{d-1}$ — und im Logarithmus des Fehlers."
+    },
+    {
+      "id": "w8-z5",
+      "titel": "Verschachtelte Gitter zahlen sich doppelt aus",
+      "ref": { "abschnitt": "5.7", "seite": 158, "nummer": "Abb. 5.7.2" },
+      "text": "<p>Das dünne Gitter entsteht als <b>Vereinigung</b> der anisotropen vollen Gitter, die in der Kombinationsformel auftreten. Deshalb ist der Vorteil verschachtelter Regeln hier «offensichtlich: Man braucht deutlich weniger Funktionsauswertungen.»</p><p>Konkret für $d=2$, Level 4 (Abb. 5.7.2 und die Punktbilder): <b>Trapez</b> (äquidistant, verschachtelt) und <b>Clenshaw-Curtis</b> (verschachtelt) brauchen je 81 Punkte, die zusammengesetzte <b>Mittelpunktsregel</b> 112 und <b>Gauss-Legendre mit 2 Punkten</b> 128 — weil deren Knoten sich zwischen den Leveln nicht wiederverwenden lassen.</p><p>Das ist genau derselbe Punkt wie bei Romberg gegen Gauss in Woche 7, nur in $d$ Dimensionen und mit entsprechend grösserem Hebel.</p>",
+      "merke": "Verschachtelung schlägt hier Ordnung: Clenshaw-Curtis mit 81 Punkten gegen Gauss mit 128 für dasselbe Level."
+    },
+    {
+      "id": "w8-z6",
+      "titel": "Die Zahlen aus dem Skript",
+      "ref": { "abschnitt": "5.7", "seite": 163 },
+      "text": "<p>Clenshaw-Curtis für $f(\\mathbf x)=\\bigl(1+\\tfrac1d\\bigr)^{d}\\sqrt{x_1\\cdots x_d}$, Level $n=6$:</p><div class=\"tbl-wrap\"><table class=\"tbl\"><thead><tr><th>$d$</th><th>Gitter</th><th>Auswertungen</th><th>Zeit</th><th>Fehler</th></tr></thead><tbody><tr><td>3</td><td>voll</td><td>274'625</td><td>6.6 s</td><td>$1.5\\cdot10^{-5}$</td></tr><tr><td>3</td><td>dünn</td><td>3'120</td><td>0.1 s</td><td>$1.5\\cdot10^{-6}$</td></tr><tr><td>4</td><td>voll</td><td>17.8 Mio</td><td>426 s</td><td>$3.3\\cdot10^{-5}$</td></tr><tr><td>4</td><td>dünn</td><td>9'065</td><td>0.3 s</td><td>$8\\cdot10^{-6}$</td></tr></tbody></table></div><p>Das dünne Gitter ist also bei $d=4$ rund <b>2000-mal billiger und zugleich genauer</b>. Für $d=10$ auf Level 6 braucht paralleler Code 33 Sekunden bei einem Fehler von $3\\cdot10^{-5}$; die Kombinationsformel ist dort eine Summe mit 3003 Termen.</p><p>Effiziente Algorithmen machen dünne Gitter «sehr kompetitiv für Dimensionen $3\\le d\\le 12$».</p>",
+      "merke": "$274\\,625=65^{3}$ und $17\\,850\\,625=65^{4}$ — das volle Gitter nutzt 65 Knoten pro Dimension. Daran sieht man den Fluch der Dimension als blosse Potenzrechnung."
+    },
+    {
+      "id": "w8-z7",
+      "titel": "Monte-Carlo: Grundrezept",
+      "ref": { "abschnitt": "5.8", "seite": 164, "nummer": "(5.8.22)" },
+      "text": "<p>Man zieht $N$ Zahlen $t_i$ zufällig aus der Gleichverteilung auf $[0,1]$ und mittelt die Funktionswerte:</p><p>$$I=\\int_0^1 z(t)\\,\\mathrm{d}t\\approx\\frac1N\\sum_{i=1}^{N}z(t_i).$$</p><p>Auf einem allgemeinen Intervall mit $s_i=a+(b-a)t_i$:</p><p>Angewendet wird das Verfahren «insbesondere für hochdimensionale Probleme oder bei sehr unglatten Integranden» — und oft, «um eine erste Näherung des Wertes eines Integrals zu bekommen».</p>",
+      "formeln": ["I=\\int_a^b z(s)\\,\\mathrm{d}s=|b-a|\\int_0^1 z\\bigl(a+(b-a)t\\bigr)\\mathrm{d}t\\approx|b-a|\\frac1N\\sum_{i=1}^{N}z(s_i)=:I_N"],
+      "merke": "Der Schätzer ist nichts als ein <b>Mittelwert</b>. Die ganze Theorie dahinter dient nur der Frage, wie gut dieser Mittelwert ist."
+    },
+    {
+      "id": "w8-z8",
+      "titel": "Eigenschaften — und die zentrale Warnung",
+      "ref": { "abschnitt": "5.8", "seite": 165, "nummer": "Bem. 5.8.1, Bem. 5.8.2" },
+      "text": "<p><b>Bemerkung 5.8.1</b> nennt zwei Eigenschaften:</p><ul><li>Die Konvergenz ist <b>sehr langsam</b>, nur $\\mathcal{O}(N^{-1/2})$ — «sie hängt aber nicht (direkt) von der Dimension oder von der Glattheit des Integranden ab!»</li><li>Die Methode ist <b>rein probabilistisch</b>: «Das Ergebnis kann völlig falsch sein.»</li></ul><p><b>Bemerkung 5.8.2</b> zieht die Konsequenz: «Die Dimension befindet sich hier nur in der Anzahl $N$ der generierten Zufallszahlen. Die Länge des Intervalls nimmt wie $1/\\sqrt N$ ab. Eine Verbesserung der Methode kann nur durch eine Verkleinerung der Varianz $\\sigma_N^{2}$ erzielt werden.»</p>",
+      "merke": "<b>Der entscheidende Satz der Woche:</b> weil $N$ zu erhöhen so teuer ist (zehnmal genauer kostet hundertmal mehr Punkte), ist die Varianzreduktion der einzige praktikable Hebel."
+    },
+    {
+      "id": "w8-z9",
+      "titel": "Erwartungswert, Varianz und warum MC funktioniert",
+      "ref": { "abschnitt": "5.8", "seite": 169, "nummer": "Def. 5.8.11/5.8.14, (5.8.25)/(5.8.26), Bem. 5.8.16" },
+      "text": "<p>Die ganze Methode ruht auf einer einzigen Beobachtung (5.8.25):</p><p>$$\\int_{[0,1]^d}z(x)\\,\\mathrm{d}x=\\mathbb{E}\\,z(X)\\quad\\text{mit }X\\sim\\mathcal{U}\\bigl([0,1]^d\\bigr).$$</p><p>Das Integral ist also ein <b>Erwartungswert</b>, und Monte-Carlo «ist die Kunst, einen Erwartungswert durch den Mittelwert der Funktionswerte simulierter Zufallsvariablen zu approximieren». Der Schätzer (5.8.26) ist $m_N(z(X)):=\\frac1N\\sum_i z(X_i)$.</p><p><b>Bemerkung 5.8.16</b> liefert die beiden tragenden Eigenschaften:</p><ul><li><b>erwartungstreu:</b> $\\mathbb{E}\\,m_N(z(X))=\\int_{[0,1]^d}z(x)\\,\\mathrm{d}x$ — der Schätzer trifft im Mittel das Richtige</li><li><b>konsistent:</b> $\\mathbb{V}\\,m_N(z(X))=\\frac{1}{N^2}N\\,\\mathbb{V}(z(X))=\\frac1N\\mathbb{V}(z(X))\\longrightarrow 0$</li></ul><p>Die zweite Rechnung nutzt, dass die Varianz kein linearer Operator ist (Bem. 5.8.15): $\\mathbb{V}(az)=a^{2}\\mathbb{V}(z)$, und $\\mathbb{V}$ ist nur für <b>unabhängige</b> Zufallsvariablen additiv.</p>",
+      "merke": "Aus $\\mathbb{V}(m_N)=\\mathbb{V}(z)/N$ folgt direkt die Standardabweichung $\\sigma/\\sqrt N$ — hier kommt die Wurzel her, und nirgends sonst."
+    },
+    {
+      "id": "w8-z10",
+      "titel": "Zentraler Grenzwertsatz und die Rate $N^{-1/2}$",
+      "ref": { "abschnitt": "5.8", "seite": 170 },
+      "text": "<p>Der zentrale Grenzwertsatz besagt, dass $\\dfrac{m_N(z(X))-\\mathbb{E}z(X)}{\\sqrt{\\tfrac1N\\mathbb{V}(z(X))}}$ sich für grosses $N$ fast wie eine $\\mathcal{N}(0,1)$-Zufallsvariable verhält. Daraus folgt mit $\\sigma(z(X))=\\sqrt{\\mathbb{V}(z(X))}$:</p><p>$$P\\left(\\bigl|m_N(z(X))-\\mathbb{E}z(X)\\bigr|\\le\\frac{\\lambda\\,\\sigma(z(X))}{\\sqrt N}\\right)=\\frac{1}{\\sqrt{2\\pi}}\\int_{-\\lambda}^{\\lambda}e^{-x^{2}/2}\\,\\mathrm{d}x+\\mathcal{O}\\!\\left(\\tfrac{1}{\\sqrt N}\\right).$$</p><p>Die Werte von $p(\\lambda)$ hängen nur von $\\lambda$ ab: $p=0.5$ braucht $\\lambda=0.6745$, $p=0.9$ braucht $\\lambda=1.645$, $p=0.95$ braucht $\\lambda=1.9605$. Die Wahl $\\lambda=1$ ergibt die «magische Zahl» $p(1)=0.683$.</p><p>Das Skript nimmt dabei $N\\ge 30$ an — «denn dann müsste man mit der Student $t$-Verteilung statt mit der normalen Verteilung arbeiten».</p>",
+      "merke": "Das $\\sqrt N$ steckt im <b>Nenner des Konfidenzintervalls</b>. Um das Intervall zu halbieren, braucht man viermal so viele Punkte."
+    },
+    {
+      "id": "w8-z11",
+      "titel": "Konfidenzintervall",
+      "ref": { "abschnitt": "5.8", "seite": 171, "nummer": "(5.8.23)/(5.8.24), Thm. 5.8.17, Bem. 5.8.22" },
+      "text": "<p>Da $\\sigma(z(X))$ unbekannt ist, schätzt man es aus der Stichprobe (5.8.23):</p><p>$$\\tilde\\sigma_N=\\sqrt{\\frac{\\frac1N\\sum_i z(t_i)^2-\\bigl(\\frac1N\\sum_i z(t_i)\\bigr)^2}{N-1}}=\\sigma_N/\\sqrt N.$$</p><p><b>Theorem 5.8.17:</b> Das Intervall $\\bigl[m_N-\\lambda\\tilde\\sigma_N,\\ m_N+\\lambda\\tilde\\sigma_N\\bigr]$ enthält den wahren Wert mit Wahrscheinlichkeit $p(\\lambda)$, bis auf einen $\\mathcal{O}(1/\\sqrt N)$-Fehler. Für $\\lambda=1$ ist das (5.8.24) und trifft in circa <b>68.3%</b> der Fälle.</p><p>Ganz wichtig die Lesart: «kann man in einem Experiment nichts sagen. Das Theorem sagt aber, wenn wir dieses Experiment $M$-mal (mit $M$ gross) wiederholen, dann enthält das Vertrauensintervall den wahren Wert $I$ in circa $100p(\\lambda)$ Prozent der $M$ Fälle.» In Abb. 5.8.20 wird genau das nachgemessen — die geschätzten Anteile liegen bei $0.66$, $0.6615$ und $0.69$.</p><p><b>Bemerkung 5.8.22:</b> kurzes Intervall ⟺ niedrige Wahrscheinlichkeit. Ein kleineres Intervall bei gleicher Wahrscheinlichkeit bekommt man nur über viel grösseres $N$ (und nur mit $1/\\sqrt N$) oder über kleinere Varianz.</p>",
+      "merke": "Ein Konfidenzintervall sagt nichts über den <i>einen</i> Lauf, den man gerade gemacht hat — nur über die Häufigkeit bei vielen Wiederholungen."
+    },
+    {
+      "id": "w8-z12",
+      "titel": "Pseudo-Zufallszahlen müssen reproduzierbar sein",
+      "ref": { "abschnitt": "5.8", "seite": 179, "nummer": "Bem. 5.8.23" },
+      "text": "<p>Das wirkt zunächst paradox — reproduzierbare Zufallszahlen? Die Begründung des Skripts: eine numerische Simulation besteht aus physikalischen Modellen, mathematischen Vereinfachungen, Approximationen, Algorithmen und Implementierungen. Weicht das Ergebnis von Erwartungen ab, «muss man im Stande sein, die Berechnungen zu wiederholen, um eben den Fehler zu suchen. Ernsthafte wissenschaftliche Arbeit muss immer reproduzierbar sein (sonst grenzt es an Schamanismus)».</p><p>Deshalb <b>Pseudo</b>-Zufallszahlen aus deterministischen Algorithmen, mit festem Seed. Für wichtige Rechnungen soll man die Ergebnisse mit <b>verschiedenen Generatoren</b> überprüfen und stets die neuesten verwenden — «da ist <code>numpy</code> ziemlich gut». Im Code des Skripts durchgehend <code>rng = np.random.default_rng(seed_value)</code>.</p>",
+      "merke": "<code>np.random.default_rng(seed)</code> statt der veralteten globalen <code>np.random.seed</code> — so macht es jeder Code in Kapitel 5.9."
+    },
+    {
+      "id": "w8-z13",
+      "titel": "Varianzreduktion: Control Variates",
+      "ref": { "abschnitt": "5.9", "seite": 181 },
+      "text": "<p>Das Prinzip der ganzen Varianzreduktion in einem Satz: <b>«Wenn wir den exakten Wert eines Integrals kennen, dann sollten wir ihn auch verwenden.»</b></p><p>Man spaltet $I=\\int_0^1 f$ auf in einen analytisch bekannten und einen stochastisch behandelten Teil:</p><p>$$I=\\int_0^1\\bigl(f(t)-\\varphi(t)\\bigr)\\mathrm{d}t+\\underbrace{\\int_0^1\\varphi(t)\\,\\mathrm{d}t}_{=:I_\\varphi\\text{ bekannt}}\\approx\\frac1N\\sum_{i=1}^{N}\\bigl[f(t_i)-\\varphi(t_i)\\bigr]+I_\\varphi.$$</p><p>Dabei soll $\\varphi$ zwei Bedingungen erfüllen: $\\varphi(u)\\approx f(u)$, und $I_\\varphi$ muss bekannt sein. Für $f(t)=e^{-\\cos(\\pi t)}=1-\\cos(\\pi t)+\\tfrac12\\cos^2(\\pi t)+\\dots$ nimmt das Skript die ersten drei Terme als $\\varphi$; deren exaktes Integral ist $1.25$.</p><p>Je besser $\\varphi$ die Funktion $f$ trifft, desto kleiner ist die Varianz von $f-\\varphi$ — und nur diese Restvarianz geht noch in den Fehler ein.</p>",
+      "merke": "Die Monte-Carlo-Simulation läuft nur noch auf dem <b>Rest</b> $f-\\varphi$. Nimmt man genügend Terme der Reihe, bleibt fast nichts Zufälliges übrig."
+    },
+    {
+      "id": "w8-z14",
+      "titel": "Varianzreduktion: Importance Sampling",
+      "ref": { "abschnitt": "5.9", "seite": 182, "nummer": "Thm. 5.9.3, Bsp. 5.9.4" },
+      "text": "<p>Hier wird nicht der Integrand zerlegt, sondern die <b>Verteilung der Stichprobe</b> geändert:</p><p>$$I=\\int_{[0,1]^d}z(x)\\,\\mathrm{d}x=\\int_{[0,1]^d}\\frac{z(x)}{g(x)}\\,g(x)\\,\\mathrm{d}x,$$</p><p>mit einer Dichte $g$; gezogen wird dann nach $g$ statt uniform. <b>Theorem 5.9.3</b> sichert die Erwartungstreue: sind $X_1,\\dots,X_N$ nach der Dichte $f$ verteilt, so hat $m_N=\\frac1N\\sum_i\\frac{z(X_i)}{f(X_i)}$ den Erwartungswert $\\int z$.</p><p>Die Faustregel: «Normalerweise nimmt man $g$ so, dass sie analytisch integrierbar ist und $g/f\\approx$ konstant ist» — man investiert also mehr Punkte dort, wo $f$ grosse Werte annimmt. Die verbleibende Varianz ist $\\sigma^2_{f/g}=\\int_0^1\\bigl(f(x)/g(x)-\\theta\\bigr)^2\\,\\mathrm{d}G(x)$.</p><p><b>Beispiel 5.9.4:</b> $\\int_0^1\\frac{\\mathrm{d}x}{\\sqrt{x(1-x)}}$ ist an beiden Rändern singulär. Der Trick ist, die Singularitäten zu isolieren: $g(x)=\\frac{1}{4\\sqrt x}+\\frac{1}{4\\sqrt{1-x}}$ macht $h=f/g=\\frac{4}{\\sqrt x+\\sqrt{1-x}}$ harmlos und beschränkt.</p><p><b>Beispiel 5.9.6</b> führt beides an $\\int_0^1 e^{x}\\mathrm{d}x$ vor: für Control Variates $\\varphi(x)=1+x$ mit $\\int_0^1(1+x)=\\tfrac32$; für Importance Sampling $g(x)=\\tfrac23(1+x)$, woraus über $y(x)=\\tfrac23(x+\\tfrac{x^2}{2})$ die Inversion $x(y)=-1+\\sqrt{1+3y}$ folgt.</p>",
+      "merke": "Die Substitution beruht auf dem Satz: ist $x$ uniform verteilt, so hat $y=G^{-1}(x)$ die Verteilung $G$. Genau das macht <code>prnd(N)</code> in Code 5.9.7."
+    },
+    {
+      "id": "w8-z15",
+      "titel": "Quasi-Monte-Carlo und die Grenzen",
+      "ref": { "abschnitt": "5.9", "seite": 190, "nummer": "Bem. 5.9.9, Bsp. 5.9.10, Abb. 5.9.8" },
+      "text": "<p><b>Bemerkung 5.9.9:</b> Der Fehler jeder Monte-Carlo-Methode nimmt wie $N^{-1/2}$ ab, «denn der Zufall (das Rauschen) bestimmt die Konvergenz». <b>Quasi-Monte-Carlo</b> ersetzt die Zufallszahlen durch <b>quasizufällige Sequenzen</b> (Sobol, Halton), die den Integrationsbereich systematisch abdecken. Das liefert einen <b>deterministischen</b> Fehler, der wie $N^{-1}\\cdot(\\log N)^{d}$ abnimmt.</p><p>Für moderate $d$ ist das etwa $N^{-1}$, für sehr grosses $d$ (etwa $d=600$) ist die Verbesserung nicht mehr sichtbar. «Trotzdem sind Sobol-Sequenzen in der Praxis oft deutlich besser als reines MC, weil viele Integranden <i>effektiv niedrigdimensional</i> sind.»</p><p><b>Beispiel 5.9.10</b> zeigt die Grenzen: für die Funktion (5.6.21) mit $d$ konzentrierten Schwingungen ist Importance Sampling nicht machbar, und «die Schwingungen der Funktion eliminieren auch jeden Ansatz mittels einer Taylor-Approximation für Control Variates». Der Ausweg ist dort ein <b>Fourier-Ansatz</b> — die komplexe Exponentialfunktion separiert, $\\int_{[0,1]^d}e^{2\\pi ik\\|\\mathbf x\\|_2^2}\\mathrm{d}\\mathbf x=\\bigl(\\int_0^1 e^{2\\pi ikx^2}\\mathrm{d}x\\bigr)^{d}$, und das eindimensionale Integral ist ein <b>Fresnel-Integral</b> (<code>scipy.special.fresnel</code>).</p>",
+      "merke": "In Abb. 5.9.8 sieht man den Gewinn als <b>Breite des Histogramms</b>: Standard-MC streut breit, Importance Sampling enger, Control Variates fast wie ein Strich."
+    }
+  ],
+
+  "moodleHinweis": "Für diese Woche liegt <b>noch kein</b> Moodle-Quiz vor — es kommt im Lauf des Semesters dazu und wird dann hier ergänzt. Bis dahin sind alle Fragen von mir im Stil der Originalfragen geschrieben und mit Skript-Verweis begründet. Alle Zahlenwerte sind mit NumPy/SciPy nachgerechnet; bei Monte-Carlo wird bewusst nach Raten und nötigen Stichprobenzahlen gefragt, nie nach dem Zufallsergebnis eines einzelnen Laufs.",
+
+  "moodle": [
+    {
+      "id": "m-w8-01",
+      "quelle": { "typ": "zusatz" },
+      "typ": "numeric-multi",
+      "thema": "Fluch der Dimension",
+      "frageHtml": "<p>Eine Tensorprodukt-Quadratur verwendet $n=65$ Knoten pro Dimension (so wie das volle Gitter in Abschnitt 5.7). Wie viele Funktionsauswertungen sind das? <b>Ganze Zahlen.</b></p>",
+      "felder": [
+        { "label": "d = 2", "wert": 4225, "tol": 1e-9, "tolTyp": "abs" },
+        { "label": "d = 3", "wert": 274625, "tol": 1e-9, "tolTyp": "abs" },
+        { "label": "d = 4", "wert": 17850625, "tol": 1e-9, "tolTyp": "abs" }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Die Tensorprodukt-Quadratur wertet $f$ an $n^{d}$ Stützstellen aus: $65^2=4\\,225$, $65^3=274\\,625$, $65^4=17\\,850\\,625$.</p><p>Diese Zahlen stehen genau so im Skript (S. 163): das volle Gitter braucht für $d=3$ «274625 Funktionsauswertungen und […] zirka 6.6 Sekunden», für $d=4$ «zirka 17.8 Millionen Funktionsauswertungen […] und braucht 426 Sekunden».</p><p>Pro zusätzlicher Dimension kommt ein Faktor 65 dazu — das ist der <b>Fluch der Dimension</b> in reiner Form. Das dünne Gitter braucht für dieselben Fälle nur 3'120 beziehungsweise 9'065 Auswertungen und ist dabei sogar <i>genauer</i>.</p>",
+      "skriptRef": { "abschnitt": "5.7", "seite": 163 }
+    },
+    {
+      "id": "m-w8-02",
+      "quelle": { "typ": "zusatz" },
+      "typ": "mc-single",
+      "thema": "Konvergenzrate in d Dimensionen",
+      "frageHtml": "<p>Eine eindimensionale Quadraturformel hat die Konvergenzrate $\\mathcal{O}(N^{-r})$. Welche Rate hat die daraus gebaute Tensorprodukt-Quadratur in $d$ Dimensionen, gemessen an der Gesamtzahl $N$ der Auswertungen?</p>",
+      "optionen": [
+        "$\\mathcal{O}(N^{-r})$ — die Rate bleibt erhalten, nur die Konstante wird grösser.",
+        "$\\mathcal{O}(N^{-r/d})$ — die Rate verschlechtert sich mit wachsender Dimension.",
+        "$\\mathcal{O}(N^{-rd})$ — die Rate verbessert sich, weil mehr Information vorliegt.",
+        "$\\mathcal{O}(N^{-1/2})$ — unabhängig von $r$ und $d$."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Das Skript hält es direkt fest: «Es sei ebenfalls angemerkt, dass für die Konvergenzrate gilt: $K=\\mathcal{O}(N^{-r/d})$, wobei $r$ die Konvergenzrate der eindimensionalen Quadraturformel ist. Deswegen wird die Konvergenz schlechter mit wachsender Anzahl an Dimensionen.»</p><p>Der Grund ist einfach: bei $N$ Gesamtauswertungen entfallen nur $N^{1/d}$ Knoten auf jede einzelne Dimension, und die eindimensionale Rate greift auf dieser kleineren Zahl.</p><p>Das ist der <b>zweite</b> Teil des Fluchs der Dimension — der erste ist die schiere Anzahl $n^{d}$. Option d ist die Rate von Monte-Carlo, das genau deshalb attraktiv wird: sie hängt nicht von $d$ ab.</p>",
+      "skriptRef": { "abschnitt": "5.7", "seite": 155 }
+    },
+    {
+      "id": "m-w8-03",
+      "quelle": { "typ": "zusatz" },
+      "typ": "mc-single",
+      "thema": "Dünne Gitter",
+      "frageHtml": "<p>Wie viele Punkte braucht die klassische Dünngitter-Quadratur nach Smolyak auf Level $\\ell$ in $d$ Dimensionen, verglichen mit dem vollen Gitter?</p>",
+      "optionen": [
+        "Dünn $\\mathcal{O}(2^{\\ell}\\ell^{d-1})$ gegenüber voll $\\mathcal{O}(2^{d\\ell})$ — die Dimension steht nicht mehr im Exponenten von $2^{\\ell}$, sondern nur noch im Faktor $\\ell^{d-1}$.",
+        "Dünn $\\mathcal{O}(2^{d\\ell}/d)$ gegenüber voll $\\mathcal{O}(2^{d\\ell})$ — eine Ersparnis um den Faktor $d$.",
+        "Dünn $\\mathcal{O}(\\ell^{d})$ gegenüber voll $\\mathcal{O}(2^{d\\ell})$ — der Aufwand wird vollständig polynomiell.",
+        "Beide $\\mathcal{O}(2^{d\\ell})$ — dünne Gitter sparen keine Punkte, sondern nur Rechenzeit pro Punkt."
+      ],
+      "loesung": 0,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Das Skript: «Es sind $N=\\mathcal{O}(2^{\\ell}\\ell^{d-1})$ Punkte, was deutlich weniger als die $\\mathcal{O}(2^{d\\ell})$ Punkte eines vollen Gitters sind.»</p><p>Entscheidend ist, <i>wo</i> die Dimension steht. Beim vollen Gitter im Exponenten von $2$, beim dünnen Gitter nur als Exponent von $\\ell$ — und $\\ell$ ist typischerweise klein (im Skript $\\ell=6$). Der Fehler ist $\\mathcal{O}\\!\\left(N^{-r}\\log^{(d-1)(r+1)}(N)\\right)$, also bis auf einen logarithmischen Faktor so gut wie in einer Dimension.</p><p>Der Preis: die Methode setzt <b>Glattheit</b> voraus — nur dann sind die weggelassenen hierarchischen Überschüsse wirklich vernachlässigbar.</p>",
+      "skriptRef": { "abschnitt": "5.7", "seite": 158 }
+    },
+    {
+      "id": "m-w8-04",
+      "quelle": { "typ": "zusatz" },
+      "typ": "numeric-multi",
+      "thema": "Monte-Carlo-Konvergenzrate",
+      "frageHtml": "<p>Der Monte-Carlo-Fehler verhält sich wie $\\sigma/\\sqrt N$. <b>Ganze Zahlen</b> für die ersten beiden Felder, Zahl für das dritte.</p>",
+      "felder": [
+        { "label": "\\text{Faktor für } N \\text{ bei 10-fach kleinerem Fehler}", "wert": 100, "tol": 1e-9, "tolTyp": "abs" },
+        { "label": "\\text{Faktor für } N \\text{ bei halbiertem Konfidenzintervall}", "wert": 4, "tol": 1e-9, "tolTyp": "abs" },
+        { "label": "\\text{Exponent } p \\text{ in } \\mathcal{O}(N^{p})", "wert": -0.5, "tol": 0.001, "tolTyp": "abs", "anzeige": "-1/2" }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Aus $E\\sim\\sigma N^{-1/2}$ folgt: soll $E$ um den Faktor $k$ kleiner werden, muss $\\sqrt N$ um $k$ wachsen, also $N$ um $k^{2}$. Für $k=10$ sind das <b>100</b>, für $k=2$ sind das <b>4</b>. Der Exponent ist $p=\\mathbf{-1/2}$.</p><p><b>Experimentell bestätigt:</b> für $\\int_0^1 e^{x}\\mathrm{d}x$, gemittelt über 200 Läufe, ergibt sich die Rate $N^{-0.489}$ — die Fehler fallen von $1.19\\cdot10^{-2}$ bei $N=10^{3}$ auf $4.18\\cdot10^{-4}$ bei $N=10^{6}$, also um den Faktor 28 bei 1000-fachem $N$ ($\\sqrt{1000}\\approx 31.6$).</p><p>Genau deshalb schreibt Bemerkung 5.8.2, dass eine Verbesserung «nur durch eine Verkleinerung der Varianz $\\sigma_N^2$ erzielt werden» kann — an $N$ zu drehen lohnt sich kaum.</p>",
+      "skriptRef": { "abschnitt": "5.8", "seite": 165, "nummer": "Bem. 5.8.1, Bem. 5.8.2" }
+    },
+    {
+      "id": "m-w8-05",
+      "quelle": { "typ": "zusatz" },
+      "typ": "mc-single",
+      "thema": "Warum Monte-Carlo dem Fluch entkommt",
+      "frageHtml": "<p>Warum ist die Monte-Carlo-Quadratur gerade für hochdimensionale Probleme attraktiv, obwohl sie mit $\\mathcal{O}(N^{-1/2})$ sehr langsam konvergiert?</p>",
+      "optionen": [
+        "Weil sie in hohen Dimensionen schneller konvergiert als in niedrigen.",
+        "Weil ihre Konvergenzrate <b>nicht von der Dimension</b> abhängt — die Dimension steckt allein in der Anzahl $N$ der gezogenen Zufallszahlen, während die Tensorprodukt-Quadratur mit $\\mathcal{O}(N^{-r/d})$ immer schlechter wird.",
+        "Weil sie für glatte Integranden exponentielle Konvergenz erreicht.",
+        "Weil sie den exakten Wert mit Wahrscheinlichkeit 1 trifft, sobald $N$ gross genug ist."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Bemerkung 5.8.1: die Konvergenz «hängt aber nicht (direkt) von der Dimension oder von der Glattheit des Integranden ab!» Und Bemerkung 5.8.2: «Die Dimension befindet sich hier nur in der Anzahl $N$ der generierten Zufallszahlen.»</p><p>Die Rate ist also in $d=2$ genauso $N^{-1/2}$ wie in $d=600$. Bei der Tensorprodukt-Quadratur wird die Rate dagegen mit jedem $d$ schlechter — ab einer gewissen Dimension gewinnt Monte-Carlo einfach dadurch, dass es nicht schlechter wird.</p><p>Option c beschreibt Gauss beziehungsweise Clenshaw-Curtis in einer Dimension. Option d ist klar falsch: Bemerkung 5.8.1 sagt ausdrücklich, die Methode sei «rein probabilistisch: Das Ergebnis kann völlig falsch sein.»</p>",
+      "skriptRef": { "abschnitt": "5.8", "seite": 165, "nummer": "Bem. 5.8.1/5.8.2" }
+    },
+    {
+      "id": "m-w8-06",
+      "quelle": { "typ": "zusatz" },
+      "typ": "numeric-multi",
+      "thema": "Konfidenzintervall",
+      "frageHtml": "<p>Zum Konfidenzintervall $[\\,m_N-\\lambda\\tilde\\sigma_N,\\ m_N+\\lambda\\tilde\\sigma_N\\,]$ aus Theorem 5.8.17. <b>Mit mindestens drei signifikanten Ziffern.</b></p>",
+      "felder": [
+        { "label": "p(\\lambda) \\text{ für } \\lambda = 1", "wert": 0.6827, "tol": 0.005, "tolTyp": "rel", "anzeige": "0.683" },
+        { "label": "\\lambda \\text{ für } p = 0.9", "wert": 1.645, "tol": 0.005, "tolTyp": "rel" },
+        { "label": "\\lambda \\text{ für } p = 0.5", "wert": 0.6745, "tol": 0.005, "tolTyp": "rel" }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>$p(\\lambda)=\\frac{1}{\\sqrt{2\\pi}}\\int_{-\\lambda}^{\\lambda}e^{-x^2/2}\\,\\mathrm{d}x$ hängt nur von der Intervalllänge $2\\lambda$ ab. Das Skript nennt genau diese Werte: «Eine Wahrscheinlichkeit $p(\\lambda)=0.5$ erhalten wir für $\\lambda=0.6745$, $p(\\lambda)=0.9$ braucht $\\lambda=1.645$ und $p(\\lambda)=0.95$ braucht $\\lambda=1.9605$. Die Wahl $\\lambda=1$ ergibt die am Anfang als magische Zahl angegebene Wahrscheinlichkeit $p(1)=0.683$.»</p><p>Mit <code>scipy.stats.norm</code> nachgerechnet: $2\\Phi(1)-1=0.6827$, $2\\Phi(1.645)-1=0.9000$, $2\\Phi(0.6745)-1=0.5000$.</p><p><b>Lesart beachten:</b> in <i>einem</i> Experiment sagt das Intervall nichts. Erst bei $M$-facher Wiederholung enthält es den wahren Wert in etwa $100\\,p(\\lambda)$ Prozent der Fälle — in Abb. 5.8.20 gemessen als $0.66$, $0.6615$ und $0.69$ gegenüber dem theoretischen $0.683$.</p>",
+      "skriptRef": { "abschnitt": "5.8", "seite": 170, "nummer": "Thm. 5.8.17, Bem. 5.8.22" }
+    },
+    {
+      "id": "m-w8-07",
+      "quelle": { "typ": "zusatz" },
+      "typ": "mc-single",
+      "thema": "Control Variates",
+      "frageHtml": "<p>Bei der Varianzreduktion mit <b>Control Variates</b> schreibt man $I=\\int_0^1\\bigl(f(t)-\\varphi(t)\\bigr)\\mathrm{d}t+I_\\varphi$. Welche Bedingungen muss $\\varphi$ erfüllen, und warum sinkt dadurch die Varianz?</p>",
+      "optionen": [
+        "$\\varphi$ muss eine Wahrscheinlichkeitsdichte sein; die Varianz sinkt, weil nach $\\varphi$ statt uniform gezogen wird.",
+        "$\\varphi$ muss $f$ gut approximieren <b>und</b> ein bekanntes Integral $I_\\varphi$ haben. Monte-Carlo läuft dann nur noch auf dem Rest $f-\\varphi$, dessen Varianz umso kleiner ist, je besser $\\varphi$ passt.",
+        "$\\varphi$ muss eine obere Schranke für $f$ sein, damit die Differenz das Vorzeichen nicht wechselt.",
+        "$\\varphi$ muss orthogonal zu $f$ sein, damit sich die Varianzen addieren."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Das Skript nennt beide Bedingungen explizit: «$\\varphi(u)\\approx f(u)$ und $I_\\varphi=\\int_0^1\\varphi(u)\\mathrm{d}u$ bekannt ist.» Dahinter steht das Leitprinzip von Abschnitt 5.9: «Wenn wir den exakten Wert eines Integrals kennen, dann sollten wir ihn auch verwenden.»</p><p>Der bekannte Teil $I_\\varphi$ trägt <b>gar keine</b> Varianz bei — er ist eine Zahl. Zufällig geschätzt wird nur noch $f-\\varphi$, und je besser $\\varphi$ passt, desto kleiner ist dessen Streuung. Im Beispiel $f(t)=e^{-\\cos(\\pi t)}$ nimmt das Skript die ersten drei Terme der Reihe mit dem exakten Integral $1.25$.</p><p>Option a beschreibt <b>Importance Sampling</b> — das ist die zweite Technik aus 5.9, nicht Control Variates. In Abb. 5.9.8 sieht man den Unterschied an der Breite der Histogramme: Control Variates liefert dort das mit Abstand schmalste.</p>",
+      "skriptRef": { "abschnitt": "5.9", "seite": 181 }
+    },
+    {
+      "id": "m-w8-08",
+      "quelle": { "typ": "zusatz" },
+      "typ": "mc-single",
+      "thema": "Importance Sampling",
+      "frageHtml": "<p>Beim <b>Importance Sampling</b> schreibt man $I=\\int z(x)\\mathrm{d}x=\\int\\frac{z(x)}{g(x)}g(x)\\mathrm{d}x$ und zieht nach der Dichte $g$. Wie wählt man $g$ sinnvoll?</p>",
+      "optionen": [
+        "So, dass $g$ möglichst konstant ist, damit alle Bereiche gleich oft getroffen werden.",
+        "So, dass $g$ im Integrationsbereich möglichst grosse Werte annimmt, damit der Quotient klein wird.",
+        "So, dass $g$ analytisch integrierbar ist und $g/f\\approx$ konstant ist — man investiert also mehr Punkte dort, wo $f$ grosse Werte annimmt.",
+        "So, dass $g$ in den Nullstellen von $f$ singulär wird, damit diese Bereiche häufiger getroffen werden."
+      ],
+      "loesung": 2,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Wörtlich im Skript: «Normalerweise nimmt man $g$ so, dass sie analytisch integrierbar ist und $g/f\\approx$ konstant ist.» Und zur Motivation: «Wir sollten mehr Punkte dort investieren, wo die Funktion grössere Werte annimmt.»</p><p>Die verbleibende Varianz ist $\\sigma^2_{f/g}=\\int_0^1\\bigl(f(x)/g(x)-\\theta\\bigr)^2\\mathrm{d}G(x)$ — sie wird genau dann klein, wenn der Quotient $f/g$ nahezu konstant ist. Analytische Integrierbarkeit braucht man, weil $G$ zur Inversion $x=G^{-1}(y)$ bekannt sein muss.</p><p>In Beispiel 5.9.4 ist $f(x)=1/\\sqrt{x(1-x)}$ an beiden Rändern singulär; $g(x)=\\frac{1}{4\\sqrt x}+\\frac{1}{4\\sqrt{1-x}}$ bildet diese Singularitäten nach, sodass $h=f/g=\\frac{4}{\\sqrt x+\\sqrt{1-x}}$ beschränkt und harmlos wird.</p><p>Option d dreht die Logik um: man will die Punkte dort, wo $f$ <i>gross</i> ist, nicht wo es null ist.</p>",
+      "skriptRef": { "abschnitt": "5.9", "seite": 183, "nummer": "Thm. 5.9.3, Bsp. 5.9.4" }
+    },
+    {
+      "id": "m-w8-09",
+      "quelle": { "typ": "zusatz" },
+      "typ": "mc-single",
+      "thema": "Quasi-Monte-Carlo",
+      "frageHtml": "<p>Was unterscheidet Quasi-Monte-Carlo von gewöhnlichem Monte-Carlo, und welche Fehlerrate erreicht es?</p>",
+      "optionen": [
+        "Es verwendet quasizufällige Sequenzen (Sobol, Halton), die den Bereich systematisch abdecken; der Fehler ist <b>deterministisch</b> und nimmt wie $N^{-1}(\\log N)^{d}$ ab — für moderate $d$ also etwa $N^{-1}$, für sehr grosses $d$ ist die Verbesserung nicht mehr sichtbar.",
+        "Es verwendet mehr Zufallszahlen pro Dimension und erreicht dadurch $N^{-1/2}$ statt $N^{-1/4}$.",
+        "Es ersetzt den Mittelwert durch den Median und ist dadurch robuster gegen Ausreisser.",
+        "Es nutzt eine andere Verteilung und erreicht exponentielle Konvergenz für glatte Integranden."
+      ],
+      "loesung": 0,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Bemerkung 5.9.9: «Die Quasi-Monte-Carlo-Methoden ersetzen die Zufallszahlen durch quasizufällige Sequenzen, die den Integrationsbereich systematisch abdecken (Sobol- und Halton-Sequenzen); das liefert einen deterministischen Fehler, der wie $N^{-1}\\cdot(\\log(N))^{d}$ abnimmt.»</p><p>Der Grund für die Grenze: der Faktor $(\\log N)^{d}$ wächst mit $d$ und frisst den Gewinn auf. «Für moderate Dimensionen $d$ ist das etwa wie $N^{-1}$, jedoch bei sehr grossem $d$, z.B. $d=600$, ist diese Verbesserung nicht mehr sichtbar.»</p><p>Das Skript ergänzt aber, dass Sobol-Sequenzen in der Praxis trotzdem oft deutlich besser abschneiden als reines MC, «weil viele Integranden <i>effektiv niedrigdimensional</i> sind» — die tatsächliche Variabilität steckt dann nur in wenigen Richtungen.</p>",
+      "skriptRef": { "abschnitt": "5.9", "seite": 190, "nummer": "Bem. 5.9.9" }
+    },
+    {
+      "id": "m-w8-10",
+      "quelle": { "typ": "zusatz" },
+      "typ": "mc-single",
+      "thema": "Reproduzierbarkeit",
+      "frageHtml": "<p>Warum verwendet man in Monte-Carlo-Simulationen <b>Pseudo</b>-Zufallszahlen mit festem Seed, statt echte Zufallsquellen zu nutzen?</p>",
+      "optionen": [
+        "Weil echte Zufallszahlen zu langsam erzeugt werden und die Simulation ausbremsen würden.",
+        "Weil echte Zufallszahlen nicht gleichverteilt sind und die Erwartungstreue des Schätzers zerstören würden.",
+        "Weil wissenschaftliche Arbeit reproduzierbar sein muss: weicht ein Ergebnis von der Erwartung ab, muss man die Rechnung wiederholen können, um den Fehler zu suchen — «sonst grenzt es an Schamanismus».",
+        "Weil nur Pseudo-Zufallszahlen in beliebiger Dimension erzeugt werden können."
+      ],
+      "loesung": 2,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Bemerkung 5.8.23 begründet es genau so: eine Simulation besteht aus physikalischen Modellen, mathematischen Vereinfachungen, Approximationen, Algorithmen und Implementierungen. «Wenn man eine Diskrepanz mit dem physikalischen Experiment oder mit Erwartungen hat […] muss man im Stande sein, die Berechnungen zu wiederholen, um eben den Fehler zu suchen. Ernsthafte wissenschaftliche Arbeit muss immer reproduzierbar sein (sonst grenzt es an Schamanismus).»</p><p>Praktische Folgerungen aus derselben Bemerkung: gute und erprobte Generatoren verwenden, bei wichtigen Rechnungen die Ergebnisse mit <b>verschiedenen</b> Generatoren gegenprüfen, und stets die neuesten nehmen — «da ist <code>numpy</code> ziemlich gut». Deshalb steht in jedem Code des Kapitels <code>rng = np.random.default_rng(seed_value)</code>.</p><p>Das Skript räumt in einer Fussnote ein, dass Ergebnisse von teuren Supercomputern «aus rein physikalischen Gründen oft nicht reproduzierbar sein» können.</p>",
+      "skriptRef": { "abschnitt": "5.8", "seite": 179, "nummer": "Bem. 5.8.23" }
+    }
+  ],
+
   "codeexpert": []
 }
