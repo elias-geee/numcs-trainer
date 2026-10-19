@@ -1,13 +1,314 @@
 {
   "woche": 7,
   "titel": "Numerische Quadratur",
-  "status": "platzhalter",
-  "skript": {
-    "kapitel": "5.1–5.6",
-    "seiten": "119–153"
-  },
+  "status": "nur_zusammenfassung",
+  "skript": { "kapitel": "5.1–5.6", "seiten": "119–153" },
   "vorlage": "wochenplan/Vorlage07_QuadraturV0.pdf",
-  "zusammenfassung": [],
-  "moodle": [],
+
+  "einleitung": "<p>Quadratur heisst: ein Integral $\\int_a^b f(x)\\,\\mathrm{d}x$ durch eine <b>gewichtete Summe von Funktionswerten</b> ersetzen. Das Skript betont, warum ausgerechnet dieses einfache Problem so lehrreich ist: «Quadratur in einer Dimension ist eine sehr einfache mathematische Aufgabe, die uns erlaubt, viele Ideen und Ansätze kennenzulernen, die von zentraler Bedeutung für andere kompliziertere Probleme sind» — Interpolation, Teile und Herrsche, Referenzintervall, spektrale Verfahren, Adaptivität.</p><p>Der rote Faden ist eine einzige Frage: <b>wie bekommt man mit wenigen Funktionsauswertungen einen kleinen Fehler?</b> Stell dir vor, eine Auswertung von $f$ kostet einen Tag Laborarbeit. Es gibt genau zwei Hebel — das Gitter verfeinern (h-Methoden, Kapitel 5.4) oder die Knoten klüger platzieren (Gauss und Clenshaw-Curtis, Kapitel 5.5). Dazwischen steht die Warnung aus Kapitel 2 in neuem Gewand: Newton-Cotes hoher Ordnung auf äquidistanten Knoten ist unbrauchbar, aus genau demselben Grund wie das Runge-Phänomen.</p>",
+
+  "zusammenfassung": [
+    {
+      "id": "w7-z1",
+      "titel": "Was eine Quadraturformel ist",
+      "ref": { "abschnitt": "5.3", "seite": 120, "nummer": "Def. 5.3.1, (5.3.1)" },
+      "text": "<p>Das Integral wird durch eine gewichtete Summe von Funktionswerten approximiert. Die $\\omega_i^n$ heissen <b>Gewichte</b>, die $c_i^n\\in[a,b]$ <b>Knoten</b> der Quadraturformel.</p><p>Das Ziel ist, Knoten und Gewichte so zu wählen, dass der Fehler systematisch klein wird, ohne dass die Rechenkosten — also die <b>Anzahl Funktionsauswertungen</b> — zu gross werden. «Systematisch» heisst: $E(n)\\to 0$ für $n\\to\\infty$, und die Verbesserung beim Verdoppeln der Auswertungen muss quantifizierbar sein.</p>",
+      "formeln": ["\\int_a^b f(x)\\,\\mathrm{d}x \\approx Q_n(f;a,b) := \\sum_{i=1}^{n}\\omega_i^n\\,f(c_i^n)"],
+      "merke": "Die Vorstellung des Skripts: eine Auswertung von $f$ kann einen Tag Laborarbeit kosten. Deshalb zählt die Zahl der Auswertungen, nicht die Zahl der Rechenoperationen."
+    },
+    {
+      "id": "w7-z2",
+      "titel": "Fehler, algebraische und exponentielle Konvergenz",
+      "ref": { "abschnitt": "5.3", "seite": 120, "nummer": "Def. 5.3.2" },
+      "text": "<p>Der Fehler ist $E(n)=\\bigl|\\int_a^b f\\,\\mathrm{d}x - Q_n(f;a,b)\\bigr|$. Zwei Konvergenzarten werden unterschieden:</p><ul><li><b>algebraische Konvergenz</b>, wenn $E(n)=\\mathcal{O}\\!\\left(\\tfrac{1}{n^{p}}\\right)$ mit $p&gt;0$</li><li><b>exponentielle Konvergenz</b>, wenn $E(n)=\\mathcal{O}(q^{n})$ mit $0\\le q &lt; 1$</li></ul><p>Exponentiell schlägt algebraisch für grosse $n$ um Längen — das Skript empfiehlt als Übung, $n^{p}$ und $q^{n}$ für $n=1,\\dots,12$ in einer lin-log-Skala ins selbe Bild zu zeichnen.</p>",
+      "merke": "Diese beiden Begriffe strukturieren das ganze Kapitel: summierte Newton-Cotes-Formeln konvergieren algebraisch, Gauss und Clenshaw-Curtis für glatte Integranden exponentiell."
+    },
+    {
+      "id": "w7-z3",
+      "titel": "Grundidee: ersetze $f$ durch etwas Integrierbares",
+      "ref": { "abschnitt": "5.3", "seite": 121, "nummer": "(5.3.2)" },
+      "text": "<p>Man approximiert $f$ durch $f_n\\in\\operatorname{span}\\{b_0,\\dots,b_n\\}$ und integriert stattdessen diese:</p><p>$$\\int_a^b f \\approx \\int_a^b f_n = \\sum_k \\alpha_k \\int_a^b b_k(x)\\,\\mathrm{d}x.$$</p><p>Für Monome $b_k(x)=x^k$ ist $\\int_a^b x^k\\mathrm{d}x = \\frac{b^{k+1}-a^{k+1}}{k+1}$ und die Interpolationsbedingung führt auf ein LGS mit der <b>Vandermonde-Matrix</b> (5.3.2) — numerisch sehr schlecht konditioniert für grosses $n$, also kein praktikabler Weg, aber ein universeller Zugang.</p><p>Nimmt man stattdessen trigonometrische Polynome $e^{ikx}$ als Basis, landet man bei der Fourier-Approximation und kann die FFT aus Kapitel 3 einsetzen — genau das tut später die Clenshaw-Curtis-Formel.</p>",
+      "merke": "Die Basiswahl der Interpolation entscheidet auch hier über alles — dieselbe Lehre wie in Kapitel 2."
+    },
+    {
+      "id": "w7-z4",
+      "titel": "Gewichte aus den Lagrange-Polynomen",
+      "ref": { "abschnitt": "5.3", "seite": 123, "nummer": "Def. 5.3.3, Bem. 5.3.6/5.3.7" },
+      "text": "<p>Mit den Lagrange-Polynomen $\\ell_i(x)=\\prod_{j\\neq i}\\frac{x-x_j}{x_i-x_j}$ (5.3.3) ist das Interpolationspolynom $p(x)=\\sum_j f(x_j)\\ell_j(x)$ sofort hingeschrieben. Integriert man das, erhält man eine Quadraturformel mit den Knoten $x_0,\\dots,x_n$ und den <b>Gewichten</b></p><p>$$w_j=\\int_a^b \\ell_j(x)\\,\\mathrm{d}x,\\qquad j=0,\\dots,n.$$</p><p>Konstruktionsbedingt ist diese Formel exakt für alle Polynome aus $\\mathcal{P}_{n+1}$. Die Eigenschaften der $\\ell_i$ sind dieselben wie in Kapitel 2.3 (Bem. 5.3.6): $\\ell_i(x_j)=\\delta_{ij}$, $\\operatorname{Grad}(\\ell_i)=n$ für alle $i$, $\\sum_i \\ell_i(x)=1$.</p>",
+      "merke": "Jede Quadraturformel mit festen Knoten ist im Kern eine integrierte Polynominterpolation. Deshalb erbt sie deren Stärken <i>und</i> deren Schwächen."
+    },
+    {
+      "id": "w7-z5",
+      "titel": "Teile und herrsche: von lokaler zu globaler Ordnung",
+      "ref": { "abschnitt": "5.3", "seite": 124 },
+      "text": "<p>Aus der Interpolationsfehlerschranke folgt für $f\\in C^n[a,b]$</p><p>$$\\Bigl|\\int_a^b f\\,\\mathrm{d}x-\\int_a^b p_n\\,\\mathrm{d}x\\Bigr|\\le \\frac{1}{n!}(b-a)^{n+1}\\max\\bigl|f^{(n)}(z)\\bigr|.$$</p><p>Daraus liest man zwei Dinge ab: die <b>Glattheit</b> von $f$ zählt, und die <b>Länge des Intervalls</b> zählt. Also zerlegt man $[a,b]$ in $N$ Teilintervalle der Länge $h=\\frac{b-a}{N}$ und wendet die Formel lokal an.</p><p>Die entscheidende Buchhaltung: der <b>lokale</b> Fehler ist von der Ordnung $h^{n+1}$, es gibt $N=(b-a)/h$ solche Beiträge, also ist der <b>globale</b> Fehler von der Ordnung $h^{n}$:</p><p>$$\\sum_{k=0}^{N-1}C\\frac{h^{n+1}}{n!}=C\\frac{h^{n+1}}{n!}\\cdot\\frac{b-a}{h}=C\\frac{h^{n}}{n!}(b-a).$$</p>",
+      "merke": "<b>Ein Faktor $h$ geht durch das Aufsummieren verloren.</b> Lokale Ordnung $h^{n+1}$ ⇒ globale Ordnung $h^{n}$. Das ist der meistvergessene Schritt im ganzen Kapitel."
+    },
+    {
+      "id": "w7-z6",
+      "titel": "Referenzintervall und affine Transformation",
+      "ref": { "abschnitt": "5.3", "seite": 125 },
+      "text": "<p>Knoten und Gewichte werden einmal auf einem festen Referenzintervall — meist $[-1,1]$ — bestimmt und tabelliert. Der Variablenwechsel bildet sie auf jedes gewünschte $[a,b]$ ab:</p><p>Die Knoten werden affin verschoben, die Gewichte mit $\\tfrac12(b-a)$ skaliert. Deshalb genügt eine einzige Tabelle für alle Intervalle.</p>",
+      "formeln": [
+        "\\int_a^b f(t)\\,\\mathrm{d}t=\\tfrac12(b-a)\\int_{-1}^{1}\\widehat f(\\tau)\\,\\mathrm{d}\\tau,\\qquad \\widehat f(\\tau)=f\\bigl(\\tfrac12(1-\\tau)a+\\tfrac12(\\tau+1)b\\bigr)",
+        "c_j=\\tfrac12(1-\\widehat c_j)a+\\tfrac12(1+\\widehat c_j)b,\\qquad w_j=\\tfrac12(b-a)\\,\\widehat w_j"
+      ],
+      "merke": "Die Gewichte tragen den Faktor $\\tfrac12(b-a)$, die Knoten nicht. Vergisst man ihn, ist das Ergebnis um genau diesen Faktor daneben."
+    },
+    {
+      "id": "w7-z7",
+      "titel": "Ordnung einer Quadraturformel",
+      "ref": { "abschnitt": "5.3", "seite": 125, "nummer": "Def. 5.3.8, Def. 5.3.9, Thm. 5.3.11" },
+      "text": "<p><b>Definition 5.3.8:</b> Eine Quadraturformel besitzt <b>Ordnung $n+1$</b>, wenn sie Polynome vom Grad $n$ exakt integriert. Anders gesagt: sie berechnet die Integrale aller Monome bis zum Grad $n$ exakt, und das erste falsche Ergebnis kommt bei $x^{n+1}$.</p><p>Eine Formel auf $[-1,1]$ heisst <b>symmetrisch</b> (Def. 5.3.9), falls $\\omega_i=\\omega_{n+1-i}$ und $c_i=-c_{n+1-i}$. Mittelpunkts-, Trapez- und Simpson-Regel sind symmetrisch (Bem. 5.3.10).</p><p><b>Theorem 5.3.11:</b> Die Ordnung einer symmetrischen Quadraturformel ist <b>gerade</b>. Das ist der Grund, warum die Mittelpunktsregel Ordnung 2 hat und nicht 1, und die Simpson-Regel Ordnung 4 statt 3.</p>",
+      "merke": "Achtung auf die Zählweise: Ordnung $n+1$ bedeutet exakt bis Grad $n$. Ein Polynom vom Grad $n$ hat $n+1$ Koeffizienten — daher die Verschiebung um eins."
+    },
+    {
+      "id": "w7-z8",
+      "titel": "Die drei Newton-Cotes-Formeln",
+      "ref": { "abschnitt": "5.4", "seite": 126, "nummer": "(5.4.4)–(5.4.6)" },
+      "text": "<p>Alle drei auf äquidistanten Knoten:</p><ul><li><b>Mittelpunkt</b> (5.4.4), 1 Auswertung, Ordnung <b>2</b> (exakt für lineare Funktionen — wegen Thm. 5.3.11 nicht nur 1)</li><li><b>Trapez</b> (5.4.5), 2 Auswertungen, Ordnung <b>2</b>, Fehler $\\bigl|-\\tfrac{1}{12}(b-a)^3 f''(\\xi)\\bigr|$</li><li><b>Simpson</b> (5.4.6), 3 Auswertungen, Ordnung <b>4</b> (Interpolation durch eine Parabel gäbe nur 3; Symmetrie hebt sie auf 4), Fehler $\\bigl|-\\tfrac{1}{90}\\bigl(\\tfrac{b-a}{2}\\bigr)^{5} f^{(4)}(\\xi)\\bigr|$</li></ul>",
+      "formeln": [
+        "Q^{M}(f;a,b)=(b-a)\\,f\\!\\left(\\tfrac{a+b}{2}\\right)",
+        "Q^{T}(f;a,b)=\\tfrac{b-a}{2}\\bigl(f(a)+f(b)\\bigr)",
+        "Q^{S}(f;a,b)=\\tfrac{b-a}{6}\\left(f(a)+4f\\!\\left(\\tfrac{a+b}{2}\\right)+f(b)\\right)"
+      ],
+      "merke": "Die Mittelpunktsregel braucht nur <i>eine</i> Auswertung und hat dieselbe Ordnung wie Trapez mit zweien — bei teuren Auswertungen ein echtes Argument."
+    },
+    {
+      "id": "w7-z9",
+      "titel": "Summierte Formeln und ihre Konvergenz",
+      "ref": { "abschnitt": "5.4", "seite": 128, "nummer": "(5.4.7)–(5.4.10), Thm. 5.4.4" },
+      "text": "<p>Das Intervall wird in $N$ Subintervalle der Länge $h$ unterteilt und die lokale Formel aufsummiert. Für die summierte Trapezregel (5.4.8) gilt die handliche Schranke</p><p>$$E(n)\\le \\frac{h^{2}}{12}(b-a)\\max_{x\\in[a,b]}|f''(x)|.$$</p><p><b>Theorem 5.4.4</b> verallgemeinert das: beruht die zusammengesetzte Formel auf einer lokalen Formel der Ordnung $p$, so gibt es ein $C&gt;0$ mit</p><p>$$\\Bigl|\\int_I f\\,\\mathrm{d}t - Q(f)\\Bigr|\\le C\\,h^{p}\\,\\bigl\\|f^{(p)}\\bigr\\|_{L^{\\infty}(I)}\\quad\\text{für alle } f\\in C^{p}(I).$$</p><p>Also: summierte Trapezregel $\\mathcal{O}(h^{2})$, summierte Simpson-Regel $\\mathcal{O}(h^{4})$ — und beides nur, solange $f$ glatt genug ist. Bei $f_2(t)=\\sqrt{t}$ beschränkt die Unglattheit die Konvergenzordnung, unabhängig von der verwendeten Formel (Bsp. 5.4.5).</p>",
+      "merke": "Die Ordnung in der Schranke ist die der <b>lokalen</b> Formel; der Exponent von $h$ ist derselbe. Aber: $\\|f^{(p)}\\|_\\infty$ muss existieren — sonst gilt die Aussage schlicht nicht."
+    },
+    {
+      "id": "w7-z10",
+      "titel": "Die Überraschung: Trapez kann exponentiell konvergieren",
+      "ref": { "abschnitt": "5.4", "seite": 131, "nummer": "Bsp. 5.4.8, Abb. 5.4.9" },
+      "text": "<p>Die Trapezregel hat Ordnung 2 — wendet man sie aber auf einen <b>1-periodischen und analytischen</b> Integranden an, konvergiert sie <b>exponentiell</b>.</p><p>Der Grund ist die diskrete Orthogonalität aus Kapitel 3: die summierte Trapezregel $T_m$ ist exakt für alle trigonometrischen Polynome vom Grad $&lt; 2m$, denn für $f(t)=e^{2\\pi i k t}$ gilt $\\int_0^1 f = \\delta_{k0}$ und zugleich $T_m(f)=\\frac{1}{m}\\sum_{l=0}^{m-1}e^{\\frac{2\\pi}{m}ilk}=1$ genau dann, wenn $k\\in m\\mathbb{Z}$, sonst $0$.</p><p>Im Experiment mit $f(t)=\\bigl(1-a\\sin(2\\pi t-1)\\bigr)^{-1/2}$ verschwindet die exponentielle Konvergenz, wenn $a$ nahe an $1$ liegt ($a=1$ macht $f$ unstetig) — und auf dem <b>halben</b> Intervall $[0,\\tfrac12]$, wo die Periodizität verloren geht, bleibt nur algebraische Konvergenz.</p>",
+      "merke": "Periodisch <b>und</b> analytisch <b>und</b> über die volle Periode integriert — fehlt eine der drei Bedingungen, ist die Trapezregel wieder nur $\\mathcal{O}(h^2)$."
+    },
+    {
+      "id": "w7-z11",
+      "titel": "Romberg-Schema",
+      "ref": { "abschnitt": "5.4", "seite": 132, "nummer": "Bem. 5.4.10, (5.4.11)–(5.4.16)" },
+      "text": "<p>Für glatte $f$ hat der Fehler der summierten Trapezregel $T(h)$ eine Entwicklung in <b>nur geraden</b> Potenzen von $h$ (5.4.11). Damit greift exakt derselbe Trick wie bei der Richardson-Extrapolation aus Woche 1: die Linearkombination</p><p>$$T_1(h)=\\frac{2^{2}T(h/2)-T(h)}{2^{2}-1}$$</p><p>eliminiert den $h^2$-Term und konvergiert wie $h^4$. Wiederholt ergibt das mit $T_{\\ell,0}=T(h/2^{\\ell})$ das <b>Romberg-Schema</b> (5.4.16) mit dem Fehler $R_{\\ell,k}-\\int_a^b f = C\\cdot(h/2^{\\ell})^{2k+2}$.</p><p>Besonders günstig: die Gitter sind <b>verschachtelt</b>, alle Funktionsauswertungen des gröberen Gitters werden wiederverwendet. Jede Extrapolationsstufe kostet nur eine Addition und eine Multiplikation — keine einzige zusätzliche Auswertung von $f$. In Abb. 5.4.11 erreicht Romberg nach 6 Iterationen Maschinengenauigkeit bei etwa demselben Aufwand wie die reine Trapezregel.</p>",
+      "formeln": ["R_{\\ell,k}=\\frac{4^{k}R_{\\ell,k-1}-R_{\\ell-1,k-1}}{4^{k}-1}"],
+      "merke": "Identisch zum Richardson-Schema aus Kapitel 1.1, inklusive des Nenners $4^k-1$. Bem. 5.4.12 hält fest, dass die Idee für jede Grösse mit einer Entwicklung $N(h)=M+c_1h^{q}+c_2h^{2q}+\\dots$ funktioniert; bei der Interpolation heisst dasselbe Schema Aitken-Neville."
+    },
+    {
+      "id": "w7-z12",
+      "titel": "Newton-Cotes hoher Ordnung: nicht verwenden",
+      "ref": { "abschnitt": "5.4", "seite": 137, "nummer": "Bem. 5.4.13, Abb. 5.5.24" },
+      "text": "<p>Klartext aus dem Skript: «In der Praxis werden <b>keine äquidistante Quadraturformel höherer Ordnung</b> (also keine ausser Mittelpunkt-, Trapez- und Simpson-Formel) verwendet, denn das Kosten/Nutzen Verhalten verschlechtert sich dramatisch.»</p><p>Ab Ordnung 8 beziehungsweise ab $N=9$ Knoten treten <b>negative Gewichte</b> auf, die sich akkumulierende Rundungsfehler und Auslöschung einhandeln. Das Skript stellt aber ausdrücklich klar, woran es <i>wirklich</i> liegt: «nicht die Rundungsfehler selber [sind] schuld an das dramatische Scheitern […], sondern die (hier versteckte) Verwendung von Polynome höherer Grade auf äquidistante Punkte ist eine äusserst schlechte Idee; das katastrophale Verhalten käme selbst bei exakter Arithmetik zum Vorschein».</p><p>Das ist dasselbe Runge-Phänomen wie in Kapitel 2.3 — nur integriert. Der Ausweg ist derselbe: nicht-äquidistante Knoten, also Chebyshev beziehungsweise Gauss.</p>",
+      "merke": "Negative Gewichte sind das <i>Symptom</i>, die Polynominterpolation hohen Grades auf äquidistanten Knoten ist die <i>Ursache</i>."
+    },
+    {
+      "id": "w7-z13",
+      "titel": "Gauss-Quadratur: Knoten mitoptimieren",
+      "ref": { "abschnitt": "5.5.1", "seite": 139, "nummer": "(5.5.17), Thm. 5.5.1, Thm. 5.5.2" },
+      "text": "<p>Bisher waren die Knoten vorgegeben und nur die Gewichte frei. Lässt man <b>beide</b> frei, verdoppelt sich die erreichbare Ordnung.</p><p><b>Theorem 5.5.1:</b> Die Ordnung ist genau dann $s+m$, wenn $\\langle M,g\\rangle=0$ für alle Polynome $g$ vom Grad $\\le m-1$ gilt, wobei $M(t)=(t-c_1)\\cdots(t-c_s)$ — das Knotenpolynom muss also <b>senkrecht auf allen Polynomen niedrigeren Grades</b> stehen.</p><p><b>Theorem 5.5.2:</b> Die Ordnung einer Quadraturformel mit $s$ Knoten ist <b>höchstens $2s$</b>. Gauss erreicht dieses Maximum, integriert also alle Polynome bis Grad $2s-1$ exakt.</p>",
+      "formeln": ["\\int_0^1 g(t)\\,\\mathrm{d}t\\approx\\sum_{j=1}^{s}b_j\\,g(c_j),\\qquad \\text{Ordnung}=2s"],
+      "merke": "$s$ Knoten plus $s$ Gewichte sind $2s$ freie Parameter — und genau $2s$ ist die erreichbare Ordnung. Mehr geht nach Thm. 5.5.2 nicht."
+    },
+    {
+      "id": "w7-z14",
+      "titel": "Orthogonale Polynome liefern die Knoten",
+      "ref": { "abschnitt": "5.5.1", "seite": 141, "nummer": "Thm. 5.5.3, (5.5.19), Bem. 5.5.7" },
+      "text": "<p>Zu einer Gewichtsfunktion $w&gt;0$ und dem Skalarprodukt $\\langle f,g\\rangle=\\int_a^b f g\\,w\\,\\mathrm{d}x$ existiert eine eindeutige Folge orthogonaler Polynome $p_k$, aufgebaut über eine <b>Drei-Term-Rekursion</b> (5.5.19). <b>Bemerkung 5.5.7:</b> die Gauss-Knoten $c_1,\\dots,c_s$ sind genau die <b>Nullstellen von $p_s$</b>.</p><p>Für $w\\equiv 1$ auf $[-1,1]$ sind das die <b>Legendre-Polynome</b> (Bsp. 5.5.4): $p_0=1$, $p_1=x$, $p_2=\\tfrac12(3x^2-1)$, $p_3=\\tfrac12(5x^3-3x)$. Konkret (Bsp. 5.5.8–5.5.10):</p><ul><li>$s=1$: Knoten $0$, Gewicht $2$ — das ist genau die <b>Mittelpunktsregel</b>, Ordnung 2</li><li>$s=2$: Knoten $\\pm\\tfrac{1}{\\sqrt3}$, Gewichte $1,1$ — Ordnung 4</li><li>$s=3$: Knoten $0,\\pm\\tfrac{\\sqrt{15}}{5}$, Gewichte $\\tfrac59,\\tfrac89,\\tfrac59$ — Ordnung 6</li></ul><p>Die Gewichte lassen sich als $b_i=\\int_{-1}^{1}\\ell_i(t)^2\\,\\mathrm{d}t$ schreiben (5.5.20) — woraus <b>Theorem 5.5.15</b> sofort folgt: die Gauss-Gewichte sind <b>positiv</b>. Genau das fehlt Newton-Cotes hoher Ordnung.</p><p>Andere Gewichtsfunktionen liefern andere Familien (Abb. 5.5.25): Chebyshev I und II, Jacobi, Hermite auf $\\mathbb{R}$ mit $e^{-x^2}$, Laguerre auf $(0,\\infty)$ — in SciPy als <code>roots_legendre</code>, <code>roots_chebyt</code>, <code>roots_jacobi</code>, <code>roots_hermite</code>, <code>roots_genlaguerre</code>.</p>",
+      "merke": "Gewichte positiv (Thm. 5.5.15) ⇒ keine Auslöschung. Der Fehler ist $\\frac{b-a}{(2s)!}f^{(2s)}(z)$, zusammengesetzt $\\le c\\,h^{2s}\\max|f^{(2s)}|$."
+    },
+    {
+      "id": "w7-z15",
+      "titel": "Preis der Gauss-Quadratur: keine Verschachtelung",
+      "ref": { "abschnitt": "5.5.1", "seite": 143, "nummer": "Bem. 5.5.11, Abb. 5.5.17" },
+      "text": "<p>Die Nachteile stehen gesammelt in Bemerkung 5.5.11:</p><ul><li>Die Gauss-Knoten sind <b>nicht verschachtelt</b>. Erhöht man die Ordnung, kann man <b>keine</b> der vorigen Funktionsauswertungen wiederverwenden — der Gegensatz zu Romberg.</li><li>Sie sind nicht äquidistant; bei Messdaten zu fester Taktrate ist Gauss damit gar nicht anwendbar.</li><li>Die Intervallenden sind <b>keine</b> Knoten, die Formeln sind «offen». Braucht man sie als Knoten, reduziert sich die maximale Ordnung: <b>Radau</b> (ein Ende fest) erreicht $2s-1$, <b>Lobatto</b> (beide Enden fest) $2s-2$; beide über <code>scipy.special.roots_jacobi</code> konstruierbar.</li></ul><p>Die Knotenberechnung selbst: Golub-Welsch (Code 5.5.16) kostet $\\mathcal{O}(s^3)$ bis $\\mathcal{O}(s^2)$ bei ungenauen Gewichten, Bogaert-Townsend (2012–2014) schafft $\\mathcal{O}(s)$ bei voller Genauigkeit, Clenshaw-Curtis $\\mathcal{O}(s\\log s)$ für $2s$ Knoten.</p>",
+      "merke": "Verschachtelung ist der Grund, warum adaptive und extrapolierende Verfahren Gauss oft doch vorziehen — gespart wird an Auswertungen, nicht an Ordnung."
+    },
+    {
+      "id": "w7-z16",
+      "titel": "Clenshaw-Curtis: Quadratur über die FFT",
+      "ref": { "abschnitt": "5.5.2", "seite": 146, "nummer": "Abb. 5.5.21–5.5.23" },
+      "text": "<p>Clenshaw-Curtis (1960) approximiert den Integranden mit <b>Chebyshev-Polynomen</b> und nimmt als Knoten die Chebyshev-Abszissen $x_k=\\cos\\!\\left(\\tfrac{k\\pi}{n}\\right)$, $k=0,\\dots,n$ — <b>inklusive</b> der Intervallenden. Fejér hatte zuvor die Chebyshev-Knoten $x_k=\\cos\\!\\bigl((k+\\tfrac12)\\tfrac{\\pi}{n}\\bigr)$ beziehungsweise die Filippi-Knoten verwendet.</p><p>Der Variablenwechsel $x=\\cos\\theta$ macht den Integranden <b>periodisch</b>:</p><p>$$\\int_{-1}^{1}f(x)\\,\\mathrm{d}x=\\int_0^{\\pi}f(\\cos\\theta)\\sin\\theta\\,\\mathrm{d}\\theta.$$</p><p>$F(\\theta):=f(\\cos\\theta)$ ist $2\\pi$-periodisch und gerade, lässt sich also in eine Kosinusreihe $F=\\sum_k a_k\\cos(k\\theta)$ entwickeln, und das Integral wird zu $a_0+\\sum_{k\\ge2\\ \\text{gerade}}\\frac{2a_k}{1-k^2}$. Die $a_k$ liefert die <b>FFT</b> beziehungsweise DCT — daher sehr kurze Rechenzeit und sehr gute Genauigkeit.</p><p>Im Vergleich (Abb. 5.5.21–5.5.23): für sehr glatte Funktionen konvergieren Gauss und Clenshaw-Curtis <b>beide exponentiell</b>, Gauss mit $\\mathcal{O}(\\rho^{2n})$ etwas schneller als $\\mathcal{O}(\\rho^{n})$. Für kleine $n$ und für Integranden, die nicht analytisch in einer komplexen Umgebung von $[-1,1]$ sind, verhalten sich beide praktisch gleich — bei deutlich billigeren und verschachtelten Knoten auf der Clenshaw-Curtis-Seite.</p>",
+      "merke": "Hier schliesst sich der Kreis zu Kapitel 3: die Quadratur wird über die DFT berechnet. Die Chebyshev-Abszissen sind die Extrema von $T_n$ und zugleich die Nullstellen von $U_{n-1}$."
+    },
+    {
+      "id": "w7-z17",
+      "titel": "Adaptive Quadratur",
+      "ref": { "abschnitt": "5.6", "seite": 151, "nummer": "Bsp. 5.6.1, Code 5.6.2" },
+      "text": "<p>Ziel: das Gitter nur dort verfeinern, wo es nötig ist. Für den lokalen Fehler der Trapezregel gilt $\\bigl|\\int_{x_k}^{x_{k+1}}f - Q^T\\bigr|\\le (x_{k+1}-x_k)^3\\|f''\\|_{L^\\infty([x_k,x_{k+1}])}$ — es lohnt sich also, dort zu verfeinern, wo $|f''|$ gross ist.</p><p>Die <b>Fehlerschätzung</b> gewinnt man aus zwei Formeln unterschiedlicher Ordnung auf demselben Intervall: Trapez liefert $Q_1$ mit $\\mathcal{O}(h^3)$, Simpson $Q_2$ mit $\\mathcal{O}(h^5)$. Für kleines $h$ ersetzt man den exakten Wert durch den genaueren und schätzt</p><p>$$\\Bigl|\\int_{x_j}^{x_{j+1}}f - Q_1\\Bigr|\\approx\\bigl|Q_2-Q_1\\bigr|.$$</p><p>Der Clou: diese Information kostet nur die Auswertung im Mittelpunkt $(x_j+x_{j+1})/2$ — und die wird bei einer Unterteilung direkt <b>wiederverwendet</b>. Als Endergebnis nimmt man natürlich die genauere Formel; die ungenauere dient nur der Schätzung. Code 5.6.2 teilt rekursiv alle Zellen mit <code>est_loc &gt; 0.9*err_tot/len(est_loc)</code> und bricht ab, sobald <code>err_tot</code> unter die relative <i>oder</i> absolute Schranke fällt.</p>",
+      "merke": "Zwei Formeln verschiedener Ordnung, Differenz als Fehlerschätzer, genauere als Resultat — nach diesem Prinzip sind alle professionellen Quadratur-Codes gebaut, auch <code>scipy.integrate.quad</code>."
+    }
+  ],
+
+  "moodleHinweis": "Für diese Woche liegt <b>noch kein</b> Moodle-Quiz vor — es kommt im Lauf des Semesters dazu und wird dann hier ergänzt. Bis dahin sind alle Fragen von mir im Stil der Originalfragen geschrieben (Single Choice mit Scoring SC1/0, Zahleneingaben) und mit Skript-Verweis begründet. Alle Zahlenwerte sind mit NumPy/SciPy nachgerechnet.",
+
+  "moodle": [
+    {
+      "id": "m-w7-01",
+      "quelle": { "typ": "zusatz" },
+      "typ": "mc-single",
+      "thema": "Ordnung einer Quadraturformel",
+      "frageHtml": "<p>Eine Quadraturformel integriert alle Polynome vom Grad $\\le 3$ exakt, bei $x^{4}$ liefert sie erstmals ein falsches Ergebnis. Welche <b>Ordnung</b> hat sie im Sinne des Skripts?</p>",
+      "optionen": [
+        "Ordnung 3",
+        "Ordnung 4",
+        "Ordnung 5",
+        "Ordnung 8"
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Definition 5.3.8: «Eine Quadraturformel besitzt Ordnung $n+1$, wenn sie Polynome vom Grad $n$ exakt integriert.» Hier ist $n=3$, also Ordnung $n+1=4$.</p><p>Die Verschiebung um eins ist genau die Falle: das Skript begründet sie damit, dass «ein Polynom vom effektiven Grad $n$ durch genau $n+1$ Koeffizienten dargestellt» wird. Option a verwechselt Ordnung mit Grad — der häufigste Fehler. Option d verwechselt sie mit der maximalen Ordnung $2s$ einer Gauss-Formel.</p>",
+      "skriptRef": { "abschnitt": "5.3", "seite": 125, "nummer": "Def. 5.3.8" }
+    },
+    {
+      "id": "m-w7-02",
+      "quelle": { "typ": "zusatz" },
+      "typ": "numeric-multi",
+      "thema": "Ordnungen der Newton-Cotes-Formeln",
+      "frageHtml": "<p>Welche <b>Ordnung</b> haben die folgenden Quadraturformeln, und wie viele Funktionsauswertungen braucht jede pro Teilintervall? <b>Ganze Zahlen.</b></p>",
+      "felder": [
+        { "label": "\\text{Ordnung Mittelpunkt}", "wert": 2, "tol": 1e-9, "tolTyp": "abs" },
+        { "label": "\\text{Auswertungen Mittelpunkt}", "wert": 1, "tol": 1e-9, "tolTyp": "abs" },
+        { "label": "\\text{Ordnung Trapez}", "wert": 2, "tol": 1e-9, "tolTyp": "abs" },
+        { "label": "\\text{Ordnung Simpson}", "wert": 4, "tol": 1e-9, "tolTyp": "abs" },
+        { "label": "\\text{Auswertungen Simpson}", "wert": 3, "tol": 1e-9, "tolTyp": "abs" }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Mittelpunkt: eine Auswertung in der Intervallmitte, exakt für lineare Funktionen, also Ordnung <b>2</b>. Trapez: zwei Auswertungen an den Rändern, ebenfalls Ordnung <b>2</b>. Simpson: drei Auswertungen, Ordnung <b>4</b>.</p><p>Bei Mittelpunkt und Simpson wäre die naive Antwort 1 beziehungsweise 3 — die Interpolation ist konstant beziehungsweise quadratisch. <b>Theorem 5.3.11</b> hebt die Ordnung um eins, weil alle drei Formeln symmetrisch sind (Bem. 5.3.10) und die Ordnung einer symmetrischen Formel gerade sein muss. Das Skript merkt das in einer Fussnote ausdrücklich an: «Aus demselben Grund hat die Mittelpunktsregel auch Ordnung 2 und nicht 1.»</p><p><b>Praktische Folge:</b> die Mittelpunktsregel erreicht mit <i>einer</i> Auswertung dieselbe Ordnung wie Trapez mit zweien — bei teuren Auswertungen das bessere Geschäft.</p>",
+      "skriptRef": { "abschnitt": "5.4", "seite": 126, "nummer": "(5.4.4)–(5.4.6), Thm. 5.3.11" }
+    },
+    {
+      "id": "m-w7-03",
+      "quelle": { "typ": "zusatz" },
+      "typ": "numeric-multi",
+      "thema": "Quadraturformeln von Hand",
+      "frageHtml": "<p>Berechnen Sie $\\int_0^1 e^{x}\\,\\mathrm{d}x$ (exakt $e-1\\approx 1.718282$) näherungsweise mit je <b>einer</b> Anwendung der Formel auf $[0,1]$, <b>mit mindestens vier signifikanten Ziffern</b>:</p>",
+      "felder": [
+        { "label": "Q^{M}", "wert": 1.6487212707001282, "tol": 0.0005, "tolTyp": "rel", "anzeige": "e^{1/2} \\approx 1.648721" },
+        { "label": "Q^{T}", "wert": 1.8591409142295225, "tol": 0.0005, "tolTyp": "rel", "anzeige": "(1+e)/2 \\approx 1.859141" },
+        { "label": "Q^{S}", "wert": 1.7188611518765928, "tol": 0.0005, "tolTyp": "rel", "anzeige": "(1+4e^{1/2}+e)/6 \\approx 1.718861" }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Mit $a=0$, $b=1$, also $b-a=1$ und Mittelpunkt $\\tfrac{a+b}{2}=\\tfrac12$:</p><ul><li>$Q^{M}=(b-a)f\\!\\left(\\tfrac12\\right)=e^{1/2}=1.648721$</li><li>$Q^{T}=\\tfrac{b-a}{2}\\bigl(f(0)+f(1)\\bigr)=\\tfrac{1+e}{2}=1.859141$</li><li>$Q^{S}=\\tfrac{b-a}{6}\\bigl(f(0)+4f(\\tfrac12)+f(1)\\bigr)=\\tfrac{1+4e^{1/2}+e}{6}=1.718861$</li></ul><p><b>Was man daran sieht:</b> Mittelpunkt und Trapez haben dieselbe Ordnung, liegen aber auf <i>verschiedenen Seiten</i> des exakten Werts — und der Trapezfehler ist rund doppelt so gross wie der Mittelpunktfehler ($0.141$ gegenüber $0.070$). Simpson ist genau die Kombination $\\tfrac13 Q^{T}+\\tfrac23 Q^{M}$, die diese beiden Fehler gegeneinander ausspielt, und landet mit $5.8\\cdot10^{-4}$ um mehr als zwei Zehnerpotenzen besser.</p>",
+      "skriptRef": { "abschnitt": "5.4", "seite": 126, "nummer": "(5.4.4)–(5.4.6)" }
+    },
+    {
+      "id": "m-w7-04",
+      "quelle": { "typ": "zusatz" },
+      "typ": "mc-single",
+      "thema": "Lokale und globale Ordnung",
+      "frageHtml": "<p>Eine lokale Quadraturformel hat auf einem Teilintervall der Länge $h$ einen Fehler der Ordnung $h^{p+1}$. Welche Ordnung hat der <b>globale</b> Fehler der zusammengesetzten Formel auf $[a,b]$, und warum?</p>",
+      "optionen": [
+        "$h^{p+1}$ — die lokale Ordnung überträgt sich unverändert, da jeder Beitrag einzeln so klein ist.",
+        "$h^{p}$ — es gibt $N=(b-a)/h$ Teilintervalle, das Aufsummieren kostet genau einen Faktor $h$.",
+        "$h^{2p+2}$ — die Fehler der Teilintervalle multiplizieren sich.",
+        "$h^{p-1}$ — durch die Addition gehen zwei Ordnungen verloren."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Die Rechnung im Skript: $\\sum_{k=0}^{N-1}C\\frac{h^{n+1}}{n!}=C\\frac{h^{n+1}}{n!}\\cdot N=C\\frac{h^{n+1}}{n!}\\cdot\\frac{b-a}{h}=C\\frac{h^{n}}{n!}(b-a)$. Die Zahl der Summanden wächst wie $1/h$ und frisst genau eine Potenz auf.</p><p>Das Skript formuliert es als Prinzip: «Teile und Herrsche ergibt den lokalen Fehler von der Ordnung $h^{n+1}$ und $N=(b-a)/h$ solche lokalen Fehler addieren sich, so erhalten wir einen globalen Fehler der Ordnung $h^{n}$. Ein Faktor $h$ geht also durch die Addition verloren.»</p><p>Konkret: Trapez hat lokal $\\mathcal{O}(h^{3})$ und global $\\mathcal{O}(h^{2})$, Simpson lokal $\\mathcal{O}(h^{5})$ und global $\\mathcal{O}(h^{4})$ — genau die Ordnungen aus Theorem 5.4.4. Fehler addieren sich, sie multiplizieren sich nicht (Option c).</p>",
+      "skriptRef": { "abschnitt": "5.3", "seite": 124 }
+    },
+    {
+      "id": "m-w7-05",
+      "quelle": { "typ": "zusatz" },
+      "typ": "numeric-multi",
+      "thema": "Fehlerschranke der summierten Trapezregel",
+      "frageHtml": "<p>Für die summierte Trapezregel gilt $E\\le\\frac{h^{2}}{12}(b-a)\\max_{x\\in[a,b]}|f''(x)|$. Wie viele Teilintervalle $N$ braucht man mindestens, um $\\int_0^1 e^{x}\\,\\mathrm{d}x$ mit einem garantierten Fehler $\\le 10^{-6}$ zu berechnen? <b>Ganze Zahl</b> (kleinstes zulässiges $N$).</p>",
+      "felder": [
+        { "label": "N", "wert": 476, "tol": 1e-9, "tolTyp": "abs" }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Für $f(x)=e^{x}$ auf $[0,1]$ ist $f''=e^{x}$, also $\\max|f''|=e$ und $b-a=1$. Die Bedingung lautet</p><p>$$\\frac{h^{2}}{12}\\cdot 1\\cdot e\\le 10^{-6}\\quad\\Longrightarrow\\quad h\\le\\sqrt{\\frac{12\\cdot10^{-6}}{e}}=2.1011\\cdot10^{-3}.$$</p><p>Mit $h=1/N$ folgt $N\\ge 475.94$, also $N=\\mathbf{476}$.</p><p><b>Gegenprobe:</b> bei $N=476$ beträgt der tatsächliche Fehler $6.3\\cdot10^{-7}$, liegt also wie versprochen unter der Schranke; bei $N=376$ sind es $1.0\\cdot10^{-6}$ — schon knapp darüber. Die Schranke ist hier also recht scharf.</p><p><b>Zum Vergleich:</b> Gauss-Legendre mit $s=2$ Knoten, also <i>zwei</i> Auswertungen statt 477, erreicht für dasselbe Integral bereits $3.9\\cdot10^{-4}$ — das ist der Grund, warum man die Knoten mitoptimiert.</p>",
+      "skriptRef": { "abschnitt": "5.4", "seite": 128, "nummer": "(5.4.8), Thm. 5.4.4" }
+    },
+    {
+      "id": "m-w7-06",
+      "quelle": { "typ": "zusatz" },
+      "typ": "numeric-multi",
+      "thema": "Gauss-Quadratur",
+      "frageHtml": "<p>Zur Gauss-Legendre-Quadratur auf $[-1,1]$ mit $s$ Knoten. <b>Ganze Zahlen</b> für die ersten drei Felder, mindestens vier signifikante Ziffern für die letzten beiden.</p>",
+      "felder": [
+        { "label": "\\text{maximale Ordnung bei } s \\text{ Knoten}", "wert": 6, "tol": 1e-9, "tolTyp": "abs", "anzeige": "2s = 6 \\text{ für } s=3" },
+        { "label": "\\text{höchster exakt integrierter Grad bei } s=3", "wert": 5, "tol": 1e-9, "tolTyp": "abs" },
+        { "label": "\\text{Anzahl Auswertungen bei } s=3", "wert": 3, "tol": 1e-9, "tolTyp": "abs" },
+        { "label": "\\text{positiver Knoten bei } s=2", "wert": 0.5773502691896258, "tol": 0.0005, "tolTyp": "rel", "anzeige": "1/\\sqrt{3} \\approx 0.5773503" },
+        { "label": "\\text{mittleres Gewicht bei } s=3", "wert": 0.8888888888888888, "tol": 0.0005, "tolTyp": "rel", "anzeige": "8/9 \\approx 0.8888889" }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Nach <b>Theorem 5.5.2</b> ist die Ordnung einer Formel mit $s$ Knoten höchstens $2s$, und Gauss erreicht dieses Maximum. Für $s=3$ also Ordnung $\\mathbf{6}$, das heisst exakt für alle Polynome vom Grad $\\le\\mathbf{5}$ — und das mit nur $\\mathbf{3}$ Auswertungen.</p><p>Der Grund für $2s$: $s$ Knoten und $s$ Gewichte sind $2s$ freie Parameter. Die Knoten sind nach Bem. 5.5.7 die Nullstellen des $s$-ten orthogonalen Polynoms, hier des Legendre-Polynoms.</p><p>$s=2$ (Bsp. 5.5.9): $p_2(x)=\\tfrac12(3x^2-1)$ hat die Nullstellen $\\pm\\tfrac{1}{\\sqrt3}\\approx\\pm 0.5773503$, Gewichte $1$ und $1$.<br>$s=3$ (Bsp. 5.5.10): $p_3(x)=\\tfrac52 x^3-\\tfrac32 x$ hat die Nullstellen $0$ und $\\pm\\tfrac{\\sqrt{15}}{5}\\approx\\pm0.7745967$, Gewichte $\\tfrac59,\\tfrac89,\\tfrac59$ — das mittlere ist $\\tfrac89\\approx 0.8888889$.</p><p><b>Kontrolle:</b> die Gewichte müssen sich zu $\\int_{-1}^{1}1\\,\\mathrm{d}x=2$ summieren: $\\tfrac59+\\tfrac89+\\tfrac59=\\tfrac{18}{9}=2$ ✓. Nachgerechnet mit <code>np.polynomial.legendre.leggauss(3)</code>; die Formel integriert $x^{5}$ exakt und verfehlt $x^{6}$ um $4.6\\cdot10^{-2}$.</p>",
+      "skriptRef": { "abschnitt": "5.5.1", "seite": 143, "nummer": "Thm. 5.5.2, Bsp. 5.5.9/5.5.10" }
+    },
+    {
+      "id": "m-w7-07",
+      "quelle": { "typ": "zusatz" },
+      "typ": "mc-single",
+      "thema": "Newton-Cotes hoher Ordnung",
+      "frageHtml": "<p>Warum rät das Skript davon ab, äquidistante Quadraturformeln höherer Ordnung als Simpson zu verwenden?</p>",
+      "optionen": [
+        "Weil ihre Berechnung zu aufwendig ist — die Gewichte lassen sich für grosses $N$ nicht mehr bestimmen.",
+        "Weil ab etwa $N=9$ Knoten negative Gewichte auftreten und Auslöschung produzieren. Die eigentliche Ursache ist aber die Polynominterpolation hohen Grades auf äquidistanten Knoten; das Scheitern träte selbst bei exakter Arithmetik auf.",
+        "Weil sie nur für periodische Integranden konvergieren.",
+        "Weil sie die Intervallenden nicht als Knoten verwenden und daher unbrauchbar für Randwertprobleme sind."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Bemerkung 5.4.13 ist unmissverständlich, und das Skript betont den Unterschied zwischen Symptom und Ursache ausdrücklich: «Es ist zu betonen, dass nicht die Rundungsfehler selber schuld an das dramatische Scheitern […] sind, sondern die (hier versteckte) Verwendung von Polynome höherer Grade auf äquidistante Punkte ist eine äusserst schlechte Idee; das katastrophale Verhalten käme selbst bei exakter Arithmetik zum Vorschein.»</p><p>Es ist dasselbe Runge-Phänomen wie in Kapitel 2.3 — nur integriert. Die negativen Gewichte (ab $N=9$ explizit in Code 5.4.14 sichtbar) sind die numerische Folge davon.</p><p>Option a ist falsch: die Gewichte lassen sich sogar exakt mit <code>sympy</code> ausrechnen. Option d beschreibt eine Eigenschaft der <i>Gauss</i>-Formeln (Bem. 5.5.11), nicht von Newton-Cotes, das die Enden sehr wohl als Knoten nutzt.</p>",
+      "skriptRef": { "abschnitt": "5.4", "seite": 137, "nummer": "Bem. 5.4.13, Abb. 5.5.24" }
+    },
+    {
+      "id": "m-w7-08",
+      "quelle": { "typ": "zusatz" },
+      "typ": "mc-single",
+      "thema": "Trapezregel auf periodischen Integranden",
+      "frageHtml": "<p>Die Trapezregel hat Ordnung 2. Trotzdem beobachtet man in Beispiel 5.4.8 <b>exponentielle</b> Konvergenz. Unter welchen Bedingungen, und warum?</p>",
+      "optionen": [
+        "Immer, sobald das Gitter fein genug ist — die Ordnung 2 ist nur eine pessimistische Schranke.",
+        "Wenn der Integrand ein Polynom ist, denn dann ist die Trapezregel exakt.",
+        "Wenn der Integrand über die volle Periode <b>periodisch und analytisch</b> ist: die summierte Trapezregel $T_m$ ist dann exakt für alle trigonometrischen Polynome vom Grad $&lt; 2m$, denn $\\frac{1}{m}\\sum_{l=0}^{m-1}e^{\\frac{2\\pi}{m}ilk}$ ist $1$ für $k\\in m\\mathbb{Z}$ und sonst $0$.",
+        "Wenn der Integrand monoton ist, weil sich dann die Fehler der Teilintervalle aufheben."
+      ],
+      "loesung": 2,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Der Grund ist die <b>diskrete Orthogonalität</b> aus Kapitel 3.2 — dieselbe Formel (3.2.15), auf die sich das Skript hier ausdrücklich beruft. Für $f(t)=e^{2\\pi ikt}$ ist $\\int_0^1 f=1$ bei $k=0$ und sonst $0$; die Trapezsumme reproduziert genau dieses Verhalten, solange $k\\notin m\\mathbb{Z}$.</p><p>Alle drei Bedingungen sind nötig. Im Experiment verschwindet die exponentielle Konvergenz, wenn $a$ nahe an $1$ liegt (bei $a=1$ wird $f$ unstetig, die Analytizität geht verloren). Und auf dem <b>halben</b> Intervall $[0,\\tfrac12]$ — wo nicht über die volle Periode integriert wird — bleibt nur algebraische Konvergenz übrig (Abb. 5.4.9, rechts).</p><p>Option b stimmt für Polynome vom Grad $\\le1$, hat aber nichts mit exponentieller Konvergenz zu tun.</p>",
+      "skriptRef": { "abschnitt": "5.4", "seite": 131, "nummer": "Bsp. 5.4.8, Abb. 5.4.9" }
+    },
+    {
+      "id": "m-w7-09",
+      "quelle": { "typ": "zusatz" },
+      "typ": "mc-single",
+      "thema": "Romberg gegen Gauss",
+      "frageHtml": "<p>Romberg und Gauss erhöhen beide die Ordnung weit über die der Grundformel hinaus. Worin besteht der <b>praktische</b> Unterschied bei den Funktionsauswertungen?</p>",
+      "optionen": [
+        "Romberg braucht pro Extrapolationsstufe doppelt so viele Auswertungen wie Gauss.",
+        "Die Romberg-Gitter sind <b>verschachtelt</b>, jede Verfeinerung übernimmt alle bisherigen Auswertungen und jede Extrapolationsstufe kostet nur eine Addition und eine Multiplikation. Die Gauss-Knoten sind <b>nicht</b> verschachtelt — erhöht man $s$, muss $f$ an allen Knoten neu ausgewertet werden.",
+        "Gauss ist verschachtelt, Romberg nicht; deshalb wird Gauss in adaptiven Verfahren bevorzugt.",
+        "Beide sind verschachtelt; der Unterschied liegt allein in der Konvergenzordnung."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Zum Romberg-Schema schreibt das Skript: «Besonders günstig ist es, dass wir den Integranden nur einmal in allen Gitterpunkten auswerten müssen. So kostet diese Idee bei geschickter Implementierung nur eine zusätzliche Addition und Multiplikation, keine zusätzlichen Funktionsauswertungen und keinen zusätzlichen Speicher, bei deutlich besserer Genauigkeit.»</p><p>Bemerkung 5.5.11 sagt das Gegenteil über Gauss: «Die Gauss-Knoten sind nicht verschachtelt. Bei einer adaptiven Quadraturformel kann man die vorigen Funktionsauswertungen nicht wiederverwenden.»</p><p>Genau deshalb sind in der Praxis oft verschachtelte Regeln (Gauss-Kronrod, Clenshaw-Curtis) im Einsatz, obwohl Gauss die höhere Ordnung pro Knoten hätte. Der Preis von Romberg: es erreicht für glatte Funktionen keine exponentielle Konvergenz, nur eine sehr hohe algebraische Ordnung.</p>",
+      "skriptRef": { "abschnitt": "5.4/5.5.1", "seite": 143, "nummer": "Bem. 5.4.10, Bem. 5.5.11" }
+    },
+    {
+      "id": "m-w7-10",
+      "quelle": { "typ": "zusatz" },
+      "typ": "mc-single",
+      "thema": "Adaptive Quadratur",
+      "frageHtml": "<p>Wie schätzt die adaptive Quadratur aus Code 5.6.2 den lokalen Fehler auf einem Teilintervall, und was wird am Ende als Ergebnis verwendet?</p>",
+      "optionen": [
+        "Über die zweite Ableitung von $f$, die numerisch per Differenzenquotient bestimmt wird; als Ergebnis dient die Trapezregel.",
+        "Über die Differenz zweier Quadraturformeln <b>unterschiedlicher Ordnung</b> auf demselben Intervall ($|Q_2-Q_1|$ mit Trapez und Simpson). Als Ergebnis dient die <b>genauere</b> Formel; die ungenauere ist nur Mittel zur Fehlerschätzung.",
+        "Über den Vergleich mit <code>scipy.integrate.quad</code> als Referenzwert.",
+        "Über die Differenz derselben Formel auf dem Intervall und auf seiner Hälfte; als Ergebnis dient der Mittelwert beider."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Trapez liefert $Q_1$ mit lokalem Fehler $\\mathcal{O}(h^{3})$, Simpson $Q_2$ mit $\\mathcal{O}(h^{5})$. Für kleines $h$ ersetzt man den exakten Wert durch den genaueren und erhält $\\bigl|\\int f-Q_1\\bigr|\\approx|Q_2-Q_1|$.</p><p>Das Skript hält beide Punkte fest: «In der Praxis verwenden wir natürlich die genauere Quadraturformel für das Endergebnis; die ungenauere Formel dient hier nur als Mittel für die Fehlerschätzung.» Und: der Preis ist nur die Auswertung im Mittelpunkt $(x_j+x_{j+1})/2$, «die bei einer weiteren Unterteilung direkt wiederverwendet werden kann».</p><p>In Code 5.6.2 ist das <code>est_loc = abs(simp_loc - trp_loc)</code>, während <code>I = simp_loc.sum()</code> als Resultat dient. Verfeinert werden nur die Zellen mit überdurchschnittlichem Fehlerbeitrag. Option a wäre teuer und bräuchte zusätzliche Auswertungen; Option c ist zirkulär — <code>quad</code> ist selbst so gebaut.</p>",
+      "skriptRef": { "abschnitt": "5.6", "seite": 152, "nummer": "Bsp. 5.6.1, Code 5.6.2" }
+    }
+  ],
+
   "codeexpert": []
 }
