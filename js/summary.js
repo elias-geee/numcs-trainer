@@ -68,6 +68,21 @@ const Summary = (() => {
     ]);
   }
 
+  /** Banner für Wochen, deren Originalaufgaben noch ausstehen. */
+  function pendingNotice() {
+    return el('div', { class: 'notice' }, [
+      el('span', { class: 'notice-icon' }, '⏳'),
+      el('span', {}, [
+        el('b', {}, 'Original-Aufgaben folgen. '),
+        document.createTextNode(
+          'Die Zusammenfassung ist vollständig. Moodle-Quiz und CodeExpert-Aufgaben ' +
+          'dieser Woche liegen noch nicht vor — die Fragen im Moodle-Training sind ' +
+          'bis dahin alle selbst ergänzt.'
+        )
+      ])
+    ]);
+  }
+
   function render(week, host) {
     if (week.status === 'in_arbeit') {
       host.appendChild(el('div', { class: 'card' }, [
@@ -113,6 +128,10 @@ const Summary = (() => {
           ', Seiten ' + (week.skript?.seiten || '—') + '.')
       ]));
       return;
+    }
+
+    if (week.status === 'nur_zusammenfassung') {
+      host.appendChild(el('div', { class: 'card' }, [pendingNotice()]));
     }
 
     if (week.einleitung) {

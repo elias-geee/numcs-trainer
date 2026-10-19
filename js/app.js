@@ -103,6 +103,10 @@ const App = (() => {
       const badges = [];
       if (w.status === 'platzhalter') badges.push(el('span', { class: 'pill pill-warn' }, 'Aufgaben folgen'));
       else if (w.status === 'in_arbeit') badges.push(el('span', { class: 'pill pill-warn' }, 'in Arbeit'));
+      else if (w.status === 'nur_zusammenfassung') {
+        badges.push(el('span', { class: 'pill pill-warn' }, 'Original folgt'));
+        if (t.total) badges.push(el('span', { class: 'pill pill-ok' }, t.richtig + '/' + t.total));
+      }
       else if (!t.total) badges.push(el('span', { class: 'pill' }, 'nur Zusammenfassung'));
       else badges.push(el('span', { class: 'pill pill-ok' }, t.richtig + '/' + t.total));
 
@@ -176,7 +180,7 @@ const App = (() => {
       }
       Quiz.renderList(week.moodle, body, () => refreshErrCount());
     } else if (tab === 'code') {
-      CodeTask.renderList(week.codeexpert, body);
+      CodeTask.renderList(week.codeexpert, body, week.status);
     } else {
       Summary.render(week, body);
     }

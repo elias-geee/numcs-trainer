@@ -321,6 +321,9 @@ def main() -> int:
 
         if not week.get("zusammenfassung"):
             bad(f"Woche {n}: Status '{status}', aber keine Zusammenfassung")
+        if status == "nur_zusammenfassung" and week.get("codeexpert"):
+            bad(f"Woche {n}: Status 'nur_zusammenfassung', aber es gibt schon "
+                f"CodeExpert-Aufgaben — Status auf 'vollstaendig' setzen")
 
         for z in week.get("zusammenfassung", []):
             if not z.get("ref"):

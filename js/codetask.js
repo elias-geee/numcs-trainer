@@ -403,11 +403,14 @@ const CodeTask = (() => {
     return card;
   }
 
-  function renderList(tasks, host) {
+  function renderList(tasks, host, status) {
     if (!tasks || !tasks.length) {
+      const pending = status === 'nur_zusammenfassung';
       host.appendChild(el('div', { class: 'empty' }, [
-        el('div', { class: 'empty-mark' }, '—'),
-        el('p', {}, 'Für diese Woche liegen keine CodeExpert-Aufgaben vor.')
+        el('div', { class: 'empty-mark' }, pending ? '⏳' : '—'),
+        el('p', {}, pending
+          ? 'Die CodeExpert-Aufgaben dieser Woche liegen noch nicht vor.'
+          : 'Für diese Woche liegen keine CodeExpert-Aufgaben vor.')
       ]));
       return;
     }
