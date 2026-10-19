@@ -1,13 +1,308 @@
 {
   "woche": 9,
   "titel": "Nullstellensuche",
-  "status": "platzhalter",
-  "skript": {
-    "kapitel": "6",
-    "seiten": "194–233"
-  },
+  "status": "nur_zusammenfassung",
+  "skript": { "kapitel": "6.1–6.9", "seiten": "194–233" },
   "vorlage": "wochenplan/Vorlage09_Nullstellen_V0.pdf",
-  "zusammenfassung": [],
-  "moodle": [],
+
+  "einleitung": "<p>Gesucht ist $\\mathbf{x}^{*}$ mit $\\mathbf{F}(\\mathbf{x}^{*})=\\mathbf{0}$ für $\\mathbf{F}\\colon\\Omega\\subset\\mathbb{R}^{d}\\to\\mathbb{R}^{d}$. Geschlossene Formeln gibt es dafür nicht, also iteriert man. Das Skript warnt gleich zu Beginn: «Im Allgemeinen wissen wir nicht, ob eine Lösung existiert und, falls dies der Fall ist, ob sie eindeutig ist» — und über die fertigen Löser in <code>scipy.optimize.root</code>: sie «manchmal Erfolg haben, manchmal aber auch kläglich scheitern, trotz enormen Rechenaufwands. […] es gibt keine Methode, die immer funktioniert.»</p><p>Die zentrale Kenngrösse ist die <b>Konvergenzordnung</b>: sie bestimmt, wie viele Iterationen man braucht. Bezahlt wird sie mit Ableitungsinformation und mit einem <b>kleineren Einzugsbereich</b> — Newton konvergiert quadratisch, aber nur lokal. Der zweite rote Faden sind die <b>Abbruchkriterien</b>: man kennt $\\mathbf{x}^{*}$ ja nicht, also muss man den Fehler schätzen, ohne ihn zu kennen.</p>",
+
+  "zusammenfassung": [
+    {
+      "id": "w9-z1",
+      "titel": "Problemstellung und Ausgangslage",
+      "ref": { "abschnitt": "6.0", "seite": 194, "nummer": "(6.0.1)" },
+      "text": "<p>Gesucht ist $\\mathbf{x}^{*}\\in\\Omega$ mit $\\mathbf{F}(\\mathbf{x}^{*})=\\mathbf{0}$ für $\\mathbf{F}\\colon\\Omega\\subset\\mathbb{R}^{d}\\to\\mathbb{R}^{d}$, $d\\in\\mathbb{N}$.</p><p>Solche Probleme sind allgegenwärtig: eine notwendige Bedingung dafür, dass $\\mathbf{x}^{*}$ Extremalstelle einer Zielfunktion $f$ ist, lautet $\\mathrm{D}f(\\mathbf{x}^{*})=0$. Im maschinellen Lernen ist $d$ «sehr, sehr gross (Millionen)». Bei impliziten Verfahren für Differentialgleichungen muss in <b>jedem Zeitschritt</b> ein solches System gelöst werden — dort zählen Geschwindigkeit und passende Genauigkeit.</p><p>In SciPy heisst die Funktion <code>scipy.optimize.root</code>; das Skript merkt ausdrücklich an: «<code>fsolve</code> sollte nicht mehr verwendet werden».</p>",
+      "merke": "«Verständnis der konkreten Anwendung und der Lösungstechniken ist essenziell für den Erfolg; es gibt keine Methode, die immer funktioniert.»"
+    },
+    {
+      "id": "w9-z2",
+      "titel": "Iteration und Startwert sind beide entscheidend",
+      "ref": { "abschnitt": "6.1", "seite": 194, "nummer": "Def. 6.1.1/6.1.4, Bem. 6.1.5, Abb. 6.1.2" },
+      "text": "<p>Ein iteratives Verfahren ist ein Algorithmus $\\phi_{\\mathbf F}$, der aus $\\mathbf{x}^{(0)}$ die Folge $\\mathbf{x}^{(k)}:=\\phi(\\mathbf{x}^{(k-1)})$ erzeugt; es <b>konvergiert</b>, wenn $\\mathbf{x}^{(k)}\\to\\mathbf{x}^{*}$ mit $\\mathbf{F}(\\mathbf{x}^{*})=0$.</p><p>Abbildung 6.1.2 führt beides vor. <b>Oben:</b> drei verschiedene Iterationen mit <i>demselben</i> Startwert — eine konvergiert gegen $\\mathbf{a}_1$, eine gegen $\\mathbf{a}_2$, eine gar nicht. <b>Unten:</b> dieselbe Iteration mit drei «sehr, sehr nahe beieinander» liegenden Startwerten — mit genau demselben dreifachen Ausgang.</p>",
+      "merke": "Der Titel der Abbildung ist die Lehre der Woche: <b>Iteration und Startwert sind beide entscheidend.</b> Liegt der Startwert nahe genug bei einer Lösung, konvergiert die Iteration gegen diese."
+    },
+    {
+      "id": "w9-z3",
+      "titel": "Lineare Konvergenz und Konvergenzrate",
+      "ref": { "abschnitt": "6.1", "seite": 197, "nummer": "Def. 6.1.12, (6.1.4), Bem. 6.1.13" },
+      "text": "<p>Die Folge $\\mathbf{x}^{(k)}$ heisst <b>linear konvergent</b> gegen $\\mathbf{x}^{*}$, falls es ein $L &lt; 1$ gibt mit</p><p>$$\\bigl\\|\\mathbf{x}^{(k+1)}-\\mathbf{x}^{*}\\bigr\\|\\le L\\bigl\\|\\mathbf{x}^{(k)}-\\mathbf{x}^{*}\\bigr\\|\\quad\\text{für alle }k\\ge k_0.$$</p><p>$L$ heisst <b>Konvergenzrate</b>.</p><p><b>Bemerkung 6.1.13</b> ist eine wichtige Feinheit: Da in endlichdimensionalen Räumen alle Normen äquivalent sind (Thm. 6.1.10), ist die <i>Tatsache</i> der Konvergenz normunabhängig. «Die Konvergenzrate oder sogar die Tatsache, dass die Konvergenz linear ist, sind jedoch von der Normwahl abhängig.»</p>",
+      "merke": "In NumPy: <code>norm(x)</code> für $\\|\\cdot\\|_2$, <code>norm(x,1)</code> für die 1-Norm, <code>norm(x,inf)</code> für die Max-Norm (Bsp. 6.1.8)."
+    },
+    {
+      "id": "w9-z4",
+      "titel": "Konvergenzordnung",
+      "ref": { "abschnitt": "6.1", "seite": 197, "nummer": "Def. 6.1.14, (6.1.5), Bem. 6.1.16" },
+      "text": "<p>Eine Folge hat <b>Konvergenzordnung $p$</b>, falls es ein $C &gt; 0$ gibt mit</p><p>$$\\bigl\\|\\mathbf{x}^{(k+1)}-\\mathbf{x}^{*}\\bigr\\|\\le C\\bigl\\|\\mathbf{x}^{(k)}-\\mathbf{x}^{*}\\bigr\\|^{p}\\quad\\text{für alle }k\\in\\mathbb{N},$$</p><p>wobei für $p=1$ zusätzlich $C &lt; 1$ gefordert wird. Stillschweigend wird angenommen, dass der Startwert nahe bei der Lösung liegt, etwa $\\|\\mathbf{x}^{0}-\\mathbf{x}^{*}\\| &lt; 1$.</p><p><b>Bemerkung 6.1.15</b> warnt: der Begriff «Konvergenzordnung» bedeutet hier etwas <i>anderes</i> als in den Kapiteln über Interpolation, Quadratur und Differentialgleichungen — dort ging es um die Potenz von $h$, hier um die Potenz des Fehlers im vorigen Schritt.</p><p><b>Bemerkung 6.1.16:</b> «Im Kontext von Nullstellenproblemen ist man sehr glücklich, wenn quadratische Konvergenz einer Iteration möglich ist. Höhere Konvergenzordnungen sind selten; meistens muss man sich mit superlinearer, linearer oder einfach mit Konvergenz zufriedengeben, vor allem für grosse Dimension $d$.»</p>",
+      "merke": "Ordnung ist nicht alles: bei grossem $d$ «können die Kosten für Methoden mit höherer Konvergenzordnung erheblich bis untragbar sein»."
+    },
+    {
+      "id": "w9-z5",
+      "titel": "Konvergenz im Fehlerplot erkennen",
+      "ref": { "abschnitt": "6.1", "seite": 197, "nummer": "Bem. 6.1.17/6.1.20, (6.1.6), Abb. 6.1.18/6.1.19" },
+      "text": "<p>Bei <b>linearer</b> Konvergenz gilt $\\|e^{(k)}\\|\\le L^{k}\\|e^{(0)}\\|$, also</p><p>$$\\log\\bigl(\\|e^{(k)}\\|\\bigr)\\le k\\log(L)+\\log\\bigl(\\|e^{(0)}\\|\\bigr).$$</p><p>Im <b>lin-log-Plot</b> des Fehlers über der Iterationszahl $k$ ist das eine <b>Gerade</b> mit Steigung $\\log L &lt; 0$. Daraus liest man die Rate direkt ab (6.1.6).</p><p><b>Konvergenz höherer Ordnung ist an gekrümmten Kurven erkennbar</b> (Abb. 6.1.19) — die Kurve knickt nach unten weg.</p><p>Die Ordnung schätzt man numerisch aus drei aufeinanderfolgenden Fehlern (Bsp. 6.1.24):</p><p>$$\\epsilon_{k+1}\\approx C\\epsilon_k^{p}\\ \\Longrightarrow\\ \\frac{\\log\\epsilon_{k+1}-\\log\\epsilon_k}{\\log\\epsilon_k-\\log\\epsilon_{k-1}}\\approx p.$$</p>",
+      "merke": "Vorsicht beim Schätzen: das Skript nutzt $x^{(15)}$ statt der unbekannten exakten Lösung — «Wenn aber die Iteration nach 15 Schritten nicht konvergiert hat, ist eine solche Schätzung des Fehlers sinnlos.»"
+    },
+    {
+      "id": "w9-z6",
+      "titel": "Quadratische Konvergenz: Stellen verdoppeln sich",
+      "ref": { "abschnitt": "6.1", "seite": 200, "nummer": "Bsp. 6.1.24, (6.1.7)/(6.1.8)" },
+      "text": "<p>Die Iteration $x^{(k+1)}=\\tfrac12\\bigl(x^{(k)}+\\tfrac{a}{x^{(k)}}\\bigr)$ zur Berechnung von $\\sqrt a$ erfüllt</p><p>$$\\bigl|x^{(k+1)}-\\sqrt a\\bigr|=\\frac{1}{2x^{(k)}}\\bigl|x^{(k)}-\\sqrt a\\bigr|^{2},$$</p><p>ist also quadratisch. Das numerische Experiment für $a=2$ liefert die geschätzten Ordnungen $1.850$, $1.984$, $2.000$.</p><p>Die praktische Konsequenz (6.1.8): schreibt man den relativen Fehler als $\\delta_k$, so folgt $|\\delta_{k+1}|\\le C|x^{*}||\\delta_k|^{2}$. Mit $C\\approx1$ und $\\delta_k=10^{-\\ell}$ ist $\\delta_{k+1}\\approx10^{-2\\ell}$ — die <b>Anzahl der korrekten Dezimalstellen verdoppelt sich in jedem Schritt</b>. «Das gilt für jede konvergente Iteration mit Ordnung 2.»</p>",
+      "merke": "Daraus folgt: eine quadratisch konvergente Methode braucht von einem brauchbaren Startwert aus typischerweise nur 4–6 Schritte bis zur Maschinengenauigkeit."
+    },
+    {
+      "id": "w9-z7",
+      "titel": "Abbruchkriterien",
+      "ref": { "abschnitt": "6.2", "seite": 201, "nummer": "Abb. 6.2.1" },
+      "text": "<p>Vier Möglichkeiten, alle mit Haken:</p><ul><li><b>(a) A priori:</b> nach fest gewählten $k_0$ Schritten abbrechen. «Die Qualität des Ergebnisses ist unsicher.»</li><li><b>(b) A posteriori:</b> abbrechen, wenn $\\|\\mathbf{x}^{(k)}-\\mathbf{x}^{*}\\| &lt; \\tau$. «Man kennt aber den gesuchten Wert $\\mathbf{x}^{*}$ nicht; daher ist diese Strategie nicht anwendbar.»</li><li><b>(c)</b> Iterieren bis $\\mathbf{x}^{(k+1)}\\approx\\mathbf{x}^{(k)}$. «Sehr ineffizient: Viele Schritte wurden umsonst gemacht, und es ist auch unklar, warum die Iteration keine Fortschritte macht.»</li><li><b>(d) Residuum:</b> abbrechen, wenn $\\|\\mathbf{F}(\\mathbf{x}^{(k)})\\| &lt; \\tau$. <b>Problematisch</b>, denn $\\|\\mathbf{F}(\\mathbf{x}^{(k)})\\|$ kann klein sein, obwohl $\\|\\mathbf{x}^{(k)}-\\mathbf{x}^{*}\\|$ gross ist.</li></ul><p>Abb. 6.2.1 zeigt genau so eine Funktion: ein langes flaches Stück, auf dem das Residuum winzig ist, während man weit von der Nullstelle entfernt ist.</p>",
+      "merke": "Ein kleines Residuum bedeutet <b>nicht</b> einen kleinen Fehler. Bei flachem $F$ täuscht es massiv — das ist dieselbe Konditionsfrage wie in der linearen Algebra."
+    },
+    {
+      "id": "w9-z8",
+      "titel": "Brauchbares A-posteriori-Kriterium bei linearer Konvergenz",
+      "ref": { "abschnitt": "6.2", "seite": 202, "nummer": "Bem. 6.2.2, (6.2.1), Bsp. 6.2.3" },
+      "text": "<p>Bei linearer Konvergenz mit bekanntem $L$ lässt sich der unbekannte Fehler durch die <b>beobachtbare</b> Schrittweite abschätzen:</p><p>Der Beweis ist drei Zeilen Dreiecksungleichung: $\\|x^{(k+1)}-x^{*}\\|\\le L\\|x^{(k)}-x^{*}\\|\\le L\\|x^{(k+1)}-x^{(k)}\\|+L\\|x^{(k+1)}-x^{*}\\|$, dann nach dem gesuchten Term auflösen.</p><p>Man bricht ab, sobald $\\mathrm{errest}[k]=\\frac{L}{1-L}\\|x^{(k)}-x^{(k-1)}\\| &lt; \\tau$. In Beispiel 6.2.3 (lineare Konvergenz gegen $\\pi$ mit $L\\approx0.5$) stimmt der Schätzer ab $k=3$ auf drei bis vier Stellen mit dem echten Fehler überein — «der A-posteriori-Fehlerschätzer ist in diesem Fall sehr genau».</p>",
+      "formeln": ["\\bigl\\|\\mathbf{x}^{(k+1)}-\\mathbf{x}^{*}\\bigr\\|\\le\\frac{L}{1-L}\\bigl\\|\\mathbf{x}^{(k+1)}-\\mathbf{x}^{(k)}\\bigr\\|"],
+      "merke": "Für $L=\\tfrac12$ ist $\\frac{L}{1-L}=1$ — dann ist die letzte Schrittweite direkt eine Fehlerschranke. Für $L$ nahe 1 explodiert der Faktor."
+    },
+    {
+      "id": "w9-z9",
+      "titel": "Fixpunktiteration: dasselbe Problem, sehr verschiedene Verfahren",
+      "ref": { "abschnitt": "6.3", "seite": 203, "nummer": "Def. 6.3.1, (6.3.1), Bsp. 6.3.2" },
+      "text": "<p>Man schreibt $\\mathbf{F}(\\mathbf{x})=0$ um in ein Fixpunktproblem $\\phi(\\mathbf{x})=\\mathbf{x}$; die Iteration ist dann $\\mathbf{x}^{(k+1)}=\\phi(\\mathbf{x}^{(k)})$. <b>Konsistent</b> heisst $\\mathbf{F}(\\mathbf{x})=0\\Leftrightarrow\\phi(\\mathbf{x})=\\mathbf{x}$.</p><p><b>Beispiel 6.3.2</b> ist der Kern des Abschnitts. Für $F(x)=xe^{x}-1$ auf $[0,1]$, Startwert $0.5$:</p><div class=\"tbl-wrap\"><table class=\"tbl\"><thead><tr><th>$\\phi$</th><th>Vorschrift</th><th>$\\phi'(x^{*})$</th><th>Verhalten</th></tr></thead><tbody><tr><td>$\\phi_1$</td><td>$e^{-x}$</td><td>$-0.5671$</td><td>linear konvergent</td></tr><tr><td>$\\phi_2$</td><td>$\\frac{1+x}{1+e^{x}}$</td><td>$0$</td><td><b>quadratisch</b> konvergent</td></tr><tr><td>$\\phi_3$</td><td>$x+1-xe^{x}$</td><td>$-1.7632$</td><td><b>divergent</b></td></tr></tbody></table></div><p>Nach 10 Schritten: $\\phi_1$ liefert $0.5669$, $\\phi_2$ exakt $0.567143290409784$, $\\phi_3$ springt auf $-0.407$.</p>",
+      "merke": "Dasselbe Nullstellenproblem, drei Umformungen, drei völlig verschiedene Ergebnisse. <b>Die Umformung ist die eigentliche Entwurfsentscheidung.</b>"
+    },
+    {
+      "id": "w9-z10",
+      "titel": "Banach'scher Fixpunktsatz",
+      "ref": { "abschnitt": "6.3", "seite": 204, "nummer": "Def. 6.3.5, (6.3.2), Satz 6.3.7" },
+      "text": "<p>$\\phi$ heisst <b>Kontraktion</b>, falls es ein $L &lt; 1$ gibt mit $\\|\\phi(\\mathbf{x})-\\phi(\\mathbf{y})\\|\\le L\\|\\mathbf{x}-\\mathbf{y}\\|$ für alle $\\mathbf{x},\\mathbf{y}$.</p><p><b>Satz 6.3.7 (Banach):</b> Ist $\\Omega\\subset\\mathbb{K}^{d}$ abgeschlossen und $\\phi\\colon\\Omega\\to\\Omega$ eine Kontraktion, so existiert ein <b>eindeutiger</b> Fixpunkt $\\mathbf{x}^{*}$, und er ist der Grenzwert der Folge $\\mathbf{x}^{(k+1)}=\\phi(\\mathbf{x}^{(k)})$.</p><p>Der Beweis zeigt über $\\|\\mathbf{x}^{(k+N)}-\\mathbf{x}^{(k)}\\|\\le\\frac{L^{k}}{1-L}\\|\\mathbf{x}^{(1)}-\\mathbf{x}^{(0)}\\|\\to 0$, dass die Folge eine <b>Cauchy-Folge</b> ist; die Stetigkeit von $\\phi$ liefert dann $\\phi(\\mathbf{x}^{*})=\\mathbf{x}^{*}$.</p><p>Nach <b>Bemerkung 6.3.6</b> konvergiert jede Iteration mit kontrahierendem $\\phi$ <b>mindestens linear</b>.</p>",
+      "merke": "Banach liefert Existenz, Eindeutigkeit <i>und</i> Konvergenz auf einen Schlag — aber nur, wenn $\\phi$ den Bereich $\\Omega$ auch wirklich in sich abbildet."
+    },
+    {
+      "id": "w9-z11",
+      "titel": "Die Ableitung von $\\phi$ entscheidet",
+      "ref": { "abschnitt": "6.3", "seite": 205, "nummer": "Hilfssatz 6.3.8/6.3.11, Bsp. 6.3.9, Abb. 6.3.10" },
+      "text": "<p><b>Hilfssatz 6.3.11:</b> Ist $\\phi(\\mathbf{x}^{*})=\\mathbf{x}^{*}$, $\\phi$ stetig differenzierbar und $\\|D\\phi(\\mathbf{x}^{*})\\| &lt; 1$, so konvergiert die Fixpunktiteration <b>lokal</b> und mindestens linear, mit $L=\\|D\\phi(\\mathbf{x}^{*})\\|$.</p><p>In einer Dimension veranschaulicht Abb. 6.3.10 alle vier Fälle:</p><div class=\"tbl-wrap\"><table class=\"tbl\"><thead><tr><th>$\\phi'(x^{*})$</th><th>Verhalten</th><th>Bild</th></tr></thead><tbody><tr><td>$-1 &lt; \\phi' \\le 0$</td><td>Konvergenz</td><td>spiralt nach innen</td></tr><tr><td>$\\phi' &lt; -1$</td><td>Divergenz</td><td>spiralt nach aussen</td></tr><tr><td>$0\\le\\phi' &lt; 1$</td><td>Konvergenz</td><td>Treppe nach innen</td></tr><tr><td>$1 &lt; \\phi'$</td><td>Divergenz</td><td>Treppe nach aussen</td></tr></tbody></table></div><p>Kurz: «Wenn $\\phi$ um den Fixpunkt ziemlich flach ist, dann haben wir lokale Konvergenz; wenn $\\phi$ dort aber steil ist, dann haben wir Divergenz.»</p><p>In höheren Dimensionen ist die <b>Normwahl</b> entscheidend: in Bsp. 6.3.12 ergibt erst die $\\infty$-Norm die brauchbare Bedingung $c &lt; \\tfrac13$.</p>",
+      "merke": "Das einzige Kriterium, das man wirklich braucht: <b>$|\\phi'(x^{*})| &lt; 1$ ⟹ lokale Konvergenz, $|\\phi'(x^{*})| &gt; 1$ ⟹ Divergenz.</b>"
+    },
+    {
+      "id": "w9-z12",
+      "titel": "Höhere Ordnung durch verschwindende Ableitungen",
+      "ref": { "abschnitt": "6.3", "seite": 207, "nummer": "Satz 6.3.13, Hilfssatz 6.3.14, Bsp. 6.3.15" },
+      "text": "<p><b>Hilfssatz 6.3.14:</b> Ist $\\phi$ $(m+1)$-mal differenzierbar mit $\\phi(x^{*})=x^{*}$ und $\\phi^{(l)}(x^{*})=0$ für $l=1,\\dots,m$, so konvergiert die Fixpunktiteration lokal mit der Ordnung $p\\ge m+1$.</p><p>Der Beweis setzt in die Taylor-Formel (6.3.3) ein: alle Terme bis zur Ordnung $m$ fallen weg, übrig bleibt (6.3.4) mit dem führenden Term $\\mathcal{O}(|x^{(k)}-x^{*}|^{m+1})$.</p><p><b>Beispiel 6.3.15</b> erklärt damit die Tabelle aus 6.3.2:</p><ul><li>$\\phi_1(x)=e^{-x}$ ist <b>linear</b>, denn $\\phi_1'(x^{*})=-e^{-x^{*}}=-x^{*}\\in[-1,0]$ — die Ableitung ist nicht null, aber betragsmässig kleiner als 1.</li><li>$\\phi_2(x)=\\frac{F(x)}{(1+e^{x})^{2}}$ ist <b>quadratisch</b>, denn $\\phi_2'(x^{*})=0$.</li></ul>",
+      "merke": "Quadratische Konvergenz heisst genau: $\\phi'(x^{*})=0$. Das ist der ganze Grund, warum Newton quadratisch ist — siehe nächster Punkt."
+    },
+    {
+      "id": "w9-z13",
+      "titel": "Intervallhalbierung — langsam, aber sicher",
+      "ref": { "abschnitt": "6.4", "seite": 209, "nummer": "Code 6.4.1" },
+      "text": "<p>Grundlage ist der <b>Zwischenwertsatz</b>: ist $F$ stetig auf $[a,b]$ mit $F(a)F(b) &lt; 0$, so gibt es ein $x^{*}\\in[a,b]$ mit $F(x^{*})=0$. Man halbiert bei $c=\\tfrac{a+b}{2}$ und macht in der Hälfte weiter, in der der Vorzeichenwechsel steckt.</p><p>Die vier Eigenschaften aus dem Skript:</p><ul><li>sehr einfach — «es braucht nur Auswertungen von $F$», keine Ableitung</li><li>im Allgemeinen ein <b>sicheres</b> Verfahren</li><li>die Konvergenz ist <b>linear</b>, also ziemlich langsam</li><li>«es ist schwierig, es in $d$ Dimensionen zu formulieren» — es gibt keinen Zwischenwertsatz für $\\mathbb{R}^{d}\\to\\mathbb{R}^{d}$</li></ul><p>Nach $k$ Schritten ist das Intervall auf $\\frac{b-a}{2^{k}}$ geschrumpft; die Schrittzahl für eine Zielgenauigkeit lässt sich also <b>vorab</b> ausrechnen — das kann kein anderes Verfahren dieses Kapitels.</p>",
+      "merke": "Rate exakt $L=\\tfrac12$: pro Schritt ein Bit. Für 16 Stellen braucht man rund 53 Schritte — Newton schafft dasselbe in 5."
+    },
+    {
+      "id": "w9-z14",
+      "titel": "Newton-Verfahren",
+      "ref": { "abschnitt": "6.5", "seite": 210, "nummer": "(6.5.1), Bem. 6.5.2, Abb. 6.5.1" },
+      "text": "<p>Man ersetzt $F$ in jedem Schritt durch ihre Linearisierung $\\tilde F=F(x^{(k)})+F'(x^{(k)})(x-x^{(k)})$ und nimmt deren Nullstelle:</p><p>Geometrisch: man folgt der <b>Tangente</b> bis zur $x$-Achse (Abb. 6.5.1).</p><p><b>Bemerkung 6.5.2</b> liefert die Konvergenzaussage über die Fixpunkttheorie: Newton ist die Fixpunktiteration mit $\\phi(x)=x-\\frac{F(x)}{F'(x)}$, und</p><p>$$\\phi'(x)=\\frac{F(x)F''(x)}{(F'(x))^{2}}\\ \\Longrightarrow\\ \\phi'(x^{*})=0,$$</p><p>falls $F(x^{*})=0$ und $F'(x^{*})\\neq0$. Nach Hilfssatz 6.3.14 ist die Konvergenz damit <b>lokal quadratisch</b>.</p>",
+      "formeln": ["x^{(k+1)}:=x^{(k)}-\\frac{F(x^{(k)})}{F'(x^{(k)})},\\qquad\\text{falls }F'(x^{(k)})\\neq0"],
+      "merke": "Die Bedingung $F'(x^{*})\\neq0$ ist wesentlich: bei einer <b>doppelten</b> Nullstelle fällt Newton auf lineare Konvergenz zurück (so in Abb. 6.7.7 zu sehen)."
+    },
+    {
+      "id": "w9-z15",
+      "titel": "Sekantenverfahren",
+      "ref": { "abschnitt": "6.6", "seite": 212, "nummer": "(6.6.1), Code 6.6.2, Bsp. 6.6.3" },
+      "text": "<p>Ist $F'(x^{(k)})$ teuer oder gar nicht verfügbar, ersetzt man sie durch den Differenzenquotienten aus den beiden letzten Iterierten:</p><p>$$q^{(k)}:=\\frac{F(x^{(k)})-F(x^{(k-1)})}{x^{(k)}-x^{(k-1)}},\\qquad x^{(k+1)}:=x^{(k)}-\\frac{F(x^{(k)})}{q^{(k)}}.$$</p><p>Statt der Tangente nimmt man also die <b>Sekante</b> durch die letzten beiden Punkte (Abb. 6.6.1). $F(x^{(k-1)})$ ist bereits berechnet — <b>pro Schritt wird nur eine neue Auswertung von $F$ gebraucht und keine einzige von $F'$</b>.</p><p>Der Preis ist eine <b>fraktionale</b> Konvergenzordnung:</p><p>$$p=\\tfrac12\\bigl(1+\\sqrt5\\bigr)\\approx1.618.$$</p><p>In Beispiel 6.6.3 ($F(x)=xe^{x}-1$, $x^{(0)}=0$, $x^{(1)}=5$) liest man aus der Tabelle der Reihe nach $1.49$, $1.51$, $1.70$, $1.59$, $1.63$ ab — die Schätzer pendeln um den goldenen Schnitt.</p>",
+      "merke": "$1.618$ ist der <b>goldene Schnitt</b>. Pro Funktionsauswertung ist das Sekantenverfahren oft effizienter als Newton, weil Newton zwei Auswertungen ($F$ und $F'$) pro Schritt braucht."
+    },
+    {
+      "id": "w9-z16",
+      "titel": "Newton in $d$ Dimensionen",
+      "ref": { "abschnitt": "6.7", "seite": 214, "nummer": "(6.7.1)–(6.7.4), Bem. 6.7.9/6.7.10" },
+      "text": "<p>Dieselbe Idee, nur mit der <b>Jacobi-Matrix</b> $D\\mathbf{F}(x)=\\left[\\frac{\\partial F_j}{\\partial x_k}(x)\\right]_{j,k=1,\\dots,d}$:</p><p>$$\\mathbf{x}^{(k+1)}:=\\mathbf{x}^{(k)}-D\\mathbf{F}(\\mathbf{x}^{(k)})^{-1}\\mathbf{F}(\\mathbf{x}^{(k)}).$$</p><p>Der Term $\\mathbf{s}=D\\mathbf{F}(\\mathbf{x}^{(k)})^{-1}\\mathbf{F}(\\mathbf{x}^{(k)})$ heisst <b>Newton-Korrektur</b>. Das Skript setzt eine Warnung in Fettdruck:</p><blockquote>«Man berechnet <b>niemals</b> die Inverse einer Matrix: $\\mathbf{s}=\\mathbf{A}^{-1}\\mathbf{b}$, sondern löst das Gleichungssystem $\\mathbf{A}\\mathbf{s}=\\mathbf{b}$.»</blockquote><p>In Code 6.7.3 ist das <code>s = solve(DF(x), F(x))</code> gefolgt von <code>x -= s</code>.</p><p><b>Abbruchkriterium (6.7.4):</b> Da die Korrektur mit der <i>neuen</i> Jacobi-Matrix teuer ist und im Abbruchfall gar nicht mehr gebraucht wird, nimmt man die <b>vereinfachte Newton-Korrektur</b> $\\|D\\mathbf{F}(\\mathbf{x}^{(k-1)})^{-1}\\mathbf{F}(\\mathbf{x}^{(k)})\\|\\le\\tau$.</p><p><b>Aufwand (Bem. 6.7.9/6.7.10):</b> für $d\\gg1$ ist jede Korrektur teuer, denn $D\\mathbf{F}$ ist eine volle $d\\times d$-Matrix. Das <b>vereinfachte Newton-Verfahren</b> behält $D\\mathbf{F}(\\mathbf{x}^{(k-1)})$ über mehrere Schritte; dann lässt sich die <b>LU-Zerlegung wiederverwenden</b> und die Korrektur kostet nur noch $\\mathcal{O}(d^{2})$ statt $\\mathcal{O}(d^{3})$. «Der Preis dafür ist der Verlust der quadratischen Konvergenzordnung: Das vereinfachte Newton-Verfahren konvergiert nur linear.»</p>",
+      "merke": "In Bsp. 6.7.4 ($\\mathbf{F}=[x_1^2-x_2^4,\\ x_1-x_2^3]$, Start $(0.7,0.7)$) fällt der Fehler $4.2\\cdot10^{-1}\\to1.4\\cdot10^{-1}\\to2.0\\cdot10^{-2}\\to2.8\\cdot10^{-4}\\to2.8\\cdot10^{-8}\\to2.1\\cdot10^{-15}$ — lehrbuchmässig quadratisch."
+    },
+    {
+      "id": "w9-z17",
+      "titel": "Gedämpftes Newton-Verfahren",
+      "ref": { "abschnitt": "6.8", "seite": 223, "nummer": "Bsp. 6.8.1/6.8.3, Code 6.8.6, Bsp. 6.8.7/6.8.8" },
+      "text": "<p>Newton konvergiert nur <b>lokal</b>. Für $F(x)=\\arctan(x)$ konvergiert es nur für Startwerte im ungefähren Intervall $[-1.39,\\,1.39]$ — ausserhalb divergiert es, weil die Tangente zu flach ist und die Korrektur über das Ziel hinausschiesst (Abb. 6.8.5).</p><p><b>Idee:</b> «Wir beobachten, dass die Korrekturen zu lang sind. Wir dämpfen sie mit dem schrittabhängigen Faktor $\\lambda^{(k)}$.» Man wählt das <b>grösste</b> $\\lambda^{(k)}&gt;0$, für das die probeweise vereinfachte Korrektur kürzer wird:</p><p>$$\\bigl\\|\\Delta\\mathbf{x}(\\lambda^{(k)})\\bigr\\|_2\\le\\Bigl(1-\\frac{\\lambda^{(k)}}{2}\\Bigr)\\bigl\\|\\Delta\\mathbf{x}^{(k)}\\bigr\\|_2,$$</p><p>und setzt $\\mathbf{x}^{(k+1)}=\\mathbf{x}^{(k)}-\\lambda^{(k)}D\\mathbf{F}(\\mathbf{x}^{(k)})^{-1}\\mathbf{F}(\\mathbf{x}^{(k)})$. Die Wahl ist ausdrücklich <b>heuristisch</b>.</p><p><b>Beispiel 6.8.7</b> ($\\arctan$, $x^{(0)}=20$, $q=\\tfrac12$): $\\lambda$ startet bei $0.03125$, verdoppelt sich Schritt für Schritt und erreicht ab $k=6$ den vollen Wert $1.0$ — dann setzt <b>asymptotisch quadratische Konvergenz</b> ein.</p><p><b>Beispiel 6.8.8</b> zeigt die Grenze: für $F(x)=xe^{x}-1$ mit $x^{(0)}=-1.5$ «zeigt die Newton-Korrektur in die <i>falsche Richtung</i>, also haben wir keine Konvergenz» — der Code bricht mit <code>lambda &lt; LMIN</code> ab. Dämpfung repariert eine zu lange Korrektur, nicht eine falsch gerichtete.</p>",
+      "merke": "Dämpfung kauft <b>globalere</b> Konvergenz, ohne die lokale quadratische Ordnung aufzugeben: sobald $\\lambda=1$ erreicht ist, ist es wieder das gewöhnliche Newton-Verfahren."
+    },
+    {
+      "id": "w9-z18",
+      "titel": "Quasi-Newton: Broyden",
+      "ref": { "abschnitt": "6.9", "seite": 228, "nummer": "(6.9.1)–(6.9.3), Bem. 6.9.1, Abb. 6.9.3/6.9.8" },
+      "text": "<p>Was tun, wenn $D\\mathbf{F}$ zu teuer oder gar nicht verfügbar ist? In einer Dimension war das das Sekantenverfahren. In $d$ Dimensionen kann man nicht durch einen Vektor teilen, also schreibt man die <b>Sekantenbedingung</b> als Gleichung:</p><p>$$\\mathbf{J}_k\\cdot\\bigl(\\mathbf{x}^{(k)}-\\mathbf{x}^{(k-1)}\\bigr)=\\mathbf{F}(\\mathbf{x}^{(k)})-\\mathbf{F}(\\mathbf{x}^{(k-1)}).$$</p><p>Für $d\\ge2$ gibt es viele Matrizen, die das erfüllen. Die <b>Broyden-Bedingung</b> wählt diejenige, die sich am wenigsten von $\\mathbf{J}_{k-1}$ unterscheidet: $\\mathbf{J}_k\\mathbf{z}=\\mathbf{J}_{k-1}\\mathbf{z}$ für alle $\\mathbf{z}$ orthogonal zur letzten Korrektur. Das ergibt eine <b>Rang-1-Aufdatierung</b>:</p><p>$$\\mathbf{J}_{k+1}:=\\mathbf{J}_k+\\frac{\\mathbf{F}(\\mathbf{x}^{(k+1)})(\\Delta\\mathbf{x}^{(k)})^{T}}{\\|\\Delta\\mathbf{x}^{(k)}\\|_2^{2}},\\qquad \\mathbf{J}_0:=D\\mathbf{F}(\\mathbf{x}^{(0)}).$$</p><p><b>Bemerkung 6.9.1:</b> das Update ist bezüglich $\\|\\cdot\\|_2$ die <b>minimale</b> relative Korrektur zu $\\mathbf{J}_k$, die die Sekantenbedingung erfüllt. Implementiert wird es über die <b>Sherman-Morrison-Woodbury-Formel</b>, die direkt $\\mathbf{J}_{k+1}^{-1}$ aus $\\mathbf{J}_k^{-1}$ gewinnt.</p><p><b>Einordnung:</b> Broyden «konvergiert langsamer als das Newton-Verfahren, aber schneller als das vereinfachte Newton-Verfahren» (Abb. 6.9.3). Für $d=1000$ braucht Newton 5–6 Schritte, Broyden 9–11 (Abb. 6.9.7) — in der Laufzeit ist Broyden trotzdem der schnellste (Abb. 6.9.8), weil jeder Schritt so viel billiger ist. Fazit des Skripts: «Das Broyden-Verfahren lohnt sich für grosse Dimensionen $d\\gg1$ und bescheidene Genauigkeitsanforderungen.»</p>",
+      "merke": "Bei ebendiesem Problem gilt ausserdem: «Alle Methoden von <code>scipy.optimize.root</code> scheitern oder brauchen viel zu viel Zeit […] für grosses $d$ mit diesem Startwert.»"
+    }
+  ],
+
+  "moodleHinweis": "Für diese Woche liegt <b>noch kein</b> Moodle-Quiz vor — es kommt im Lauf des Semesters dazu und wird dann hier ergänzt. Bis dahin sind alle Fragen von mir im Stil der Originalfragen geschrieben und mit Skript-Verweis begründet. Alle Zahlenwerte sind mit NumPy/SciPy nachgerechnet.",
+
+  "moodle": [
+    {
+      "id": "m-w9-01",
+      "quelle": { "typ": "zusatz" },
+      "typ": "numeric-multi",
+      "thema": "Konvergenzordnungen",
+      "frageHtml": "<p>Welche Konvergenzordnung $p$ haben die folgenden Verfahren im Regelfall? <b>Ganze Zahlen</b> für die ersten drei, mindestens drei signifikante Ziffern für das letzte.</p>",
+      "felder": [
+        { "label": "p\\ \\text{Intervallhalbierung}", "wert": 1, "tol": 1e-9, "tolTyp": "abs" },
+        { "label": "p\\ \\text{Newton (einfache Nullstelle)}", "wert": 2, "tol": 1e-9, "tolTyp": "abs" },
+        { "label": "p\\ \\text{vereinfachtes Newton}", "wert": 1, "tol": 1e-9, "tolTyp": "abs" },
+        { "label": "p\\ \\text{Sekantenverfahren}", "wert": 1.618033988749895, "tol": 0.002, "tolTyp": "rel", "anzeige": "(1+\\sqrt5)/2 \\approx 1.618" }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p><b>Intervallhalbierung:</b> linear, Ordnung 1 mit der exakten Rate $L=\\tfrac12$ — das Intervall halbiert sich pro Schritt.</p><p><b>Newton:</b> lokal quadratisch (Bem. 6.5.2), weil $\\phi'(x^{*})=\\frac{F(x^{*})F''(x^{*})}{(F'(x^{*}))^{2}}=0$ für $F(x^{*})=0$ und $F'(x^{*})\\neq0$. Bei einer <i>doppelten</i> Nullstelle fällt es auf linear zurück.</p><p><b>Vereinfachtes Newton:</b> nur linear — genau das ist der Preis dafür, die Jacobi-Matrix über mehrere Schritte wiederzuverwenden (Bem. 6.7.10).</p><p><b>Sekantenverfahren:</b> fraktionale Ordnung $p=\\tfrac12(1+\\sqrt5)\\approx1.618$, der goldene Schnitt. Dafür braucht es pro Schritt nur <i>eine</i> neue Auswertung von $F$ und keine von $F'$.</p>",
+      "skriptRef": { "abschnitt": "6.4–6.7", "seite": 212, "nummer": "Bem. 6.5.2, Bsp. 6.6.3, Bem. 6.7.10" }
+    },
+    {
+      "id": "m-w9-02",
+      "quelle": { "typ": "zusatz" },
+      "typ": "numeric-multi",
+      "thema": "Bisektion: Schrittzahl",
+      "frageHtml": "<p>Das Intervallhalbierungsverfahren startet mit $[a,b]=[0,1]$. Wie viele Halbierungsschritte $k$ braucht man mindestens, damit das Restintervall höchstens die angegebene Länge hat? <b>Ganze Zahlen.</b></p>",
+      "felder": [
+        { "label": "k\\ \\text{für}\\ 10^{-6}", "wert": 20, "tol": 1e-9, "tolTyp": "abs" },
+        { "label": "k\\ \\text{für}\\ 10^{-10}", "wert": 34, "tol": 1e-9, "tolTyp": "abs" }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Nach $k$ Schritten hat das Intervall die Länge $\\frac{b-a}{2^{k}}$. Die Bedingung $\\frac{1}{2^{k}}\\le\\tau$ ergibt $k\\ge\\log_2(1/\\tau)$:</p><ul><li>$\\tau=10^{-6}$: $\\log_2(10^{6})=19.93$, also $k=\\mathbf{20}$. Kontrolle: $2^{-20}=9.54\\cdot10^{-7}$ ✓</li><li>$\\tau=10^{-10}$: $\\log_2(10^{10})=33.22$, also $k=\\mathbf{34}$. Kontrolle: $2^{-34}=5.82\\cdot10^{-11}$ ✓</li></ul><p><b>Das Besondere daran:</b> die Bisektion ist das einzige Verfahren dieses Kapitels, bei dem man die Schrittzahl <b>vorab</b> ausrechnen kann — sie hängt nur von $b-a$ und $\\tau$ ab, nicht von $F$. Der Preis ist die Langsamkeit: pro Schritt gewinnt man genau ein Bit. Für volle Maschinengenauigkeit braucht man rund 53 Schritte, Newton etwa 5.</p>",
+      "skriptRef": { "abschnitt": "6.4", "seite": 209 }
+    },
+    {
+      "id": "m-w9-03",
+      "quelle": { "typ": "zusatz" },
+      "typ": "mc-single",
+      "thema": "Konvergenz der Fixpunktiteration",
+      "frageHtml": "<p>Wann konvergiert die Fixpunktiteration $x^{(k+1)}=\\phi(x^{(k)})$ lokal gegen den Fixpunkt $x^{*}$, und mit welcher Rate?</p>",
+      "optionen": [
+        "Immer, sobald $\\phi$ stetig ist — der Banach'sche Fixpunktsatz garantiert die Konvergenz.",
+        "Wenn $|\\phi'(x^{*})| &lt; 1$; dann ist die Konvergenz mindestens linear mit der Rate $L=|\\phi'(x^{*})|$. Für $|\\phi'(x^{*})| &gt; 1$ divergiert sie.",
+        "Wenn $\\phi'(x^{*}) &gt; 0$; das Vorzeichen entscheidet, nicht der Betrag.",
+        "Wenn $|\\phi(x^{*})| &lt; 1$; der Funktionswert am Fixpunkt muss klein sein."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Hilfssatz 6.3.11: ist $\\|D\\phi(\\mathbf{x}^{*})\\| &lt; 1$, so konvergiert die Iteration lokal und mindestens linear mit $L=\\|D\\phi(\\mathbf{x}^{*})\\|$. In einer Dimension ist das $|\\phi'(x^{*})| &lt; 1$.</p><p>Abb. 6.3.10 zeigt alle vier Fälle: $-1 &lt; \\phi'\\le0$ und $0\\le\\phi' &lt; 1$ konvergieren, $\\phi' &lt; -1$ und $\\phi' &gt; 1$ divergieren. Das <b>Vorzeichen</b> bestimmt nur die <i>Form</i> (Spirale gegen Treppe), nicht ob konvergiert wird — deshalb ist Option c falsch.</p><p>Option a übersieht, dass Banach eine <b>Kontraktion</b> verlangt ($L &lt; 1$), nicht blosse Stetigkeit. Option d verwechselt $\\phi(x^{*})$ — das ist per Definition $x^{*}$ selbst — mit der Ableitung.</p><p><b>Nachgerechnet am Beispiel 6.3.2</b> mit $F(x)=xe^{x}-1$, $x^{*}=0.5671$: $\\phi_1'(x^{*})=-0.567$ (konvergent, linear), $\\phi_2'(x^{*})=0$ (quadratisch), $\\phi_3'(x^{*})=-1.763$ (divergent) — genau wie beobachtet.</p>",
+      "skriptRef": { "abschnitt": "6.3", "seite": 207, "nummer": "Hilfssatz 6.3.11, Abb. 6.3.10" }
+    },
+    {
+      "id": "m-w9-04",
+      "quelle": { "typ": "zusatz" },
+      "typ": "numeric-multi",
+      "thema": "Newton von Hand",
+      "frageHtml": "<p>Newton-Verfahren für $F(x)=xe^{x}-1$ mit $F'(x)=e^{x}(1+x)$. Die Iterationsvorschrift lässt sich zu $x^{(k+1)}=\\frac{(x^{(k)})^{2}+e^{-x^{(k)}}}{1+x^{(k)}}$ vereinfachen. Starte mit $x^{(0)}=0.5$ und gib die ersten beiden Iterierten an, <b>mit mindestens fünf signifikanten Ziffern</b>.</p>",
+      "felder": [
+        { "label": "x^{(1)}", "wert": 0.5710204398084222, "tol": 0.00002, "tolTyp": "rel", "anzeige": "0.5710204" },
+        { "label": "x^{(2)}", "wert": 0.5671555687441139, "tol": 0.00002, "tolTyp": "rel", "anzeige": "0.5671556" }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>$x^{(1)}=\\frac{0.25+e^{-0.5}}{1.5}=\\frac{0.25+0.6065307}{1.5}=0.5710204$.</p><p>$x^{(2)}=\\frac{0.5710204^{2}+e^{-0.5710204}}{1.5710204}=\\frac{0.3260643+0.5649194}{1.5710204}=0.5671556$.</p><p><b>Die quadratische Konvergenz im Zeitraffer</b> — die Fehler gegenüber $x^{*}=0.567143290409784$:</p><div class=\"tbl-wrap\"><table class=\"tbl\"><thead><tr><th>$k$</th><th>$x^{(k)}$</th><th>Fehler</th></tr></thead><tbody><tr><td>1</td><td>0.5710204398</td><td>$3.9\\cdot10^{-3}$</td></tr><tr><td>2</td><td>0.5671555687</td><td>$1.2\\cdot10^{-5}$</td></tr><tr><td>3</td><td>0.5671432905</td><td>$1.2\\cdot10^{-10}$</td></tr><tr><td>4</td><td>0.5671432904</td><td>$1.1\\cdot10^{-16}$</td></tr></tbody></table></div><p>Die Zahl der korrekten Stellen verdoppelt sich in jedem Schritt: 3, dann 5, dann 10, dann 16 — genau die Aussage von (6.1.8). Dieselbe Folge erzeugt übrigens $\\phi_2$ aus Beispiel 6.3.2.</p>",
+      "skriptRef": { "abschnitt": "6.5", "seite": 211, "nummer": "(6.5.1), Bsp. 6.5.3" }
+    },
+    {
+      "id": "m-w9-05",
+      "quelle": { "typ": "zusatz" },
+      "typ": "mc-single",
+      "thema": "Residuum als Abbruchkriterium",
+      "frageHtml": "<p>Warum ist es gefährlich, die Iteration abzubrechen, sobald das <b>Residuum</b> $\\|\\mathbf{F}(\\mathbf{x}^{(k)})\\| &lt; \\tau$ ist?</p>",
+      "optionen": [
+        "Weil $\\|\\mathbf{F}(\\mathbf{x}^{(k)})\\|$ sich nicht berechnen lässt, solange $\\mathbf{x}^{*}$ unbekannt ist.",
+        "Weil das Residuum immer grösser ist als der Fehler und das Kriterium deshalb nie erfüllt wird.",
+        "Weil $\\|\\mathbf{F}(\\mathbf{x}^{(k)})\\|$ klein sein kann, obwohl $\\|\\mathbf{x}^{(k)}-\\mathbf{x}^{*}\\|$ gross ist — bei einer flach verlaufenden Funktion ist das Residuum über einen weiten Bereich winzig.",
+        "Weil $\\tau$ nicht dimensionslos ist und deshalb von der Skalierung von $\\mathbf{x}$ abhängt."
+      ],
+      "loesung": 2,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Das Skript nennt genau diesen Grund für Kriterium (d): «Dies birgt jedoch Probleme, denn $\\|\\mathbf{F}(\\mathbf{x}^{(k)})\\|$ kann klein sein, obwohl $\\|\\mathbf{x}^{(k)}-\\mathbf{x}^{*}\\|$ gross ist (siehe Bild).» Abb. 6.2.1 zeigt eine Funktion mit einem langen flachen Stück — dort ist $F$ fast null, die Nullstelle aber weit weg.</p><p>Option a ist falsch herum: das Residuum ist gerade die Grösse, die man <b>ohne</b> Kenntnis von $\\mathbf{x}^{*}$ berechnen kann — das macht es ja attraktiv. Nicht anwendbar ist das <i>a-posteriori</i>-Kriterium (b) mit $\\|\\mathbf{x}^{(k)}-\\mathbf{x}^{*}\\| &lt; \\tau$.</p><p><b>Die brauchbare Alternative</b> bei linearer Konvergenz ist Bem. 6.2.2: $\\|\\mathbf{x}^{(k+1)}-\\mathbf{x}^{*}\\|\\le\\frac{L}{1-L}\\|\\mathbf{x}^{(k+1)}-\\mathbf{x}^{(k)}\\|$ — die beobachtbare Schrittweite als Fehlerschranke. Beim Newton-Verfahren nimmt man stattdessen die vereinfachte Newton-Korrektur (6.7.4).</p>",
+      "skriptRef": { "abschnitt": "6.2", "seite": 201, "nummer": "Abb. 6.2.1, Bem. 6.2.2" }
+    },
+    {
+      "id": "m-w9-06",
+      "quelle": { "typ": "zusatz" },
+      "typ": "mc-single",
+      "thema": "Newton in d Dimensionen",
+      "frageHtml": "<p>Ein Newton-Schritt in $d$ Dimensionen lautet $\\mathbf{x}^{(k+1)}=\\mathbf{x}^{(k)}-D\\mathbf{F}(\\mathbf{x}^{(k)})^{-1}\\mathbf{F}(\\mathbf{x}^{(k)})$. Wie setzt man das im Code um?</p>",
+      "optionen": [
+        "Mit <code>np.linalg.inv(DF(x)) @ F(x)</code> — die Inverse wird einmal berechnet und dann wiederverwendet.",
+        "Mit <code>s = solve(DF(x), F(x))</code> und <code>x -= s</code>: man löst das lineare Gleichungssystem $D\\mathbf{F}(\\mathbf{x}^{(k)})\\mathbf{s}=\\mathbf{F}(\\mathbf{x}^{(k)})$ und berechnet die Inverse <b>niemals</b> explizit.",
+        "Mit <code>np.linalg.pinv(DF(x)) @ F(x)</code>, weil die Jacobi-Matrix singulär sein kann.",
+        "Mit <code>DF(x) @ F(x)</code> — die Multiplikation ersetzt die Inversion, weil die Jacobi-Matrix orthogonal ist."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Das Skript setzt diese Regel in Fettdruck: «<b>Beachte:</b> Man berechnet <b>niemals</b> die Inverse einer Matrix: $\\mathbf{s}=\\mathbf{A}^{-1}\\mathbf{b}$, sondern löst das Gleichungssystem $\\mathbf{A}\\mathbf{s}=\\mathbf{b}$.» In Code 6.7.3 steht entsprechend <code>s = solve(DF(x), F(x))</code>, und Code 6.7.5 kommentiert es noch einmal: «we never calculate the inverse of a matrix, we solve a linear system instead».</p><p>Der Grund ist doppelt: das Invertieren kostet rund dreimal so viel wie ein <code>solve</code>, und es ist numerisch schlechter konditioniert. Option d ist zusätzlich mathematisch falsch — die Jacobi-Matrix ist im Allgemeinen nicht orthogonal.</p><p><b>Verwandte Optimierung:</b> das <i>vereinfachte</i> Newton-Verfahren behält $D\\mathbf{F}(\\mathbf{x}^{(k-1)})$ über mehrere Schritte, sodass die <b>LU-Zerlegung</b> wiederverwendbar wird und jede Korrektur statt $\\mathcal{O}(d^{3})$ nur noch $\\mathcal{O}(d^{2})$ kostet — um den Preis bloss linearer Konvergenz (Bem. 6.7.10).</p>",
+      "skriptRef": { "abschnitt": "6.7", "seite": 214, "nummer": "(6.7.2), Code 6.7.3" }
+    },
+    {
+      "id": "m-w9-07",
+      "quelle": { "typ": "zusatz" },
+      "typ": "numeric-multi",
+      "thema": "Aufwand pro Newton-Schritt",
+      "frageHtml": "<p>Welchen Aufwand (Exponent $p$ in $\\mathcal{O}(d^{p})$) kostet eine Korrektur in $d$ Dimensionen, und welche Konvergenzordnung erhält man dafür? <b>Ganze Zahlen.</b></p>",
+      "felder": [
+        { "label": "p\\ \\text{Newton (neue Jacobi-Matrix, neue LU)}", "wert": 3, "tol": 1e-9, "tolTyp": "abs" },
+        { "label": "p\\ \\text{vereinfachtes Newton (LU wiederverwendet)}", "wert": 2, "tol": 1e-9, "tolTyp": "abs" },
+        { "label": "\\text{Konvergenzordnung vereinfachtes Newton}", "wert": 1, "tol": 1e-9, "tolTyp": "abs" }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Bemerkung 6.7.9: «Im Falle vieler Dimensionen ($d\\gg1$) ist die Berechnung einer Newton-Korrektur teuer, denn $D\\mathbf{F}(\\mathbf{x}^{(k)})$ sind (volle) $d\\times d$-Matrizen.» Eine neue LU-Zerlegung kostet $\\mathcal{O}(d^{3})$.</p><p>Bemerkung 6.7.10: «Der Vorteil ist, dass in diesem Fall die LU-Zerlegung von $D\\mathbf{F}(\\mathbf{x}^{(k-1)})$ wiederverwendet werden kann, so dass die vereinfachte Newton-Korrektur $\\Delta\\bar{\\mathbf{x}}^{(k)}$ in $\\mathcal{O}(d^{2})$ Operationen zur Verfügung steht. Der Preis dafür ist der Verlust der quadratischen Konvergenzordnung: Das vereinfachte Newton-Verfahren konvergiert nur <b>linear</b>.»</p><p>Vorwärts- und Rückwärtssubstitution mit einer bereits vorhandenen LU-Zerlegung kosten je $\\mathcal{O}(d^{2})$ — die teure Faktorisierung entfällt.</p><p><b>Der Kompromiss dazwischen</b> ist Broyden (6.9): eine Rang-1-Aufdatierung der Jacobi-Matrix. Es konvergiert «langsamer als das Newton-Verfahren, aber schneller als das vereinfachte Newton-Verfahren» und ist in der Laufzeit bei grossem $d$ das schnellste der drei (Abb. 6.9.8).</p>",
+      "skriptRef": { "abschnitt": "6.7", "seite": 223, "nummer": "Bem. 6.7.9/6.7.10" }
+    },
+    {
+      "id": "m-w9-08",
+      "quelle": { "typ": "zusatz" },
+      "typ": "mc-single",
+      "thema": "Gedämpftes Newton-Verfahren",
+      "frageHtml": "<p>Wozu dient die Dämpfung im gedämpften Newton-Verfahren, und was kann sie <b>nicht</b> leisten?</p>",
+      "optionen": [
+        "Sie erhöht die Konvergenzordnung von 2 auf 3; dafür ist jeder Schritt teurer.",
+        "Sie verkürzt zu lange Newton-Korrekturen und vergrössert so den Einzugsbereich. Sobald $\\lambda=1$ erreicht ist, ist die Konvergenz wieder asymptotisch quadratisch. Zeigt die Korrektur aber in die <b>falsche Richtung</b>, hilft auch die Dämpfung nicht.",
+        "Sie garantiert globale Konvergenz von jedem beliebigen Startwert aus.",
+        "Sie ersetzt die Jacobi-Matrix durch eine Rang-1-Näherung und spart dadurch Rechenzeit."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Das Skript: «Wir beobachten, dass die Korrekturen zu lang sind. Wir dämpfen sie mit dem schrittabhängigen Faktor $\\lambda^{(k)}$.» Für $F(x)=\\arctan(x)$ konvergiert ungedämpftes Newton nur für Startwerte in etwa $[-1.39,1.39]$.</p><p>In <b>Beispiel 6.8.7</b> ($x^{(0)}=20$, $q=\\tfrac12$) startet $\\lambda$ bei $0.03125$, verdoppelt sich Schritt für Schritt bis $\\lambda=1$ ab $k=6$ — die <b>Beobachtung</b> des Skripts lautet dort wörtlich «asymptotisch quadratische Konvergenz».</p><p><b>Beispiel 6.8.8</b> zeigt die Grenze: $F(x)=xe^{x}-1$ mit $x^{(0)}=-1.5$ bricht mit «Bailed out because of <code>lambda &lt; LMIN</code>» ab. Die Beobachtung: «Die Newton-Korrektur zeigt in die <i>falsche Richtung</i>, also haben wir keine Konvergenz.» Eine falsch gerichtete Korrektur wird durch Verkürzen nicht richtig.</p><p>Option c ist deshalb zu stark — die Wahl von $\\lambda^{(k)}$ ist ausdrücklich <b>heuristisch</b>. Option d beschreibt Broyden.</p>",
+      "skriptRef": { "abschnitt": "6.8", "seite": 226, "nummer": "Bsp. 6.8.7/6.8.8, Code 6.8.6" }
+    },
+    {
+      "id": "m-w9-09",
+      "quelle": { "typ": "zusatz" },
+      "typ": "mc-single",
+      "thema": "Broyden-Verfahren",
+      "frageHtml": "<p>Das Broyden-Verfahren ersetzt die Jacobi-Matrix durch eine Näherung $\\mathbf{J}_k$. Welche Bedingung legt die Aufdatierung fest, und warum braucht es überhaupt eine Zusatzbedingung?</p>",
+      "optionen": [
+        "Die Sekantenbedingung legt $\\mathbf{J}_k$ für $d\\ge2$ <b>nicht</b> eindeutig fest. Die Broyden-Bedingung $\\mathbf{J}_k\\mathbf{z}=\\mathbf{J}_{k-1}\\mathbf{z}$ für alle $\\mathbf{z}$ orthogonal zur letzten Korrektur wählt daraus die bezüglich $\\|\\cdot\\|_2$ minimale Änderung — eine Rang-1-Aufdatierung.",
+        "Die Sekantenbedingung legt $\\mathbf{J}_k$ eindeutig fest; die Broyden-Bedingung dient nur der schnelleren Berechnung.",
+        "$\\mathbf{J}_k$ muss symmetrisch positiv definit bleiben, damit die LU-Zerlegung existiert.",
+        "$\\mathbf{J}_k$ wird als Diagonalmatrix angesetzt, damit die Lösung des Gleichungssystems $\\mathcal{O}(d)$ kostet."
+      ],
+      "loesung": 0,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Das Skript: «Im eindimensionalen Fall ($n=1$) ist $J_k$ eine durch (6.9.2) eindeutig definierte Zahl. Für $d\\ge2$ gibt es aber viele $d\\times d$-Matrizen $\\mathbf{J}_k$, die (6.9.2) erfüllen.» Genau deshalb braucht es eine Zusatzforderung.</p><p>Die Broyden-Bedingung: «$\\mathbf{J}_k$ und $\\mathbf{J}_{k-1}$ wirken in gleicher Weise auf den Raum, der orthogonal zur vorigen Korrektur ist» — man ändert also nur in der einen Richtung, in der neue Information vorliegt. Bemerkung 6.9.1 hält fest, dass das Update «die bezüglich der $\\|\\cdot\\|_2$-Norm minimale relative Korrektur zu $\\mathbf{J}_k$» ist.</p><p>Umgesetzt wird es über die <b>Sherman-Morrison-Woodbury-Formel</b>, die $\\mathbf{J}_{k+1}^{-1}$ direkt aus $\\mathbf{J}_k^{-1}$ gewinnt — ohne neue Faktorisierung. Startwert ist $\\mathbf{J}_0:=D\\mathbf{F}(\\mathbf{x}^{(0)})$.</p>",
+      "skriptRef": { "abschnitt": "6.9", "seite": 228, "nummer": "(6.9.2)/(6.9.3), Bem. 6.9.1" }
+    },
+    {
+      "id": "m-w9-10",
+      "quelle": { "typ": "zusatz" },
+      "typ": "mc-single",
+      "thema": "Startwert und Einzugsbereich",
+      "frageHtml": "<p>Abbildung 6.1.2 trägt den Titel «Iteration und Startwert sind <b>beide</b> entscheidend». Was zeigt sie?</p>",
+      "optionen": [
+        "Dass jede konsistente Fixpunktiteration bei genügend vielen Schritten konvergiert, der Startwert also nur die Geschwindigkeit beeinflusst.",
+        "Oben: drei verschiedene Iterationen mit <b>demselben</b> Startwert — eine konvergiert gegen $\\mathbf{a}_1$, eine gegen $\\mathbf{a}_2$, eine gar nicht. Unten: <b>dieselbe</b> Iteration mit drei sehr nahe beieinander liegenden Startwerten — mit genau demselben dreifachen Ausgang.",
+        "Dass die Konvergenzordnung vom Startwert abhängt, die Konvergenz selbst aber nicht.",
+        "Dass eine Iteration immer gegen die dem Startwert <b>nächstgelegene</b> Nullstelle konvergiert."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Bemerkung 6.1.5 beschreibt genau diese beiden Hälften. Die Lehre ist, dass die Wahl des Verfahrens und die Wahl des Startwerts <b>gleichberechtigt</b> über Erfolg oder Misserfolg entscheiden — man kann nicht eines davon optimieren und das andere ignorieren.</p><p>Option d ist eine verbreitete, aber falsche Intuition: Newton kann von einem Startwert aus durchaus zu einer <i>weiter entfernten</i> Nullstelle springen, wenn die Tangente dorthin zeigt. Die Einzugsgebiete sind im Allgemeinen keine einfachen Umgebungen — Abb. 6.8.5 zeigt für $\\arctan(ax)$ den Wertebereich der Startwerte als schmale rote Zone, die mit wachsendem $a$ immer enger wird.</p><p>Der zweite Satz von Bem. 6.1.5 gibt die Entwarnung: «Wenn die Anfangswerte aber sehr nahe bei den exakten Lösungen $\\mathbf{a}_1,\\mathbf{a}_2$ oder $\\mathbf{a}_3$ liegen, dann liefert die Iteration Folgen, die zur jeweiligen exakten Lösung konvergieren.» Genau das heisst <b>lokale</b> Konvergenz.</p>",
+      "skriptRef": { "abschnitt": "6.1", "seite": 195, "nummer": "Bem. 6.1.5, Abb. 6.1.2" }
+    }
+  ],
+
   "codeexpert": []
 }
