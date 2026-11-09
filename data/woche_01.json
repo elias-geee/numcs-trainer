@@ -8,7 +8,7 @@
   },
   "vorlage": "wochenplan/Vorlage01_rundungsfehler.pdf",
   "aufgabenUebersicht": {
-    "moodle": 0,
+    "moodle": 9,
     "codeexpert": 3
   },
   "einleitung": "<p>Die ganze Woche dreht sich um eine Frage: <b>wann zerstört die Gleitkomma-Arithmetik ein Ergebnis, und wie formuliert man den Algorithmus um, damit sie es nicht tut.</b> Der rote Faden ist die <i>Auslöschung</i> — die Subtraktion zweier fast gleich grosser Zahlen. Jedes Beispiel des Kapitels ist eine Variation davon: instabile Nullstellenformel, Differenzenquotient, Potenzreihe, und schliesslich die beiden Auswege (rein imaginärer Schritt, Richardson).</p><p class=\"faint\">Das Skript betont ausdrücklich, dass die Rundungsfehleranalyse <i>nicht</i> der Kern der Vorlesung ist (S. 6) — die Ideen zu guten Approximationen und effizienten Algorithmen sind wichtiger. Für die Prüfung zählt vor allem: die Fälle erkennen, in denen klar vermeidbar schiefgeht.</p>",
