@@ -5,6 +5,7 @@ check_content.py — statische Prüfung der Inhaltsdateien unter data/.
 Ergänzt tools/check_solutions.py (das den Python-Code ausführt) um die Dinge,
 die man sonst nur im Browser sieht:
 
+  0. LaTeX-Konstrukte, die KaTeX nicht kennt (\begin{psmallmatrix} …)
   1. rohes "<" in HTML-Feldern (NICHT in Lücken-Optionen: das ist
      Python-Code und wird als Textknoten gerendert)
      $x < 0$ wird vom HTML-Parser als Tag-Anfang gelesen und verschluckt den
@@ -80,10 +81,26 @@ def warn(where: str, msg: str) -> None:
     print(f"  {YELLOW}!   {RESET} {where}: {msg}")
 
 
+# LaTeX-Konstrukte, die KaTeX nicht kennt. Sie werfen keinen Fehler, sondern
+# erscheinen als roter Quelltext auf der Seite — offline unsichtbar.
+# Diese Liste ist im Browser mit katex 0.16.11 nachgemessen, nicht geraten:
+# \xrightarrow und \xleftarrow etwa funktionieren und stehen deshalb NICHT
+# darin; \left(\begin{smallmatrix}...\end{smallmatrix}\right) ebenso.
+UNBEKANNT_LATEX = (
+    r"\\begin\{(psmallmatrix|bsmallmatrix|vsmallmatrix|alignat|gather|"
+    r"multline|eqnarray|split|flalign)\}"
+    r"|\\(mathds|eqref|intertext|shortintertext)\b"
+)
+
+
 def check_html(where: str, value: str) -> None:
-    """Rohes '<' und unpaarige '$' finden."""
+    """Rohes '<', unpaarige '$' und KaTeX-fremde Konstrukte finden."""
     global checked
     checked += 1
+    for m in re.finditer(UNBEKANNT_LATEX, value):
+        fail(where, f"KaTeX kennt {m.group(0)!r} nicht — erscheint als roter "
+                    f"Quelltext auf der Seite",
+             value[max(0, m.start() - 40):m.start() + 50].replace("\n", " "))
     for m in re.finditer(r"<", value):
         if not re.match(TAGS, value[m.start() + 1:m.start() + 14]):
             ctx = value[max(0, m.start() - 40):m.start() + 40].replace("\n", " ")

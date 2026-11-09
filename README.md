@@ -48,6 +48,7 @@ numcs/
   tools/check_content.py     statische Prüfung der Inhalte
   tools/pyodide-selftest.html prüft dieselben Lösungen im echten Browser
   tools/testserver.py        Server dafür (nimmt das Ergebnis per POST entgegen)
+  tools/rendercheck.html     prüft, dass jede Woche alle Fragen rendert
 ```
 
 **Der Code kennt keine Inhalte.** Eine neue Woche besteht nur aus einer neuen
@@ -264,7 +265,12 @@ Die beiden prüfen Verschiedenes und ergänzen sich:
 | | prüft |
 |---|---|
 | `check_solutions.py` | führt Python aus: Musterlösung besteht den Test, Lückencode besteht ihn auch, Template besteht ihn **nicht**, und **jede** falsche MC-Option fällt durch |
-| `check_content.py` | statisch: rohes `<` in HTML-Feldern, ungerade `$`-Zahl, fehlende Referenzgrafik oder Screenshot, `«Lk»` ohne Eintrag in `luecken`, `loesungsStatus`, unbekannte Schlüssel |
+| `check_content.py` | statisch: LaTeX, das KaTeX nicht kennt, rohes `<` in HTML-Feldern, ungerade `$`-Zahl, fehlende Referenzgrafik oder Screenshot, `«Lk»` ohne Eintrag in `luecken`, `loesungsStatus`, unbekannte Schlüssel |
+
+Die Liste der KaTeX-fremden Konstrukte in `check_content.py` ist im Browser
+nachgemessen, nicht geraten: `\begin{psmallmatrix}` etwa wirft keinen Fehler,
+sondern erscheint als roter Quelltext auf der Seite — offline unsichtbar.
+`\xrightarrow` dagegen funktioniert und steht deshalb nicht in der Liste.
 
 Wichtig: `check_content.py` prüft die `optionen` einer **Lücke** bewusst *nicht*
 auf rohes `<` — das ist Python-Code und wird als Textknoten gerendert, dort ist
@@ -291,6 +297,21 @@ until [ -s /tmp/selftest.txt ]; do sleep 5; done; head -1 /tmp/selftest.txt
 
 Ohne `--virtual-time-budget`: der Schalter lässt Chrome die Uhr vorspulen und
 beendet ihn, lange bevor Pyodide seine rund 50 MB geladen hat.
+
+Dasselbe gilt für `tools/rendercheck.html`, das jede Wochenseite in einem iframe
+lädt und zählt, ob alle Fragen tatsächlich im DOM landen:
+
+```bash
+python3 tools/testserver.py 8767 /tmp/render.txt &
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new \
+  --disable-gpu --user-data-dir=/tmp/numcs-chrome \
+  "http://127.0.0.1:8767/tools/rendercheck.html" &
+until [ -s /tmp/render.txt ]; do sleep 3; done; cat /tmp/render.txt
+```
+
+Mit `--virtual-time-budget` liefert derselbe Test *reproduzierbar* zu wenige
+Karten — die Zahl hängt davon ab, wie viel KaTeX bis zum Ablauf geschafft hat.
+Das sieht wie ein Inhaltsfehler aus und ist keiner.
 
 Beides muss grün sein. Der Browser-Test hat zum Beispiel gefunden, dass der
 Prelude `matplotlib` importierte, obwohl eine Aufgabe nur NumPy lädt, und dass

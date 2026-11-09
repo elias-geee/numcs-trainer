@@ -1,0 +1,36 @@
+<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>Render-Check</title></head>
+<body><h1 id="h">läuft …</h1><pre id="out"></pre>
+<script>
+/* Laedt jede Wochenseite in einem iframe, wartet, und zaehlt die gerenderten
+   Fragekarten. Meldet das Ergebnis per POST an tools/testserver.py — ohne
+   --virtual-time-budget, das sonst mitten im Rendern abschneidet. */
+const wochen = (new URLSearchParams(location.search).get('weeks') || '1,2,3,4,5,6,7,8,9,10,11,12,13,14')
+  .split(',').map(Number);
+const out = document.getElementById('out');
+const schlaf = ms => new Promise(r => setTimeout(r, ms));
+
+(async () => {
+  const zeilen = [];
+  let fehler = 0;
+  for (const n of wochen) {
+    const soll = (await (await fetch('../data/woche_' + String(n).padStart(2,'0') + '.json')).json()).moodle.length;
+    const f = document.createElement('iframe');
+    f.style.cssText = 'width:900px;height:600px';
+    f.src = '../index.html#/woche/' + n + '/moodle';
+    document.body.appendChild(f);
+    await schlaf(2500);
+    let ist = -1, err = '';
+    try {
+      ist = f.contentDocument.querySelectorAll('.card.q .q-body').length;
+    } catch (e) { err = e.message; }
+    f.remove();
+    const ok = ist === soll;
+    if (!ok) fehler++;
+    zeilen.push(`${ok ? 'OK  ' : 'FAIL'} Woche ${String(n).padStart(2)}: ${ist} von ${soll} Fragen gerendert ${err}`);
+    out.textContent = zeilen.join('\n');
+  }
+  const urteil = fehler === 0 ? `ALLE ${wochen.length} WOCHEN OK` : `${fehler} WOCHEN FEHLERHAFT`;
+  document.getElementById('h').textContent = urteil;
+  fetch('/result', { method: 'POST', body: urteil + '\n' + zeilen.join('\n') }).catch(() => {});
+})();
+</script></body></html>
