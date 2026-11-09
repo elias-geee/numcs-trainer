@@ -1,13 +1,432 @@
 {
   "woche": 14,
   "titel": "Deep Neural Networks",
-  "status": "platzhalter",
+  "status": "nur_zusammenfassung",
   "skript": {
     "kapitel": "8.3",
-    "seiten": "298–…"
+    "seiten": "298–322"
   },
   "vorlage": "wochenplan/Vorlage14_DNNs_p1.pdf",
-  "zusammenfassung": [],
-  "moodle": [],
+  "einleitung": "<p>Die letzte Woche ordnet ein, was im Machine Learning gross geworden ist: «Deep Neural Networks sind ein Konstrukt, das im Machine Learning verwendet wird und einen <b>Spezialfall der Ausgleichsrechnung</b> darstellt.»</p><p>Ein DNN ist eine Modellfunktion $f^{\\star}(t;\\theta)$ — eine Verkettung affiner Abbildungen und einfacher nichtlinearer Aktivierungen — die man per nichtlinearer Ausgleichsrechnung an Daten anpasst. Die Werkzeuge sind die aus Woche 13: Gradient, Kettenregel, ADAM.</p><p>Drei Dinge machen den Unterschied:</p><ul><li><b>Backpropagation</b> — die Kettenregel so ausgewertet, dass alle Ableitungen exakt und in <i>linearer</i> Zeit entstehen. «Finite Differenzen wären ungenau und numerisch sehr instabil und zudem quadratisch in der Anzahl Gewichte, was die Verwendung tiefer Netze verunmöglichen würde.»</li><li><b>Unterbestimmtheit</b> — DNNs arbeiten bei $D\\gg M$, also mit mehr Parametern als Daten. Damit verschiebt sich die Frage von «welche Lösung» zu «welche Lösung verallgemeinert».</li><li><b>Bewusst wenig Genauigkeit</b> — nach dreizehn Wochen Kampf um die letzte Stelle rechnet man hier absichtlich mit halber Präzision, weil der Datenfehler ohnehin dominiert.</li></ul><p>Am Schluss steht mit den PINNs ein Verfahren, das die Differentialgleichung selbst zur Zielfunktion macht — gebaut aus Ausgleichsrechnung, Kettenregel und Optimierung, also aus dem Material dieses Kurses.</p>",
+  "moodleHinweis": "Für diese Woche liegt <b>noch kein</b> Moodle-Quiz vor — es kommt im Lauf des Semesters dazu und wird dann hier ergänzt. Bis dahin sind alle Fragen von mir im Stil der Originalfragen geschrieben und mit Skript-Verweis begründet. Alle Zahlenwerte sind nachgerechnet.",
+  "aufgabenUebersicht": {
+    "moodle": 10,
+    "codeexpert": 0
+  },
+  "zusammenfassung": [
+    {
+      "id": "w14-z1",
+      "titel": "Ein DNN ist Ausgleichsrechnung",
+      "ref": {
+        "abschnitt": "8.3",
+        "seite": 298,
+        "nummer": "Einleitung 8.3"
+      },
+      "text": "<p>«Deep Neural Networks (DNNs) sind ein Konstrukt, das im Machine Learning verwendet wird und einen <b>Spezialfall der Ausgleichsrechnung</b> darstellt.»</p><p>Das ist die Einordnung, auf die das ganze Kapitel 8 hinausläuft. Ein DNN ist nichts anderes als eine Modellfunktion $f^{\\star}(t;\\theta)$ mit sehr vielen Parametern $\\theta$, die man per nichtlinearer Ausgleichsrechnung an Trainingsdaten anpasst. Die Werkzeuge sind dieselben wie in Woche 13 — Gradient, Kettenregel, ADAM.</p><p>Neu sind nur zwei Dinge: die <b>Struktur</b> der Modellfunktion (eine Verkettung sehr vieler sehr einfacher Operationen) und die <b>Grössenordnung</b> der Parameterzahl.</p>"
+    },
+    {
+      "id": "w14-z2",
+      "titel": "Der Aufbau: Schichten, Gewichte, Bias",
+      "ref": {
+        "abschnitt": "8.3",
+        "seite": 299,
+        "nummer": "Abb. 8.3.1–8.3.2"
+      },
+      "text": "<p>«Ein neuronales Netz besteht aus mehreren Schichten (Layers) von Neuronen. Alle Werte der Neuronen in einer Schicht bilden einen Vektor $\\mathbf{z}$; von einer Schicht zur nächsten fliesst die Information mittels einer <b>affinen Abbildung</b></p><p>$$\\mathbf{a}^{(j)}=\\mathbf{b}^{(j)}+\\mathbf{W}^{(j)}\\mathbf{z}^{(j-1)}$$</p><p>gefolgt von einer <b>nichtlinearen Aktivierungsfunktion</b></p><p>$$\\mathbf{z}^{(j)}=\\sigma(\\mathbf{a}^{(j)}).$$»</p><p>«Ein Vektor $\\mathbf{b}^{(j)}$ heisst <b>Bias</b>, die Matrizen $\\mathbf{W}^{(j)}$ heissen <b>Gewichte</b>. Die Aktivierungsfunktion $\\sigma$ ist eine einfache nichtlineare Funktion von $\\mathbb{R}$ nach $\\mathbb{R}$.»</p><p>Die <b>Tiefe</b> ist die Anzahl der Zwischenschichten. Das Netz der Abbildungen 8.3.1 und 8.3.2 hat die Gestalt $[1,6,6,3]$: ein Eingangsneuron, zwei Zwischenschichten mit je sechs Neuronen, drei Ausgangsneuronen — also Tiefe 2.</p><p>Die Notation ist der ganze Trick der Darstellung: ausgeschrieben sieht ein DNN nach einem Gewirr aus Pfeilen aus (Abb. 8.3.1), als Abfolge von Matrix-Vektor-Produkten nach drei Zeilen Mathematik (Abb. 8.3.2).</p>"
+    },
+    {
+      "id": "w14-z3",
+      "titel": "Warum die Nichtlinearität unverzichtbar ist",
+      "ref": {
+        "abschnitt": "8.3",
+        "seite": 300,
+        "nummer": "S. 300"
+      },
+      "text": "<p>Ohne $\\sigma$ wäre ein DNN eine Verkettung affiner Abbildungen — und die ist wieder affin. Ein Netz beliebiger Tiefe liesse sich dann durch eine einzige Schicht ersetzen, und man wäre bei der linearen Ausgleichsrechnung aus Woche 12.</p><p>Die Anforderungen an $\\sigma$ sind entsprechend bescheiden und präzise: nichtlinear, skalar ($\\mathbb{R}\\to\\mathbb{R}$, elementweise angewandt), und — das ist entscheidend — «<b>einfach genug, dass man sie und ihre Ableitung sehr günstig auswerten kann</b>».</p><p>Der Beispielcode des Skripts bietet drei an:</p><table><thead><tr><th>$\\sigma(x)$</th><th>$\\sigma'(x)$</th><th>Bemerkung</th></tr></thead><tbody><tr><td>Sigmoid $\\dfrac{1}{1+e^{-x}}$</td><td>$\\sigma(1-\\sigma)$</td><td>Ableitung aus dem Funktionswert selbst</td></tr><tr><td>$\\tanh x$</td><td>$1-\\tanh^{2}x$</td><td>Voreinstellung im Code</td></tr><tr><td>ReLU $\\max(0,x)$</td><td>$0$ oder $1$</td><td>«can be unstable with high LR»</td></tr></tbody></table><p>Bei allen dreien kostet die Ableitung praktisch nichts, wenn man den Funktionswert schon hat — und genau darauf beruht die Effizienz der Backpropagation.</p>",
+      "merke": "Ohne nichtlineares $\\sigma$ kollabiert jedes tiefe Netz auf eine einzige affine Abbildung."
+    },
+    {
+      "id": "w14-z4",
+      "titel": "Die Zahl der Parameter",
+      "ref": {
+        "abschnitt": "8.3",
+        "seite": 300,
+        "nummer": "S. 300"
+      },
+      "text": "<p>«Die Menge aller Werte aus den Biases und aus den Gewichten ist die Menge der Parameter $\\Theta\\subset\\mathbb{R}^{D}$ mit der Dimension</p><p>$$D=\\sum_{j=1}^{K+1}d_j\\left(1+d_{j-1}\\right)$$</p><p>für ein DNN mit $K$ Zwischenschichten. Das ist die Dimension des Raumes, in dem wir die optimale Lösung suchen.»</p><p>Pro Schicht $j$: die Matrix $\\mathbf{W}^{(j)}$ hat $d_j\\cdot d_{j-1}$ Einträge, der Bias $\\mathbf{b}^{(j)}$ noch $d_j$ — zusammen $d_j(1+d_{j-1})$.</p><p>Für $[1,6,6,3]$:</p><p>$$D=\\underbrace{6\\cdot1+6}_{12}+\\underbrace{6\\cdot6+6}_{42}+\\underbrace{6\\cdot3+3}_{21}=75.$$</p><p>«DNNs sind erfolgreicher, wenn <b>tiefe und breite</b> Netze eingesetzt werden. Dies führt zu riesigen Dimensionen $D$ und verlangt nach approximativen Lösungen sehr schwieriger Optimierungsprobleme.»</p><p>Die mittlere Schicht dominiert bereits in diesem Spielzeugbeispiel — $6\\times6$ gegen $6\\times1$. Bei realen Netzen wachsen die Parameterzahlen quadratisch mit der Breite.</p>"
+    },
+    {
+      "id": "w14-z5",
+      "titel": "Die Modellfunktion",
+      "ref": {
+        "abschnitt": "8.3",
+        "seite": 300,
+        "nummer": "S. 300"
+      },
+      "text": "<p>$$f^{\\star}(t;\\theta)=\\mathbf{a}^{(K+1)}\\circ\\sigma\\circ\\cdots\\circ\\sigma\\circ\\mathbf{a}^{(2)}\\circ\\sigma\\circ\\mathbf{a}^{(1)}(t)$$</p><p>«Die mathematische Darstellung eines DNNs ist die Hintereinanderausführung affiner Operationen $\\mathbf{a}^{(k)}$ und punktweiser Aktivierungsfunktionen $\\sigma$.»</p><p>Zwei Details lohnen den Blick:</p><ul><li>Die <b>letzte</b> Operation ist affin, ohne Aktivierung. Für Interpolationsaufgaben nimmt man «eine lineare Aktivierung an» (8.3.6), damit die Ausgabe nicht auf den Wertebereich von $\\sigma$ eingeschränkt ist.</li><li>Gelesen wird von <b>rechts nach links</b>: erst $\\mathbf{a}^{(1)}$ auf die Eingabe, dann $\\sigma$, dann $\\mathbf{a}^{(2)}$, und so weiter.</li></ul><p>Ziel ist ein $\\theta$, für das $f^{\\star}(t_m;\\theta)\\approx y_m$ auf der Trainingsmenge gilt. «Wenn wir ein solches optimales $\\theta$ gefunden haben, dann können wir das DNN für <b>beliebige</b> $t$ auswerten, um günstig Voraussagen für die sonst unbekannten oder nur schwer erhältlichen Werte von $f(t)$ zu erhalten.»</p>"
+    },
+    {
+      "id": "w14-z6",
+      "titel": "Die Zielfunktion",
+      "ref": {
+        "abschnitt": "8.3",
+        "seite": 300,
+        "nummer": "S. 300"
+      },
+      "text": "<p>$$J(\\theta)=\\frac{1}{M}\\sum_{m=1}^{M}\\left(\\left\\|f^{\\star}(t_m;\\theta)-y_m\\right\\|_2\\right)^{p}$$</p><p>«Für $p=2$ erhalten wir die <b>Standardmethode der kleinsten Quadrate</b>; $p=1$ favorisiert <b>dünn besetzte Lösungen</b>. Die zuvor diskutierten Methoden kommen zum Einsatz, wobei <b>ADAM die erfolgreichste Methode</b> ist.»</p><p>Damit ist der Bogen zu Woche 13 geschlossen: das Training eines DNN ist ein nichtlineares Ausgleichsproblem, und die Verfahrensübersicht aus Abschnitt 8.2.3 gilt unverändert. Newton und BFGS scheiden bei $D$ in Millionenhöhe aus — eine Hesse-Matrix hätte $D^{2}$ Einträge. Bleiben die Gradientenverfahren, und unter ihnen gewinnt ADAM.</p><p>In Machine Learning heisst $J$ <i>loss function</i> und die Schrittweite $\\lambda$ <i>learning rate</i> — andere Wörter für dieselben Objekte.</p>"
+    },
+    {
+      "id": "w14-z7",
+      "titel": "Unterbestimmt statt überbestimmt",
+      "ref": {
+        "abschnitt": "8.3",
+        "seite": 300,
+        "nummer": "S. 300–301"
+      },
+      "text": "<p>«Es ist wichtig zu wissen, dass DNNs am besten für <b>stark unterdeterminierte</b> Systeme funktionieren, d.h. $D\\gg M$, und <b>gar nicht</b> für überdeterminierte Systeme.»</p><p>Das ist die bemerkenswerteste Aussage des Abschnitts, weil sie dem Rest des Kapitels direkt widerspricht. In Woche 12 und 13 war $m&gt;n$ der Normalfall: mehr Messungen als Parameter, deshalb kein exakter Fit, deshalb kleinste Quadrate. Hier ist es umgekehrt — mehr Parameter als Daten.</p><p>Damit gibt es unendlich viele $\\theta$, die die Trainingsdaten exakt treffen. Die Aufgabe verschiebt sich: nicht «die» Lösung finden, sondern «aus der Menge möglicher Lösungen eine zu finden, die sich auf <b>neue</b> Daten oder Messungen verallgemeinern lässt».</p><p>Welche man bekommt, entscheidet das Verfahren — Startwert, Lernrate, Regularisierung. Das ist kein Mangel der Numerik, sondern das eigentliche Thema des maschinellen Lernens.</p>",
+      "merke": "DNNs leben im unterbestimmten Fall $D\\gg M$. Gesucht ist nicht die Lösung, sondern eine, die verallgemeinert."
+    },
+    {
+      "id": "w14-z8",
+      "titel": "Die vier Schlüsselideen",
+      "ref": {
+        "abschnitt": "8.3",
+        "seite": 301,
+        "nummer": "S. 301"
+      },
+      "text": "<p>Das Skript fasst zusammen:</p><ul><li><b>«Nacheinanderausführung sehr vieler sehr einfacher Operationen (<i>go deep</i>).»</b> Keine einzelne Operation ist kompliziert — die Ausdruckskraft entsteht aus der Verkettung.</li><li><b>«Nichtlinearität der Aktivierungsfunktion, die jedoch einfach genug ist, dass man sie und ihre Ableitung sehr günstig auswerten kann.»</b></li><li><b>«Verwende die Kettenregel, um Ableitungen nach den Parametern <i>exakt automatisch</i> (nicht analytisch!) zu berechnen.»</b> Der Unterschied ist wesentlich: nicht Formelmanipulation, sondern numerische Auswertung der Kettenregel entlang des Rechenwegs — <i>automatisches Differenzieren</i>.</li><li><b>«Optimal schnelle Anwendung der Kettenregel: <i>backpropagation</i> ist linear in der Anzahl Gewichte $\\sum_{j=1}^{K+1}d_j^{2}$.»</b></li></ul><p>«Alle diese Eigenschaften sind notwendig, doch die <b>Backpropagation ist entscheidend</b>: Einerseits ist die Berechnung der Ableitungen dank Kettenregel und exakter Ableitung der einfachen Aktivierungsfunktion <b>ganz genau</b>, andererseits ist sie <b>schnell</b>. Finite Differenzen wären ungenau und numerisch sehr instabil und zudem <b>quadratisch</b> in der Anzahl Gewichte, was die Verwendung tiefer Netze verunmöglichen würde.»</p><p>Der Grund für das Quadrat: finite Differenzen brauchen pro Parameter eine zusätzliche Auswertung des ganzen Netzes, und eine Auswertung kostet selbst schon so viel wie die Zahl der Gewichte. Backpropagation bekommt <b>alle</b> $D$ Ableitungen in einem einzigen Rückwärtsdurchlauf.</p>",
+      "merke": "Backpropagation ist exakt und linear in der Gewichtszahl — finite Differenzen wären ungenau und quadratisch."
+    },
+    {
+      "id": "w14-z9",
+      "titel": "Der Vorwärtsdurchlauf",
+      "ref": {
+        "abschnitt": "8.3",
+        "seite": 301,
+        "nummer": "Bsp. 8.3.3, (8.3.1)–(8.3.7)"
+      },
+      "text": "<p>Für das Netz $[1,6,6,3]$, in <b>Zeilenvektor</b>-Notation «analog zur Implementierung in numpy», also $\\mathbf{x}\\mathbf{W}+\\mathbf{b}$:</p><p>$$\\mathbf{a}^{(1)}=\\mathbf{z}^{(0)}\\mathbf{W}^{(1)}+\\mathbf{b}^{(1)},\\qquad \\mathbf{z}^{(1)}=\\sigma(\\mathbf{a}^{(1)})$$$$\\mathbf{a}^{(2)}=\\mathbf{z}^{(1)}\\mathbf{W}^{(2)}+\\mathbf{b}^{(2)},\\qquad \\mathbf{z}^{(2)}=\\sigma(\\mathbf{a}^{(2)})$$$$\\mathbf{a}^{(3)}=\\mathbf{z}^{(2)}\\mathbf{W}^{(3)}+\\mathbf{b}^{(3)},\\qquad \\hat{\\mathbf{y}}=\\mathbf{a}^{(3)}$$</p><p>Die Dimensionen: $\\mathbf{W}^{(1)}\\in\\mathbb{R}^{1\\times6}$, $\\mathbf{W}^{(2)}\\in\\mathbb{R}^{6\\times6}$, $\\mathbf{W}^{(3)}\\in\\mathbb{R}^{6\\times3}$, die Biases jeweils Zeilenvektoren passender Länge.</p><p>Als Fehlermass der mittlere quadratische Fehler</p><p>$$J=\\tfrac12\\|\\hat{\\mathbf{y}}-\\mathbf{y}\\|^{2}=\\tfrac12\\sum_{k=1}^{3}(\\hat y_k-y_k)^{2}.$$</p><p>Der Faktor $\\tfrac12$ ist reine Bequemlichkeit — er kürzt sich beim Ableiten weg («0.5 factor for cleaner derivatives» im Code).</p><p><b>Wichtig:</b> alle Zwischenwerte $\\mathbf{a}^{(j)}$ und $\\mathbf{z}^{(j)}$ müssen aufgehoben werden — der Rückwärtsdurchlauf braucht sie.</p>"
+    },
+    {
+      "id": "w14-z10",
+      "titel": "Der Rückwärtsdurchlauf",
+      "ref": {
+        "abschnitt": "8.3",
+        "seite": 302,
+        "nummer": "(8.3.8)–(8.3.17)"
+      },
+      "text": "<p>Der Fehlerterm $\\delta^{(l)}:=\\frac{\\partial J}{\\partial\\mathbf{a}^{(l)}}$ wird von hinten nach vorne durchgereicht. Am Ausgang ist die Aktivierung linear, also</p><p>$$\\delta^{(3)}=\\frac{\\partial J}{\\partial\\mathbf{a}^{(3)}}=\\hat{\\mathbf{y}}-\\mathbf{y}\\ \\in\\mathbb{R}^{1\\times3}.$$</p><p>Daraus die Gradienten der Parameter von Schicht 3:</p><p>$$\\frac{\\partial J}{\\partial\\mathbf{W}^{(3)}}=(\\mathbf{z}^{(2)})^{T}\\delta^{(3)}\\in\\mathbb{R}^{6\\times3},\\qquad \\frac{\\partial J}{\\partial\\mathbf{b}^{(3)}}=\\delta^{(3)}$$</p><p>Und die Rückpropagation durch eine Schicht:</p><p>$$\\delta^{(2)}=\\left(\\delta^{(3)}(\\mathbf{W}^{(3)})^{T}\\right)\\odot\\sigma'(\\mathbf{a}^{(2)})\\in\\mathbb{R}^{1\\times6},\\qquad \\delta^{(1)}=\\left(\\delta^{(2)}(\\mathbf{W}^{(2)})^{T}\\right)\\odot\\sigma'(\\mathbf{a}^{(1)})$$</p><p>Jeder Schritt besteht aus genau zwei Operationen: eine <b>Matrixmultiplikation</b> mit der transponierten Gewichtsmatrix (das Zurückschieben durch die affine Abbildung) und ein <b>Hadamard-Produkt</b> $\\odot$ mit $\\sigma'$ (das Zurückschieben durch die Aktivierung, elementweise, weil $\\sigma$ elementweise wirkt).</p><p>Die Parametergradienten sind dann durchweg $\\frac{\\partial J}{\\partial\\mathbf{W}^{(l)}}=(\\mathbf{z}^{(l-1)})^{T}\\delta^{(l)}$ und $\\frac{\\partial J}{\\partial\\mathbf{b}^{(l)}}=\\delta^{(l)}$ — hier werden die im Vorwärtsdurchlauf gespeicherten $\\mathbf{z}^{(l-1)}$ gebraucht.</p>"
+    },
+    {
+      "id": "w14-z11",
+      "titel": "Der Algorithmus in fünf Schritten",
+      "ref": {
+        "abschnitt": "8.3",
+        "seite": 303,
+        "nummer": "S. 303"
+      },
+      "text": "<ol><li><b>Forward Pass:</b> $\\mathbf{z}^{(0)},\\mathbf{z}^{(1)},\\mathbf{z}^{(2)},\\hat{\\mathbf{y}}$ berechnen.</li><li><b>Fehlerberechnung:</b> $\\delta^{(3)}=\\hat{\\mathbf{y}}-\\mathbf{y}$.</li><li><b>Backward Pass (Hidden 2):</b> $\\delta^{(2)}=(\\delta^{(3)}\\mathbf{W}^{(3)T})\\odot\\sigma'(\\mathbf{a}^{(2)})$.</li><li><b>Backward Pass (Hidden 1):</b> $\\delta^{(1)}=(\\delta^{(2)}\\mathbf{W}^{(2)T})\\odot\\sigma'(\\mathbf{a}^{(1)})$.</li><li><b>Gradienten-Update:</b> $\\mathbf{W}^{(l)}\\leftarrow\\mathbf{W}^{(l)}-\\eta\\,(\\mathbf{z}^{(l-1)T}\\delta^{(l)})$ und $\\mathbf{b}^{(l)}\\leftarrow\\mathbf{b}^{(l)}-\\eta\\,\\delta^{(l)}$.</li></ol><p>Schritt 5 ist genau der Gradientenabstieg aus Woche 13, $\\mathbf{x}^{(k+1)}=\\mathbf{x}^{(k)}-\\lambda\\mathrm{D}\\Phi$ — mit $\\eta$ statt $\\lambda$ und <i>learning rate</i> statt Schrittweite. In der Praxis steht dort ADAM statt des einfachen Abstiegs, aber die Gradienten kommen in jedem Fall aus den Schritten 1 bis 4.</p>"
+    },
+    {
+      "id": "w14-z12",
+      "titel": "Warum Backpropagation linear in der Tiefe ist",
+      "ref": {
+        "abschnitt": "8.3",
+        "seite": 304,
+        "nummer": "S. 304"
+      },
+      "text": "<p>«Bei sehr tiefen Netzwerken greift das Prinzip der <b>dynamischen Programmierung</b>. Anstatt die Kettenregel für die erste Schicht vollständig neu vom Ausgang her zu berechnen, nutzen wir die Zwischenergebnisse. Der Fehlerterm $\\delta^{(2)}$ enthält <b>bereits alle Informationen</b> über die nachfolgenden Schichten. Zur Berechnung von $\\delta^{(1)}$ ist lediglich eine Matrixmultiplikation mit $\\mathbf{W}^{(2)}$ nötig. Der Rechenaufwand wächst somit nur <b>linear</b> mit der Tiefe des Netzwerks.»</p><p>Das ist der eigentliche Algorithmus hinter dem Namen. Die Kettenregel für $\\frac{\\partial J}{\\partial\\mathbf{W}^{(1)}}$ naiv auszuwerten hiesse, das Produkt aller Zwischenableitungen von hinten bis vorne neu durchzurechnen — für jede Schicht erneut, also quadratisch in der Tiefe.</p><p>Backpropagation berechnet stattdessen jedes $\\delta^{(l)}$ genau <b>einmal</b> und reicht es weiter. Dasselbe Prinzip wie beim Horner-Schema oder beim Clenshaw-Algorithmus aus Woche 4: Zwischenergebnisse aufheben statt neu berechnen.</p>"
+    },
+    {
+      "id": "w14-z13",
+      "titel": "Batch-Verarbeitung und GPUs",
+      "ref": {
+        "abschnitt": "8.3",
+        "seite": 304,
+        "nummer": "(8.3.18), S. 304"
+      },
+      "text": "<p>«In der Praxis verarbeiten wir nicht einen einzelnen Vektor $\\mathbf{z}^{(0)}$, sondern eine <b>Matrix</b> $\\mathbf{Z}^{(0)}\\in\\mathbb{R}^{N\\times1}$, wobei $N$ die Anzahl der Messungen ist. Die Operationen ändern sich von Vektor-Matrix-Produkten zu <b>Matrix-Matrix-Produkten</b>:</p><p>$$\\mathbf{Z}^{(1)}=\\sigma\\!\\left(\\mathbf{Z}^{(0)}\\mathbf{W}^{(1)}+\\mathbf{B}^{(1)}\\right)$$»</p><p>Das ist exakt das Argument aus Woche 2: BLAS Level 3 statt Level 2. «Moderne Hardware (GPUs) ist hochgradig auf <b>parallele Matrixoperationen</b> optimiert. Der Aufwand, den Gradienten für $N$ Messungen gleichzeitig zu berechnen, ist pro Messpunkt um Grössenordnungen geringer als bei der sequentiellen Berechnung.»</p><p>Und eine Bemerkung, die erst im Rückblick auf Woche 1 ihr volles Gewicht bekommt: «Der Gewinn an Geschwindigkeit ist <b>umso grösser, je weniger Genauigkeit</b> verwendet wird. Da Machine Learning keine grosse Genauigkeit braucht (Messfehler und Zufall dominieren), werden zurzeit GPUs verwendet, die sogar mit <b>weniger als einfacher Genauigkeit</b> rechnen.»</p><p>Nach dreizehn Wochen Kampf um die letzte Stelle wird hier bewusst Genauigkeit gegen Geschwindigkeit getauscht — weil der Fehler der Daten ohnehin grösser ist als der Rundungsfehler.</p>",
+      "merke": "Bei DNNs dominiert der Datenfehler. Deshalb rechnet man absichtlich mit halber Genauigkeit."
+    },
+    {
+      "id": "w14-z14",
+      "titel": "Die Implementierung mit scipy",
+      "ref": {
+        "abschnitt": "8.3",
+        "seite": 304,
+        "nummer": "Code 8.3.4, Code S. 315–317"
+      },
+      "text": "<p>Das Skript zeigt eine vollständige Implementierung in NumPy — ohne Framework. Zwei Punkte sind lehrreich:</p><p><b>Parameter als ein flacher Vektor.</b> Die Klasse <code>ScipyDNN</code> hält $\\theta$ als eindimensionales Array und baut die sechs Matrizen bei Bedarf mit <code>unpack_params</code> daraus auf. Nur so lässt sich das Problem an <code>scipy.optimize.minimize</code> übergeben, das einen Vektor erwartet.</p><p><b>Funktion und Gradient zusammen.</b></p><pre><code>res = minimize(fun, model.params, method=SCIPY_METHOD,\n               jac=True, options={'disp': True, 'maxiter': 2000})</code></pre><p>«<code>jac=True</code> tells Scipy that our function returns (value, gradient)» — die Zielfunktion liefert Verlust <i>und</i> Gradient in einem Aufruf. Das ist genau richtig, weil der Rückwärtsdurchlauf die Zwischenwerte des Vorwärtsdurchlaufs ohnehin braucht; getrennt zu rechnen würde alles doppelt machen.</p><p>Die Konfiguration oben im Code nennt die Stellschrauben: Optimierer (<code>SD</code>, <code>LineSearch</code>, <code>SGD</code>, <code>Adam</code>), Aktivierung (<code>Sigmoid</code>, <code>ReLU</code>, <code>Tanh</code>), 15 Messpunkte, 5000 Epochen. Und die Lernrate hängt von beidem ab: $0.01$ für ADAM («safe default»), $0.05$ für ReLU («can be unstable with high LR»), $0.5$ für Sigmoid mit steilstem Abstieg.</p>"
+    },
+    {
+      "id": "w14-z15",
+      "titel": "DNN gegen Spline",
+      "ref": {
+        "abschnitt": "8.3",
+        "seite": 304,
+        "nummer": "Code 8.3.4, Abb. 8.3.5"
+      },
+      "text": "<p>Der Beispielcode stellt der DNN-Interpolation einer Funktion $f\\colon[0,1]\\to\\mathbb{R}^{3}$ bewusst eine <b>kubische Spline-Interpolation</b> gegenüber (<code>make_interp_spline</code>, Woche 6) und plottet beides untereinander.</p><p>Der Vergleich ist ehrlich: für dieses Problem — eine glatte Funktion in einer Veränderlichen, 15 Messpunkte — ist der Spline einem DNN mit 75 Parametern überlegen. Er braucht keinen Startwert, keine Lernrate, keine 5000 Iterationen, und seine Fehlerordnung ist bewiesen.</p><p>Dass DNNs dennoch die Welt erobert haben, liegt an dem, was Splines <i>nicht</i> können: hohe Eingangsdimension. Eine Tensorprodukt-Spline in $d=100$ Dimensionen bräuchte $n^{100}$ Koeffizienten — der Fluch der Dimensionen aus Woche 8. Ein DNN wächst dagegen nur linear in $d$, weil $d$ allein die Breite der Eingangsschicht bestimmt.</p><p>Die Lehre für die Prüfung wie für die Praxis: <b>die Methode muss zum Problem passen</b>. Das ist dieselbe Botschaft wie beim Vergleich Gauss-Quadratur gegen Monte-Carlo in Woche 8.</p>"
+    },
+    {
+      "id": "w14-z16",
+      "titel": "PINNs: Physik statt Messdaten",
+      "ref": {
+        "abschnitt": "8.3",
+        "seite": 318,
+        "nummer": "Bsp. 8.3.8, (8.3.19)–(8.3.22)"
+      },
+      "text": "<p>Das letzte Beispiel des Skripts ist eine Reaktionskette erster Ordnung $A\\xrightarrow{k_1}B\\xrightarrow{k_2}C$ mit</p><p>$$\\frac{\\mathrm{d}C_a}{\\mathrm{d}t}=-k_1C_a,\\qquad \\frac{\\mathrm{d}C_b}{\\mathrm{d}t}=k_1C_a-k_2C_b,\\qquad \\frac{\\mathrm{d}C_c}{\\mathrm{d}t}=k_2C_b$$</p><p>mit $k_1=k_2=1$ und $\\mathbf{C}(0)=[1,0,0]^{T}$ auf $t\\in[0,10]$.</p><p>Der Clou: «Anstatt Messungen zu verwenden (<b>was die Lösung der ODE bereits voraussetzen würde</b>), nutzen wir die Differentialgleichung selbst als Zielfunktion.»</p><p>$$J(\\theta)=J_{\\text{Residuum}}+J_{\\text{Anfangswert}},\\qquad J_{\\text{Residuum}}=\\frac1N\\sum_{i=1}^{N}\\left\\|\\frac{\\mathrm{d}f^{\\star}(t_i)}{\\mathrm{d}t}-\\mathrm{RHS}(f^{\\star}(t_i))\\right\\|^{2}$$</p><p>Das Netz wird also darauf trainiert, die Differentialgleichung in $N$ Kollokationspunkten zu erfüllen und bei $t=0$ richtig zu starten. Trainingsdaten im üblichen Sinn gibt es gar nicht.</p><p>Möglich ist das nur, weil die Ableitung $\\frac{\\mathrm{d}f^{\\star}}{\\mathrm{d}t}$ <b>nach der Eingabe $t$</b> mit demselben Mechanismus exakt verfügbar ist wie die Ableitungen nach den Parametern: automatisches Differenzieren. Keine finiten Differenzen, keine Diskretisierung des Zeitgitters.</p><p>Damit schliesst das Kapitel den Kreis zum ganzen Kurs: ein numerisches Verfahren für Differentialgleichungen, gebaut aus Ausgleichsrechnung, Kettenregel und Optimierung.</p>",
+      "merke": "PINNs brauchen keine Messdaten — die Differentialgleichung <i>ist</i> die Zielfunktion."
+    }
+  ],
+  "moodle": [
+    {
+      "id": "m-w14-01",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Anzahl Parameter",
+      "frageHtml": "<p>Wie viele Parameter $D=\\sum_{j=1}^{K+1}d_j(1+d_{j-1})$ hat ein DNN der Gestalt $[1,6,6,3]$ insgesamt, und wie viele entfallen davon auf die <b>zweite</b> Zwischenschicht? Wie viele hätte ein Netz der Gestalt $[1,12,12,3]$?</p>",
+      "felder": [
+        {
+          "label": "D\\ \\text{für } [1,6,6,3]",
+          "wert": 75,
+          "tol": 0.5,
+          "tolTyp": "abs",
+          "anzeige": "12+42+21 = 75"
+        },
+        {
+          "label": "\\text{davon Schicht 2}",
+          "wert": 42,
+          "tol": 0.5,
+          "tolTyp": "abs",
+          "anzeige": "6\\cdot6+6 = 42"
+        },
+        {
+          "label": "D\\ \\text{für } [1,12,12,3]",
+          "wert": 219,
+          "tol": 0.5,
+          "tolTyp": "abs",
+          "anzeige": "24+156+39 = 219"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Pro Schicht $j$: $d_j\\cdot d_{j-1}$ Gewichte plus $d_j$ Biases, zusammen $d_j(1+d_{j-1})$.</p><p><b>$[1,6,6,3]$:</b> $6(1+1)=12$, $6(1+6)=42$, $3(1+6)=21$ — zusammen $D=75$, genau wie im Skript.</p><p><b>$[1,12,12,3]$:</b> $12\\cdot2=24$, $12\\cdot13=156$, $3\\cdot13=39$ — zusammen $219$.</p><p>Die Verdopplung der Breite hat die Parameterzahl fast <b>verdreifacht</b> ($75\\to219$). Der Grund steckt in der mittleren Schicht: sie wächst <b>quadratisch</b> ($6\\times6\\to12\\times12$), während die Randschichten nur linear wachsen. Schon bei $[1,6,6,3]$ entfallen 42 von 75 Parametern auf diese eine Verbindung.</p><p>Genau deshalb heisst es im Skript: «DNNs sind erfolgreicher, wenn tiefe und breite Netze eingesetzt werden. Dies führt zu <b>riesigen Dimensionen $D$</b> und verlangt nach approximativen Lösungen sehr schwieriger Optimierungsprobleme.»</p>",
+      "skriptRef": {
+        "abschnitt": "8.3",
+        "seite": 300,
+        "nummer": "S. 300"
+      }
+    },
+    {
+      "id": "m-w14-02",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Warum Backpropagation",
+      "frageHtml": "<p>Warum berechnet man die Ableitungen nach den Parametern per Backpropagation und nicht mit finiten Differenzen?</p>",
+      "optionen": [
+        "Finite Differenzen funktionieren bei nichtlinearen Aktivierungsfunktionen nicht.",
+        "Finite Differenzen wären «ungenau und numerisch sehr instabil und zudem <b>quadratisch</b> in der Anzahl Gewichte», Backpropagation ist exakt und <b>linear</b>.",
+        "Backpropagation liefert zusätzlich die Hesse-Matrix.",
+        "Finite Differenzen brauchen die analytische Form der Aktivierungsfunktion."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Das Skript nennt beide Gründe in einem Satz: «Finite Differenzen wären ungenau und numerisch sehr instabil und zudem quadratisch in der Anzahl Gewichte, was die Verwendung tiefer Netze <b>verunmöglichen</b> würde.»</p><p><b>Genauigkeit:</b> eine finite Differenz $\\frac{J(\\theta+h)-J(\\theta)}{h}$ leidet unter Auslöschung — das Thema von Woche 1. Backpropagation wertet dagegen die Kettenregel <i>exakt</i> aus; der einzige Fehler ist der Rundungsfehler der Arithmetik.</p><p><b>Aufwand:</b> finite Differenzen brauchen pro Parameter eine zusätzliche Auswertung des ganzen Netzes. Bei $D$ Parametern und Auswertungskosten proportional zur Gewichtszahl ergibt das ein Produkt — quadratisch. Backpropagation liefert <b>alle</b> $D$ Ableitungen in einem einzigen Rückwärtsdurchlauf, der etwa so viel kostet wie ein Vorwärtsdurchlauf.</p><p>Bei Netzen mit Millionen Parametern ist das der Unterschied zwischen machbar und unmöglich. Nicht umsonst schreibt das Skript: «Alle diese Eigenschaften sind notwendig, doch die <b>Backpropagation ist entscheidend</b>.»</p>",
+      "skriptRef": {
+        "abschnitt": "8.3",
+        "seite": 301,
+        "nummer": "S. 301"
+      }
+    },
+    {
+      "id": "m-w14-03",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Über- oder unterbestimmt",
+      "frageHtml": "<p>Für welche Konstellation funktionieren DNNs laut Skript am besten?</p>",
+      "optionen": [
+        "$M\\gg D$: viel mehr Messungen als Parameter, wie bei der klassischen Ausgleichsrechnung.",
+        "$D\\gg M$: viel mehr Parameter als Messungen — stark <b>unterbestimmt</b>; für überbestimmte Systeme funktionieren sie «gar nicht».",
+        "$D=M$: genauso viele Parameter wie Messungen.",
+        "Das Verhältnis spielt keine Rolle, solange die Lernrate klein genug ist."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Wörtlich: «Es ist wichtig zu wissen, dass DNNs am besten für <b>stark unterdeterminierte</b> Systeme funktionieren, d.h. $D\\gg M$, und <b>gar nicht</b> für überdeterminierte Systeme.»</p><p>Das stellt die Logik der Wochen 12 und 13 auf den Kopf. Dort war $m&gt;n$ der Normalfall und das Residuum die interessante Grösse. Hier gibt es unendlich viele $\\theta$, die die Trainingsdaten exakt treffen — das Residuum lässt sich auf null drücken.</p><p>Damit ändert sich die Frage: nicht «welches $\\theta$ passt zu den Daten», sondern «aus der Menge möglicher Lösungen eine zu finden, die sich auf <b>neue</b> Daten oder Messungen verallgemeinern lässt». Welche man bekommt, entscheidet das Optimierungsverfahren — Startwert, Lernrate, Abbruch, Regularisierung.</p><p>Das ist kein Mangel der Numerik, sondern das eigentliche Thema des maschinellen Lernens, und es erklärt, warum dort so viel von <i>Generalisierung</i> und <i>Overfitting</i> die Rede ist.</p>",
+      "skriptRef": {
+        "abschnitt": "8.3",
+        "seite": 300,
+        "nummer": "S. 300–301"
+      }
+    },
+    {
+      "id": "m-w14-04",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Die Aktivierungsfunktion",
+      "frageHtml": "<p>Was passiert mit einem DNN, wenn man die Aktivierungsfunktion $\\sigma$ weglässt (also $\\sigma=\\mathrm{id}$ setzt)?</p>",
+      "optionen": [
+        "Es wird instabil und die Gradienten explodieren.",
+        "Die Verkettung affiner Abbildungen ist wieder affin — das ganze Netz, egal wie tief, lässt sich durch <b>eine einzige</b> affine Schicht ersetzen.",
+        "Es funktioniert weiterhin, konvergiert aber langsamer.",
+        "Die Backpropagation lässt sich nicht mehr anwenden."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>$\\mathbf{W}_2(\\mathbf{W}_1\\mathbf{z}+\\mathbf{b}_1)+\\mathbf{b}_2=(\\mathbf{W}_2\\mathbf{W}_1)\\mathbf{z}+(\\mathbf{W}_2\\mathbf{b}_1+\\mathbf{b}_2)$ — wieder eine affine Abbildung. Per Induktion gilt das für beliebige Tiefe: ein Netz $[d_0,d_1,\\dots,d_K,d_{K+1}]$ ohne Nichtlinearität ist äquivalent zu $[d_0,d_{K+1}]$.</p><p>Damit wäre man bei der <b>linearen</b> Ausgleichsrechnung aus Woche 12 — und die löst man besser direkt mit QR, als 5000 Gradientenschritte zu machen. Die ganze Ausdruckskraft tiefer Netze steckt in der Nichtlinearität.</p><p>Das Skript formuliert die Anforderung an $\\sigma$ entsprechend knapp: nichtlinear, aber «einfach genug, dass man sie und ihre Ableitung sehr günstig auswerten kann». Bei Sigmoid ist $\\sigma'=\\sigma(1-\\sigma)$, bei $\\tanh$ $1-\\tanh^{2}$, bei ReLU $0$ oder $1$ — die Ableitung kostet jeweils fast nichts, wenn man den Funktionswert schon hat.</p><p>Option 4 stimmt nicht: Backpropagation funktioniert auch mit $\\sigma'=1$ tadellos. Sie läuft dann nur auf ein lineares Problem zu.</p>",
+      "skriptRef": {
+        "abschnitt": "8.3",
+        "seite": 300,
+        "nummer": "S. 300–301"
+      }
+    },
+    {
+      "id": "m-w14-05",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Der Rückwärtsschritt",
+      "frageHtml": "<p>Wie berechnet Backpropagation den Fehlerterm $\\delta^{(2)}$ aus $\\delta^{(3)}$?</p>",
+      "optionen": [
+        "$\\delta^{(2)}=\\delta^{(3)}\\mathbf{W}^{(3)}\\cdot\\sigma(\\mathbf{a}^{(2)})$",
+        "$\\delta^{(2)}=\\left(\\delta^{(3)}(\\mathbf{W}^{(3)})^{T}\\right)\\odot\\sigma'(\\mathbf{a}^{(2)})$ — Matrixprodukt mit der transponierten Gewichtsmatrix, dann <b>elementweise</b> mal $\\sigma'$",
+        "$\\delta^{(2)}=(\\mathbf{z}^{(1)})^{T}\\delta^{(3)}$",
+        "$\\delta^{(2)}=\\sigma'(\\mathbf{a}^{(2)})\\,(\\mathbf{W}^{(3)})^{-1}\\delta^{(3)}$"
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Gleichung (8.3.12). Zwei Operationen, beide aus der Kettenregel:</p><ul><li><b>Durch die affine Abbildung zurück:</b> $\\delta^{(3)}(\\mathbf{W}^{(3)})^{T}$. Im Vorwärtsdurchlauf steht $\\mathbf{a}^{(3)}=\\mathbf{z}^{(2)}\\mathbf{W}^{(3)}+\\mathbf{b}^{(3)}$, die Ableitung nach $\\mathbf{z}^{(2)}$ ist also $\\mathbf{W}^{(3)}$ — und weil mit Zeilenvektoren gerechnet wird, steht die Transponierte rechts.</li><li><b>Durch die Aktivierung zurück:</b> $\\odot\\,\\sigma'(\\mathbf{a}^{(2)})$. Weil $\\sigma$ <i>elementweise</i> wirkt, ist ihre Jacobi-Matrix diagonal — die Multiplikation damit ist das <b>Hadamard-Produkt</b>, kein Matrixprodukt.</li></ul><p>Option 1 hat zwei Fehler: fehlende Transposition und $\\sigma$ statt $\\sigma'$. Option 3 ist die Formel für $\\frac{\\partial J}{\\partial\\mathbf{W}^{(2)}}$, nicht für $\\delta^{(2)}$. Option 4 invertiert eine Matrix, die gar nicht quadratisch ist ($6\\times3$) — und Woche 10 verbietet das Invertieren ohnehin.</p>",
+      "skriptRef": {
+        "abschnitt": "8.3",
+        "seite": 303,
+        "nummer": "(8.3.12)"
+      }
+    },
+    {
+      "id": "m-w14-06",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Linear in der Tiefe",
+      "frageHtml": "<p>Warum wächst der Aufwand der Backpropagation nur <b>linear</b> mit der Tiefe des Netzes?</p>",
+      "optionen": [
+        "Weil die Gewichtsmatrizen dünn besetzt sind.",
+        "Weil das Prinzip der <b>dynamischen Programmierung</b> greift: $\\delta^{(l)}$ enthält bereits alle Information über die nachfolgenden Schichten und wird nur einmal berechnet.",
+        "Weil die Aktivierungsfunktion elementweise wirkt.",
+        "Weil moderne GPUs die Schichten parallel abarbeiten."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>«Anstatt die Kettenregel für die erste Schicht vollständig neu vom Ausgang her zu berechnen, nutzen wir die <b>Zwischenergebnisse</b>. Der Fehlerterm $\\delta^{(2)}$ enthält bereits alle Informationen über die nachfolgenden Schichten. Zur Berechnung von $\\delta^{(1)}$ ist lediglich <b>eine</b> Matrixmultiplikation mit $\\mathbf{W}^{(2)}$ nötig.»</p><p>Naiv ausgewertet wäre $\\frac{\\partial J}{\\partial\\mathbf{W}^{(1)}}$ ein Produkt über alle Schichten von hinten bis vorne — und dasselbe noch einmal für Schicht 2, für Schicht 3 und so weiter. Das ergäbe quadratischen Aufwand in der Tiefe.</p><p>Backpropagation rechnet jedes $\\delta^{(l)}$ <b>genau einmal</b> und reicht es weiter. Dasselbe Prinzip steckt im Horner-Schema, im Clenshaw-Algorithmus (Woche 4) und in der Rückwärtsrekursion für die Ableitungskoeffizienten: Zwischenergebnisse aufheben statt neu berechnen.</p><p>Option 4 beschreibt einen echten Vorteil moderner Hardware, aber keinen algorithmischen — und parallel geht gerade <i>nicht</i> über die Schichten (die hängen voneinander ab), sondern über die Messpunkte eines Batches.</p>",
+      "skriptRef": {
+        "abschnitt": "8.3",
+        "seite": 304,
+        "nummer": "S. 304"
+      }
+    },
+    {
+      "id": "m-w14-07",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Zielfunktion und Optimierer",
+      "frageHtml": "<p>Welche Methode nennt das Skript als die erfolgreichste zum Training von DNNs, und warum scheiden Newton und BFGS dafür aus?</p>",
+      "optionen": [
+        "Gauss-Newton, weil es die Jacobi-Matrix ausnutzt.",
+        "<b>ADAM</b> — Newton und BFGS scheitern an der Dimension $D$, weil eine Hesse-Matrix bzw. deren Näherung $D^{2}$ Einträge hätte.",
+        "Das gedämpfte Newton-Verfahren, weil es global konvergiert.",
+        "Die Normalengleichungen, weil sie am schnellsten sind."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Zur Zielfunktion $J(\\theta)=\\frac1M\\sum_m\\left(\\|f^{\\star}(t_m;\\theta)-y_m\\|_2\\right)^{p}$ schreibt das Skript: «Die zuvor diskutierten Methoden kommen zum Einsatz, wobei <b>ADAM die erfolgreichste Methode</b> ist.»</p><p>Der Grund ist die Dimension. Bei $D$ Parametern hat die Hesse-Matrix $D^{2}$ Einträge — schon bei $D=10^{6}$ wären das $10^{12}$ Zahlen, also Terabytes. Newton und BFGS sind damit ausgeschlossen, egal wie gut ihre Konvergenzordnung ist.</p><p>Bleiben die Verfahren, die nur den Gradienten brauchen. Und unter diesen hat ADAM die Eigenschaft, die bei den Zickzack-Experimenten in Woche 13 den Ausschlag gab: Momentum gegen enge Täler, bei sehr geringen Kosten pro Schritt. Das Skript misst dort «in mehreren Dimensionen und wenn die Ableitungen nicht mehr so günstig zur Verfügung stehen, gewinnt ADAM dank deutlich kürzerer Rechenzeiten gegen BFGS».</p><p>Zur Wahl von $p$: «Für $p=2$ erhalten wir die Standardmethode der kleinsten Quadrate; $p=1$ favorisiert <b>dünn besetzte Lösungen</b>.»</p>",
+      "skriptRef": {
+        "abschnitt": "8.3",
+        "seite": 300,
+        "nummer": "S. 300, Abschnitt 8.2.3"
+      }
+    },
+    {
+      "id": "m-w14-08",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "PINNs",
+      "frageHtml": "<p>Was unterscheidet ein <i>Physically Inspired Neural Network</i> (PINN) vom gewöhnlichen Training eines DNN?</p>",
+      "optionen": [
+        "Es verwendet eine andere Aktivierungsfunktion.",
+        "Die Zielfunktion besteht aus dem <b>Residuum der Differentialgleichung</b> plus dem Anfangswertfehler — es werden gar keine Messdaten gebraucht.",
+        "Es wird mit Gauss-Newton statt mit ADAM trainiert.",
+        "Es hat keine versteckten Schichten."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Das Skript begründet es beim Reaktionskinetik-Beispiel: «Anstatt Messungen zu verwenden (<b>was die Lösung der ODE bereits voraussetzen würde</b>), nutzen wir die Differentialgleichung selbst als Zielfunktion.»</p><p>$$J(\\theta)=J_{\\text{Residuum}}+J_{\\text{Anfangswert}},\\qquad J_{\\text{Residuum}}=\\frac1N\\sum_{i=1}^{N}\\left\\|\\frac{\\mathrm{d}f^{\\star}(t_i)}{\\mathrm{d}t}-\\mathrm{RHS}(f^{\\star}(t_i))\\right\\|^{2}$$</p><p>Das Netz wird also darauf trainiert, die ODE in $N$ Kollokationspunkten zu erfüllen und bei $t=0$ den richtigen Wert anzunehmen. Der zweite Term ist nötig, weil das Residuum allein jede Lösung der Differentialgleichung zulässt — die Anfangsbedingung pickt die gesuchte heraus.</p><p>Entscheidend für die Machbarkeit: die Ableitung $\\frac{\\mathrm{d}f^{\\star}}{\\mathrm{d}t}$ <b>nach der Eingabe</b> ist mit demselben Mechanismus exakt verfügbar wie die Ableitungen nach den Parametern — automatisches Differenzieren. Ohne das müsste man finite Differenzen nehmen und wäre wieder bei Ungenauigkeit und Instabilität.</p>",
+      "skriptRef": {
+        "abschnitt": "8.3",
+        "seite": 318,
+        "nummer": "Bsp. 8.3.8, (8.3.22)"
+      }
+    },
+    {
+      "id": "m-w14-09",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Batch und Genauigkeit",
+      "frageHtml": "<p>Warum rechnet man DNN-Training auf GPUs bewusst mit <b>weniger als einfacher</b> Genauigkeit?</p>",
+      "optionen": [
+        "Weil GPUs keine doppelte Genauigkeit unterstützen.",
+        "Weil «Machine Learning keine grosse Genauigkeit braucht (Messfehler und Zufall dominieren)» und der Geschwindigkeitsgewinn umso grösser ist, je weniger Genauigkeit verwendet wird.",
+        "Weil die Aktivierungsfunktionen ohnehin nur Werte in $[0,1]$ liefern.",
+        "Weil Backpropagation bei doppelter Genauigkeit instabil wird."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Wörtlich: «Der Gewinn an Geschwindigkeit ist <b>umso grösser, je weniger Genauigkeit</b> verwendet wird. Da Machine Learning keine grosse Genauigkeit braucht (Messfehler und Zufall dominieren), werden zurzeit GPUs verwendet, die sogar mit weniger als einfacher Genauigkeit rechnen.»</p><p>Das ist eine bemerkenswerte Pointe am Ende eines Kurses, der dreizehn Wochen lang um die letzte Dezimalstelle gekämpft hat. Die Begründung ist aber genau die aus Woche 1: es hat keinen Sinn, den Rundungsfehler weit unter den <b>Datenfehler</b> zu drücken. Wenn die Messungen auf drei Stellen genau sind, bringen sechzehn Stellen im Zwischenergebnis nichts.</p><p>Dazu kommt das Argument aus Woche 2: «Moderne Hardware (GPUs) ist hochgradig auf <b>parallele Matrixoperationen</b> optimiert» — man verarbeitet ganze Batches als Matrix-Matrix-Produkte (8.3.18) statt einzelner Vektoren. Halbe Genauigkeit bedeutet halb so viel Speicherbandbreite und doppelt so viele Rechenwerke.</p><p>Option 1 ist sachlich falsch — GPUs können doppelte Genauigkeit, nur deutlich langsamer.</p>",
+      "skriptRef": {
+        "abschnitt": "8.3",
+        "seite": 304,
+        "nummer": "S. 304, (8.3.18)"
+      }
+    },
+    {
+      "id": "m-w14-10",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "DNN oder Spline",
+      "frageHtml": "<p>Der Beispielcode vergleicht eine DNN-Interpolation von $f\\colon[0,1]\\to\\mathbb{R}^{3}$ aus 15 Messpunkten mit einer kubischen Spline-Interpolation. Welche Einschätzung trifft zu?</p>",
+      "optionen": [
+        "Das DNN ist dem Spline bei dieser Aufgabe klar überlegen, weil es mehr Parameter hat.",
+        "Für diese Aufgabe — glatte Funktion, eine Veränderliche, wenige Punkte — ist der Spline die bessere Wahl; DNNs spielen ihre Stärke erst bei <b>hoher Eingangsdimension</b> aus.",
+        "Beide Verfahren sind mathematisch äquivalent.",
+        "Der Spline kann keine vektorwertigen Funktionen interpolieren."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Der Vergleich im Code ist bewusst ehrlich gesetzt. Für eine glatte Funktion in <i>einer</i> Veränderlichen mit 15 Stützstellen ist ein kubischer Spline einem DNN mit 75 Parametern überlegen: er braucht keinen Startwert, keine Lernrate, keine 5000 Iterationen, und seine Fehlerordnung $h^{4}$ ist bewiesen (Woche 6).</p><p>Die Stärke der DNNs liegt woanders. Eine Tensorprodukt-Spline in $d$ Dimensionen bräuchte $n^{d}$ Koeffizienten — der <b>Fluch der Dimensionen</b> aus Woche 8. Ein DNN wächst dagegen nur linear in $d$, weil $d$ allein die Breite der Eingangsschicht bestimmt. Bei $d=100$ ist der Spline schlicht nicht mehr aufstellbar.</p><p>Dieselbe Abwägung wie beim Vergleich Gauss-Quadratur gegen Monte-Carlo: in einer Dimension gewinnt das klassische Verfahren haushoch, ab einer gewissen Dimension kippt es.</p><p>Option 4 ist falsch — <code>make_interp_spline</code> arbeitet komponentenweise, genau so steht es im Code.</p>",
+      "skriptRef": {
+        "abschnitt": "8.3",
+        "seite": 304,
+        "nummer": "Code 8.3.4, Abb. 8.3.5"
+      }
+    }
+  ],
   "codeexpert": []
 }

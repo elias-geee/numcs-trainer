@@ -85,21 +85,21 @@
       "titel": "Lineare Ausgleichsrechnung",
       "kapitel": "8.1",
       "seiten": "266–276",
-      "status": "platzhalter"
+      "status": "nur_zusammenfassung"
     },
     {
       "woche": 13,
       "titel": "Nichtlineare Ausgleichsrechnung",
       "kapitel": "8.2",
       "seiten": "277–297",
-      "status": "platzhalter"
+      "status": "nur_zusammenfassung"
     },
     {
       "woche": 14,
       "titel": "Deep Neural Networks",
       "kapitel": "8.3",
-      "seiten": "298–…",
-      "status": "platzhalter"
+      "seiten": "298–322",
+      "status": "nur_zusammenfassung"
     }
   ]
 }

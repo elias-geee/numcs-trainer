@@ -1,13 +1,465 @@
 {
   "woche": 13,
   "titel": "Nichtlineare Ausgleichsrechnung",
-  "status": "platzhalter",
+  "status": "nur_zusammenfassung",
   "skript": {
     "kapitel": "8.2",
     "seiten": "277–297"
   },
   "vorlage": "wochenplan/Vorlage13_NLAp1.pdf",
-  "zusammenfassung": [],
-  "moodle": [],
+  "einleitung": "<p>Dasselbe Ziel wie in Woche 12 — ein Modell an Messdaten anpassen —, aber die Parameter stecken jetzt nichtlinear drin: $I(t)=\\alpha+\\beta e^{-\\gamma t}$ statt einer Geraden. Damit ist $\\Phi(\\mathbf{x})=\\tfrac12\\|\\mathbf{F}(\\mathbf{x})\\|_2^{2}$ keine quadratische Funktion mehr, und $\\operatorname{grad}\\Phi=0$ führt auf ein nichtlineares System — man ist zurück bei der Nullstellensuche aus Woche 9.</p><p>Die zentrale Idee ist eine Verkettung: <b>Linearisieren und das lineare Ausgleichsproblem der Vorwoche lösen</b>, immer wieder. Das ist das Gauss-Newton-Verfahren, und es ist genau das Newton-Verfahren ohne den teuren zweiten Ableitungsterm der Hesse-Matrix.</p><p>Zwei Dinge sind hier anders als sonst im Kurs. Erstens ist alles <b>lokal</b>: Existenz und Eindeutigkeit sind nicht garantiert, jedes Verfahren braucht einen guten Startwert, und das Ergebnis kann ein lokales Minimum sein. Zweitens gewinnt nicht das Verfahren mit der höchsten Ordnung — Abb. 8.2.8 zeigt, wie das gedämpfte Newton-Verfahren an einem Problem scheitert, das das langsamere Gauss-Newton zuverlässig löst.</p><p>Der letzte Abschnitt öffnet den Blick auf die Optimierung insgesamt: BFGS, Gradient Descent, CG, Levenberg-Marquardt, SGD und ADAM — alle von der Form $\\mathbf{x}^{(k+1)}=\\mathbf{x}^{(k)}-\\mathbf{s}$, alle mit derselben rechten Seite $\\mathrm{D}\\Phi$, und der Unterschied steckt allein in der Matrix davor. Damit ist die Brücke zu den DNNs in Woche 14 geschlagen.</p>",
+  "moodleHinweis": "Für diese Woche liegt <b>noch kein</b> Moodle-Quiz vor — es kommt im Lauf des Semesters dazu und wird dann hier ergänzt. Bis dahin sind alle Fragen von mir im Stil der Originalfragen geschrieben und mit Skript-Verweis begründet. Alle Zahlenwerte sind mit NumPy nachgerechnet.",
+  "aufgabenUebersicht": {
+    "moodle": 10,
+    "codeexpert": 0
+  },
+  "zusammenfassung": [
+    {
+      "id": "w13-z1",
+      "titel": "Das Problem und seine Tücke",
+      "ref": {
+        "abschnitt": "8.2",
+        "seite": 277,
+        "nummer": "(8.2.1), Bem. 8.2.1"
+      },
+      "text": "<p>Gesucht ist $\\mathbf{x}\\in\\mathbb{R}^{n}$ mit</p><p>$$\\Phi(\\mathbf{x}):=\\tfrac12\\|\\mathbf{F}(\\mathbf{x})\\|_2^{2}\\ \\to\\ \\min,$$</p><p>wobei $\\mathbf{F}\\colon\\mathbb{R}^{n}\\to\\mathbb{R}^{m}$ die Residuen $F_i(\\mathbf{x})=\\Psi(\\mathbf{x},t_i)-y_i$ sammelt und $m&gt;n$ ist.</p><p>Der Unterschied zu Woche 12 ist einer und hat Folgen: weil $\\Phi$ nicht mehr quadratisch ist, führt $\\operatorname{grad}\\Phi=0$ auf ein <b>nichtlineares</b> Gleichungssystem — man ist wieder bei der Nullstellensuche aus Woche 9.</p><p>Bem. 8.2.1 ist entsprechend zurückhaltend: «Die Existenz und Eindeutigkeit einer Lösung ist im Allgemeinen <b>nicht klar</b>.» Aus dem Satz über implizite Funktionen folgt nur, dass es eine Umgebung $U_\\epsilon(\\mathbf{x})$ gibt, in der $\\operatorname{rang}(\\mathrm{D}\\Phi(\\mathbf{x}))=n$ ist — «da dies aber eine <b>lokale</b> Eigenschaft ist, lässt sich lediglich folgern, dass eine Lösung lokal eindeutig ist, <i>wenn sie existiert</i>».</p><p>Alles in diesem Kapitel ist deshalb lokal: jedes Verfahren braucht einen Startwert, und keines garantiert, dass es beim <i>globalen</i> Minimum landet.</p>",
+      "merke": "Nichtlinear heisst: nur lokale Aussagen, und der Startwert entscheidet."
+    },
+    {
+      "id": "w13-z2",
+      "titel": "Newton: Gradient und Hesse-Matrix",
+      "ref": {
+        "abschnitt": "8.2.1",
+        "seite": 278,
+        "nummer": "(8.2.4)–(8.2.7)"
+      },
+      "text": "<p>Die notwendige Bedingung $\\operatorname{grad}\\Phi(\\mathbf{x})=0$ macht aus dem Minimierungsproblem eine Nullstellensuche, und darauf wendet man Newton an. Die beiden Ableitungen sind:</p><p>$$\\operatorname{grad}\\Phi(\\mathbf{x})=\\left(\\mathrm{D}\\mathbf{F}(\\mathbf{x})\\right)^{T}\\mathbf{F}(\\mathbf{x})$$</p><p>$$\\mathbf{H}_\\Phi(\\mathbf{x})=\\mathrm{D}(\\operatorname{grad}\\Phi)(\\mathbf{x})=\\left(\\mathrm{D}\\mathbf{F}\\right)^{T}\\mathrm{D}\\mathbf{F}+\\sum_{j=1}^{m}F_j(\\mathbf{x})\\,\\mathrm{D}^{2}F_j(\\mathbf{x})$$</p><p>Damit lautet die Iteration</p><p>$$\\mathbf{x}^{(k+1)}=\\mathbf{x}^{(k)}-\\mathbf{H}_\\Phi(\\mathbf{x}^{(k)})^{-1}\\operatorname{grad}\\Phi(\\mathbf{x}^{(k)}),$$</p><p>in der Praxis natürlich als lineares System $\\mathbf{H}_\\Phi\\mathbf{s}=\\operatorname{grad}\\Phi$ gelöst, nicht über die Inverse (Woche 10).</p><p>Die Hesse-Matrix hat <b>zwei Teile</b>, und diese Zerlegung ist der Schlüssel zum ganzen Kapitel: der erste Term $(\\mathrm{D}\\mathbf{F})^{T}\\mathrm{D}\\mathbf{F}$ braucht nur erste Ableitungen, der zweite $\\sum_jF_j\\mathrm{D}^{2}F_j$ alle $m$ Hesse-Matrizen der Komponenten.</p>"
+    },
+    {
+      "id": "w13-z3",
+      "titel": "Newton als lokale quadratische Näherung",
+      "ref": {
+        "abschnitt": "8.2.1",
+        "seite": 278,
+        "nummer": "S. 278, (8.2.8)"
+      },
+      "text": "<p>Dieselbe Iteration lässt sich anders lesen. Taylor zweiter Ordnung gibt</p><p>$$Q(\\mathbf{s}):=\\Phi(\\mathbf{x}^{(k)})+\\operatorname{grad}\\Phi(\\mathbf{x}^{(k)})^{T}\\mathbf{s}+\\tfrac12\\mathbf{s}^{T}\\mathbf{H}_\\Phi(\\mathbf{x}^{(k)})\\mathbf{s},$$</p><p>und $\\operatorname{grad}Q=0$ liefert $\\mathbf{H}_\\Phi\\mathbf{s}+\\operatorname{grad}\\Phi=0$ — genau den Newton-Schritt.</p><p>Newton <b>ersetzt also $\\Phi$ lokal durch eine Parabel und springt in deren Scheitel</b>. Das erklärt beides: die quadratische Konvergenz in der Nähe des Minimums (dort passt die Parabel gut) und das wilde Verhalten weit davon entfernt (dort passt sie nicht).</p><p>In der Schreibweise des Skripts:</p><p>$$\\mathbf{x}^{(k+1)}=\\mathbf{x}^{(k)}-\\mathbf{s}\\quad\\text{mit}\\quad \\mathrm{D}^{2}\\Phi(\\mathbf{x}^{(k)})\\,\\mathbf{s}=\\left(\\mathrm{D}\\mathbf{F}(\\mathbf{x}^{(k)})\\right)^{T}\\mathbf{F}(\\mathbf{x}^{(k)})$$</p>"
+    },
+    {
+      "id": "w13-z4",
+      "titel": "Warum Gauss-Newton",
+      "ref": {
+        "abschnitt": "8.2.2",
+        "seite": 279,
+        "nummer": "S. 279"
+      },
+      "text": "<p>«Das reine Newton-Verfahren ist <b>aufwendig</b>, selbst wenn man die Matrixinversion durch das Lösen eines LGS ersetzt. Zudem ist $\\mathbf{F}(\\mathbf{x})$ <b>nicht immer zweimal stetig differenzierbar</b>, was das Aufstellen der Hesse-Matrix unmöglich macht.»</p><p>Zwei Probleme also:</p><ul><li><b>Kosten:</b> der Term $\\sum_{j=1}^{m}F_j\\mathrm{D}^{2}F_j$ verlangt $m$ Hesse-Matrizen der Grösse $n\\times n$ — bei $m=1000$ Messungen und $n=10$ Parametern sind das $1000$ Matrizen pro Schritt.</li><li><b>Verfügbarkeit:</b> zweite Ableitungen hat man oft schlicht nicht.</li></ul><p>Die Lösung ist «eine wohlbekannte Idee aus der Analysis»: statt $\\Phi$ quadratisch zu nähern, nähert man <b>$\\mathbf{F}$ linear</b>.</p>"
+    },
+    {
+      "id": "w13-z5",
+      "titel": "Die Linearisierung",
+      "ref": {
+        "abschnitt": "8.2.2",
+        "seite": 279,
+        "nummer": "(8.2.9)–(8.2.11)"
+      },
+      "text": "<p>$$\\mathbf{F}(\\mathbf{x})\\approx\\mathbf{F}(\\mathbf{y})+\\mathrm{D}\\mathbf{F}(\\mathbf{y})(\\mathbf{x}-\\mathbf{y})$$</p><p>Mit $\\mathbf{A}:=\\mathrm{D}\\mathbf{F}(\\mathbf{y})$ und $\\mathbf{b}:=\\mathrm{D}\\mathbf{F}(\\mathbf{y})\\mathbf{y}-\\mathbf{F}(\\mathbf{y})$ wird daraus</p><p>$$\\operatorname*{argmin}_{\\mathbf{x}}\\tfrac12\\|\\mathbf{F}(\\mathbf{x})\\|_2^{2}\\approx\\operatorname*{argmin}_{\\mathbf{x}}\\tfrac12\\|\\mathbf{A}\\mathbf{x}-\\mathbf{b}\\|_2^{2}$$</p><p>— ein <b>lineares Ausgleichsproblem</b>, also genau Woche 12.</p><p>Das ist die ganze Idee des Kapitels: ein nichtlineares Problem wird zu einer <i>Folge</i> linearer Ausgleichsprobleme. Jeder Schritt benutzt das Werkzeug der Vorwoche, und zwar — wichtig — über QR oder <code>lstsq</code>, nicht über die Normalengleichungen.</p>"
+    },
+    {
+      "id": "w13-z6",
+      "titel": "Die Gauss-Newton-Iteration",
+      "ref": {
+        "abschnitt": "8.2.2",
+        "seite": 279,
+        "nummer": "(8.2.12), (8.2.13)"
+      },
+      "text": "<p>$$\\mathbf{x}^{(k+1)}=\\mathbf{x}^{(k)}-\\mathbf{s},\\qquad \\mathbf{s}:=\\operatorname*{argmin}_{\\mathbf{z}}\\left\\|\\mathbf{F}(\\mathbf{x}^{(k)})-\\mathrm{D}\\mathbf{F}(\\mathbf{x}^{(k)})\\mathbf{z}\\right\\|_2$$</p><p>Über die Normalengleichungen geschrieben:</p><p>$$\\left(\\mathrm{D}\\mathbf{F}^{T}\\mathrm{D}\\mathbf{F}\\right)\\mathbf{s}=\\mathrm{D}\\mathbf{F}^{T}\\mathbf{F}$$</p><p>«Diese Iteration ist mit der Newton-Iteration (8.2.8) zu vergleichen. <b>Der Unterschied ist:</b> Die Hesse-Matrix wurde durch die Matrix $\\mathrm{D}\\mathbf{F}^{T}\\mathrm{D}\\mathbf{F}$ ersetzt, was dem <b>Weglassen der letzten Summe</b> in (8.2.5) entspricht.»</p><p>Die rechte Seite ist in beiden Verfahren <i>identisch</i> — es ist immer $\\operatorname{grad}\\Phi$. Nur die Systemmatrix unterscheidet sich.</p><p>Wann ist das Weglassen harmlos? Wenn $\\sum_jF_j\\mathrm{D}^{2}F_j$ klein ist — also bei <b>kleinen Residuen</b> (gutes Modell) oder <b>schwacher Krümmung</b> (fast lineares Modell). Dann ist Gauss-Newton fast so schnell wie Newton. Bei grossen Residuen dagegen fehlt ein wesentlicher Teil der Hesse-Matrix und die Konvergenz fällt auf linear zurück.</p>",
+      "merke": "Gauss-Newton = Newton ohne den zweiten Ableitungsterm der Hesse-Matrix."
+    },
+    {
+      "id": "w13-z7",
+      "titel": "Die Implementierung",
+      "ref": {
+        "abschnitt": "8.2.2",
+        "seite": 279,
+        "nummer": "Code 8.2.2"
+      },
+      "text": "<pre><code>def gn(x, F, J, tol):\n    # x: intelligent gewaehlter Startvektor, J: Jacobi-Matrix\n    s = lstsq(J(x), F(x))[0]\n    x = x - s\n    while norm(s) &gt; tol*norm(x):\n        s = lstsq(J(x), F(x))[0]\n        x = x - s\n    return x</code></pre><p>Bemerkenswert kurz — die ganze Arbeit steckt in <code>lstsq</code>, also im linearen Ausgleichsproblem der Vorwoche. Drei Details:</p><ul><li><b>Abbruch relativ:</b> <code>norm(s) &gt; tol*norm(x)</code>, nicht absolut. Das ist das Korrekturkriterium aus Woche 9 und macht den Test skalierungsunabhängig.</li><li><b><code>lstsq</code>, nicht <code>solve</code>:</b> $\\mathrm{D}\\mathbf{F}$ ist $m\\times n$ mit $m&gt;n$, das System ist überbestimmt.</li><li><b>Der Startwert</b> «has to be intelligently chosen» — der Kommentar steht so im Code. Mehr dazu in Punkt 10.</li></ul><p>«Die zweite Ableitung von $\\mathbf{F}(\\mathbf{x})$ wird nicht benötigt, aber die <b>Konvergenzordnung ist niedriger</b> als die des Newton-Verfahrens ($p\\le2$).»</p>"
+    },
+    {
+      "id": "w13-z8",
+      "titel": "Das Nickel-Beispiel durchgerechnet",
+      "ref": {
+        "abschnitt": "8.2.2",
+        "seite": 280,
+        "nummer": "Bsp. 8.2.3, Code 8.2.4, Abb. 8.2.5"
+      },
+      "text": "<p>Modell für den Heizvorgang $I_1(t)=a_1+b_1e^{-c_1t}$, für den Abkühlvorgang $I_2(t)=a_2-b_2e^{-c_2t}$. Die Residuenvektoren sind</p><p>$$\\mathbf{F}_1(\\mathbf{a}_1)=\\begin{pmatrix}a_1+b_1-24.34\\\\ a_1+b_1e^{-5c_1}-18.93\\\\ \\vdots\\\\ a_1+b_1e^{-25c_1}-15.91\\end{pmatrix},\\qquad \\mathbf{a}_1=(a_1,b_1,c_1),$$</p><p>und die Jacobi-Matrix hat die Zeilen $\\left(1,\\ e^{-c_1t_k},\\ -t_kb_1e^{-c_1t_k}\\right)$ — die dritte Spalte ist die Ableitung nach $c_1$, dort steckt die Nichtlinearität.</p><p>Mit den Startvektoren $\\mathbf{x}_1=(10,5,0)$ und $\\mathbf{x}_2=(30,10,0)$:</p><p>$$a_1=15.8489,\\quad b_1=8.4822,\\quad c_1=0.1991$$$$a_2=25.0657,\\quad b_2=15.3954,\\quad c_2=0.1779$$</p><p>Nachgerechnet braucht Gauss-Newton dafür 6 bzw. 9 Schritte bei <code>tol=1e-5</code>; die Residuennormen sind $0.106$ und $0.149$ bei Strömen um $20$ mA — das Modell passt also sehr gut (Abb. 8.2.5).</p><p><b>Was die Physik daraus macht:</b> «In der gestellten Aufgabe ist die Spannung für $t\\to\\infty$ gesucht, welche den konstanten Termen $a_1,a_2$ entspricht.» Die interessante Grösse ist also gerade der Parameter, der am <i>einfachsten</i> zu schätzen ist — $b$ und $c$ sind nur Beiwerk.</p>"
+    },
+    {
+      "id": "w13-z9",
+      "titel": "Der grosse Vergleich: Newton, Gauss-Newton, gedämpftes Newton",
+      "ref": {
+        "abschnitt": "8.2.2",
+        "seite": 282,
+        "nummer": "Bsp. 8.2.6, Code 8.2.7, Abb. 8.2.8"
+      },
+      "text": "<p>Dasselbe Modell $f(t)=x_1+x_2e^{-x_3t}$, synthetische Daten mit bekannter «Wahrheit» $\\mathbf{x}=(1,2,0.15)$ und gestörten Messwerten. Zwei Startwerte $(1.8,1.8,0.1)$ und $(1.5,1.5,0.1)$ — und drei Verfahren.</p><p>Das Ergebnis (Abb. 8.2.8) ist unerwartet:</p><table><thead><tr><th>Verfahren</th><th>$(1.8,1.8,0.1)$</th><th>$(1.5,1.5,0.1)$</th></tr></thead><tbody><tr><td>Newton (ungedämpft)</td><td colspan=\"2\">konvergiert <b>quadratisch</b></td></tr><tr><td>Gauss-Newton</td><td colspan=\"2\">konvergiert <b>linear</b></td></tr><tr><td>gedämpftes Newton</td><td>bleibt in einem <b>lokalen Minimum</b> gefangen</td><td><b>scheitert</b></td></tr></tbody></table><p>Die Dämpfung — in Woche 9 noch das Mittel gegen schlechte Startwerte — macht es hier <b>schlimmer</b>. Der Grund: der natürliche Monotonietest verlangt, dass $\\|\\mathbf{F}\\|$ in jedem Schritt fällt, und zwingt die Iteration damit in das nächstgelegene Tal. Ein ungedämpfter Newton-Schritt kann darüber hinwegspringen — hier ein Glücksfall, im Allgemeinen ein Risiko. Der Kommentar im Code sagt es trocken: «d. newt. isn't a good technique for this problem».</p><p>Und Gauss-Newton ist zwar nur linear, aber in <b>beiden</b> Fällen zuverlässig. Robustheit und Ordnung sind zwei verschiedene Dinge.</p>",
+      "merke": "Höhere Ordnung heisst nicht zuverlässiger — und Dämpfung hilft nicht immer."
+    },
+    {
+      "id": "w13-z10",
+      "titel": "Der Startwert",
+      "ref": {
+        "abschnitt": "8.2.2",
+        "seite": 280,
+        "nummer": "Code 8.2.2, Bem. 8.2.1"
+      },
+      "text": "<p>«Wie auch beim Newton-Verfahren muss dem Gauss-Newton-Verfahren ein <b>guter Startwert</b> $\\mathbf{x}^{(0)}$ übergeben werden.» Im Code steht dasselbe als Kommentar: «$x$ is the starting vector that has to be <i>intelligently</i> chosen».</p><p>Woher nimmt man ihn? Aus dem Problem, nicht aus der Numerik. Im Nickel-Beispiel:</p><ul><li>$a$ ist der Grenzwert für $t\\to\\infty$ — man liest ihn am letzten Messwert ab;</li><li>$b$ ist der Abstand zwischen erstem und letztem Messwert;</li><li>$c$ bestimmt die Zeitskala — $1/c$ ist die Zeit, in der die Differenz auf $1/e$ fällt.</li></ul><p>Eine andere verbreitete Technik ist, das Problem zunächst zu <b>linearisieren</b>: bei $y=\\beta e^{-\\gamma t}$ ist $\\log y$ linear in $t$, also liefert ein linearer Fit von $\\log y$ brauchbare Startwerte für $\\beta$ und $\\gamma$. Dass das nicht die richtige Lösung gibt (die Gewichtung der Residuen ändert sich), stört für einen Startwert nicht.</p>"
+    },
+    {
+      "id": "w13-z11",
+      "titel": "GPS als Anwendung",
+      "ref": {
+        "abschnitt": "8.2.2",
+        "seite": 287,
+        "nummer": "Bsp. 8.2.9, Abb. 8.2.10"
+      },
+      "text": "<p>Satellit $i$ sendet seine Zeit und Position $[t_{s,i},x_{s,i},y_{s,i},z_{s,i}]$. Gesucht sind Position <b>und</b> Uhrzeit des Empfängers, $\\mathbf{x}=[t_r,x_r,y_r,z_r]$, über die Residuen</p><p>$$r_i=-c^{2}(t_r-t_{s,i})^{2}+(x_r-x_{s,i})^{2}+(y_r-y_{s,i})^{2}+(z_r-z_{s,i})^{2}$$</p><p>mit der Lichtgeschwindigkeit $c$. Das ist nichtlinear (quadratisch in allen Unbekannten) und wird mit Gauss-Newton gelöst.</p><p>Warum <b>vier</b> Unbekannte für eine dreidimensionale Position? «In der Praxis haben GPS-Empfänger keine Uhr, die genau genug ist, um die Laufzeiten korrekt zu messen. Deshalb wird das Signal eines <b>vierten</b> Satelliten benötigt, mit dem dann auch die genaue Zeit im Empfänger bestimmt werden kann.»</p><p>Die Grössenordnung macht es anschaulich: Licht legt in einer Nanosekunde $30$ cm zurück. Eine Uhrabweichung von $1\\,\\mu$s wären $300$ m Positionsfehler — deshalb wird die Uhr mitgeschätzt statt gemessen.</p><p>Abb. 8.2.10 zeigt den Positionsfehler über der Satellitenzahl für vier Zeitmessfehler von $10^{-10}$ bis $10^{-6}$ s: «die Genauigkeit der Positionsbestimmung hängt vom Messfehler in der Signallaufzeit, der <b>Anzahl sichtbarer Satelliten</b> und ihrer <b>Verteilung</b> ab». Mehr Satelliten sind mehr Messungen für dieselben vier Unbekannten — also ein stärker überbestimmtes und damit robusteres Ausgleichsproblem.</p>"
+    },
+    {
+      "id": "w13-z12",
+      "titel": "Der gemeinsame Rahmen aller Verfahren",
+      "ref": {
+        "abschnitt": "8.2.3",
+        "seite": 289,
+        "nummer": "S. 289"
+      },
+      "text": "<p>«Wir haben gesehen, dass die nichtlineare Ausgleichsrechnung ein nichtlineares Optimierungsproblem ist. <b>Alle Methoden bauen Iterationen der Form $\\mathbf{x}^{(k+1)}=\\mathbf{x}^{(k)}-\\mathbf{s}$ und unterscheiden sich nur durch die Wahl und die Berechnungsart des Updates $\\mathbf{s}$.</b>»</p><p>Das ist die Landkarte des Abschnitts. Die rechte Seite ist immer $\\mathrm{D}\\Phi(\\mathbf{x}^{(k)})=\\mathrm{D}\\mathbf{F}^{T}\\mathbf{F}$ — nur die Matrix davor wechselt:</p><table><thead><tr><th>Verfahren</th><th>Gleichung für $\\mathbf{s}$</th><th>Kosten / Konvergenz</th></tr></thead><tbody><tr><td>Newton</td><td>$\\mathrm{D}^{2}\\Phi\\,\\mathbf{s}=\\mathrm{D}\\Phi$</td><td>teuer / quadratisch</td></tr><tr><td>BFGS</td><td>$\\mathbf{B}_k\\mathbf{s}=\\mathrm{D}\\Phi$ mit aufdatiertem $\\mathbf{B}_k$</td><td>mittel / superlinear</td></tr><tr><td>Gauss-Newton</td><td>$\\mathrm{D}\\mathbf{F}^{T}\\mathrm{D}\\mathbf{F}\\,\\mathbf{s}=\\mathrm{D}\\Phi$</td><td>günstiger / linear</td></tr><tr><td>Levenberg-Marquardt</td><td>$(\\mathrm{D}\\mathbf{F}^{T}\\mathrm{D}\\mathbf{F}+\\lambda\\mathbf{I})\\mathbf{s}=\\mathrm{D}\\Phi$</td><td>robust / zwischen GD und GN</td></tr><tr><td>Gradient Descent</td><td>$\\mathbf{s}=\\lambda_k\\mathrm{D}\\Phi$</td><td>billig / langsam</td></tr><tr><td>SGD</td><td>wie GD, aber mit zufälligem Teil von $\\mathrm{D}\\Phi$</td><td>am billigsten / am langsamsten</td></tr><tr><td>Momentum / ADAM</td><td>$\\mathbf{s}=\\lambda\\mathbf{z}_k$, $\\mathbf{z}_k=\\mathrm{D}\\Phi+\\beta\\mathbf{z}_{k-1}$</td><td>billig / überraschend gut</td></tr></tbody></table><p>Durchgehend gilt: <b>je mehr Ableitungsinformation, desto schneller die Konvergenz und desto teurer der Schritt.</b> Dieselbe Abwägung wie in Woche 9.</p>",
+      "merke": "Alle Verfahren sind $\\mathbf{x}^{(k+1)}=\\mathbf{x}^{(k)}-\\mathbf{s}$. Nur $\\mathbf{s}$ unterscheidet sich."
+    },
+    {
+      "id": "w13-z13",
+      "titel": "BFGS",
+      "ref": {
+        "abschnitt": "8.2.3",
+        "seite": 289,
+        "nummer": "S. 289"
+      },
+      "text": "<p>«Statt einer Linearisierung des Modells in jedem Schritt (Gauss-Newton) können wir auch eine schnelle Variante der <b>Broyden-Methode</b> verwenden, z.B. die Erweiterung des Broyden-Algorithmus mit den <b>SMW-Formeln</b> und Rändern, den BFGS-Algorithmus.»</p><p>Das knüpft direkt an Woche 9 an: Broyden führt eine Näherung der Jacobi-Matrix mit und aktualisiert sie per Rang-1-Update; über die Sherman-Morrison-Woodbury-Formel lässt sich dabei die <i>Inverse</i> direkt mitführen, sodass kein lineares System mehr gelöst werden muss.</p><p>BFGS ist die Variante für <b>Optimierung</b> statt Nullstellensuche: hier wird die Hesse-Matrix genähert statt der Jacobi-Matrix, und das Update ist so gebaut, dass die Näherung symmetrisch und positiv definit bleibt — sonst wäre die Suchrichtung keine Abstiegsrichtung.</p><p>BFGS ist die Voreinstellung von <code>scipy.optimize.minimize</code>, wenn man keine Methode angibt und keine Nebenbedingungen hat.</p>"
+    },
+    {
+      "id": "w13-z14",
+      "titel": "Gradient Descent und das Zickzack-Problem",
+      "ref": {
+        "abschnitt": "8.2.3",
+        "seite": 289,
+        "nummer": "S. 289–290"
+      },
+      "text": "<p>Die billigste Idee: in Richtung des steilsten Abstiegs,</p><p>$$\\mathbf{s}=\\lambda_k\\,\\mathrm{D}\\Phi(\\mathbf{x}^{(k)}).$$</p><p>«In Machine Learning wird $\\lambda_k$ <b>learning rate</b> genannt.» Man kann sie fest wählen oder in jedem Schritt durch $\\operatorname{argmin}_\\lambda\\Phi(\\mathbf{x}^{(k)}-\\lambda\\mathrm{D}\\Phi)$ optimieren (<i>line search</i>).</p><p><b>Und jetzt die Überraschung:</b> «Ein in jedem Schritt optimiertes $\\lambda$ kann unter Umständen sogar <b>kontraproduktiv</b> sein.» Für $\\Phi(\\mathbf{x})=\\tfrac12(x_1^{2}+bx_2^{2})$ rechnet das Skript es vor: die optimale Wahl liefert den Zickzack</p><p>$$\\mathbf{x}^{(k)}=r^{k}\\left[(-1)^{k}b,\\ 1\\right]^{T},\\qquad r=\\frac{1-b}{1+b}&lt;1,\\qquad \\Phi(\\mathbf{x}^{(k)})=r^{2k}\\Phi(\\mathbf{x}^{(0)}),$$</p><p>«was umso langsamer konvergiert, je kleiner $b$ ist». Für das Beispiel der Abbildung mit $b=0.02$ ist $r=0.9608$ — für sechs Dezimalstellen braucht es <b>173 Schritte</b>. Mit $b=0.5$ wären es sechs.</p><p>$b$ ist hier nichts anderes als der Kehrwert der Konditionszahl der Hesse-Matrix: ein <b>enges steiles Tal</b>. Der Gradient zeigt dort quer zum Tal statt entlang, und die Iteration prallt zwischen den Wänden hin und her. «Die gelbe Zickzack-Linie zeigt die Schwäche dieser Methode.»</p>",
+      "merke": "Gradient Descent versagt in engen Tälern — und optimale Schrittweite macht es nicht besser."
+    },
+    {
+      "id": "w13-z15",
+      "titel": "Auswege: CG und Levenberg-Marquardt",
+      "ref": {
+        "abschnitt": "8.2.3",
+        "seite": 290,
+        "nummer": "S. 290, (8.2.14)"
+      },
+      "text": "<p>«Es gibt mehrere Auswege aus dem Dilemma des Zickzacks.»</p><p><b>Konjugierte Gradienten (CG):</b> «deutlich besser, aber unter Umständen auch zu teuer. CG ist speziell dafür konstruiert, die <b>lokale Geometrie</b> der Minimierungsfunktion bestmöglich auszunutzen (wie bei dem obigen engen Tal).» Statt immer neu steilabwärts zu laufen, wählt CG Richtungen, die bezüglich der Hesse-Matrix konjugiert sind — damit wird keine Richtung zweimal abgearbeitet.</p><p><b>Levenberg-Marquardt:</b> die Kombination aus Gradient Descent und Gauss-Newton. Statt $\\|\\mathbf{F}-\\mathrm{D}\\mathbf{F}\\mathbf{s}\\|^{2}$ minimiert man</p><p>$$\\left\\|\\mathbf{F}(\\mathbf{x}^{(k)})-\\mathrm{D}\\mathbf{F}(\\mathbf{x}^{(k)})\\mathbf{s}\\right\\|^{2}+\\lambda\\|\\mathbf{s}\\|_2^{2},$$</p><p>was auf</p><p>$$\\left(\\mathrm{D}\\mathbf{F}^{T}\\mathrm{D}\\mathbf{F}+\\lambda\\mathbf{I}\\right)\\mathbf{s}=\\mathrm{D}\\mathbf{F}^{T}\\mathbf{F}$$</p><p>führt. «Der Dämpfungsparameter $\\lambda$ <b>bestraft also grosse Schritte</b>: Wenn diese in die falsche Richtung gehen, sind sie zumindest nicht lang; so besteht die Hoffnung, noch im Konvergenzbereich zu bleiben.»</p><p>Der Parameter interpoliert zwischen beiden Welten: $\\lambda\\to0$ gibt Gauss-Newton, $\\lambda\\to\\infty$ einen winzigen Gradientenschritt. In der Praxis wird $\\lambda$ adaptiv geführt — klein, solange es gut läuft, gross, sobald ein Schritt den Fehler erhöht. Das $+\\lambda\\mathbf{I}$ hat einen zweiten Nutzen: es macht die Matrix regulär, auch wenn $\\mathrm{D}\\mathbf{F}$ keinen vollen Rang hat.</p>"
+    },
+    {
+      "id": "w13-z16",
+      "titel": "SGD und Momentum",
+      "ref": {
+        "abschnitt": "8.2.3",
+        "seite": 290,
+        "nummer": "S. 290–291"
+      },
+      "text": "<p><b>Stochastischer Gradientenabstieg (SGD):</b> «zufällig Teile von $\\mathrm{D}\\Phi(\\mathbf{x}_k)$ wählen und verwenden. Dies ist die extrem billigste und, wenn überhaupt, am <b>langsamsten konvergierende</b> Methode.» In Machine Learning ist $m$ die Zahl der Trainingsbeispiele — Millionen —, und ein voller Gradient pro Schritt ist unbezahlbar. Man nimmt eine zufällige Stichprobe (<i>mini-batch</i>).</p><p><b>Momentum:</b> «Die Idee kommt aus der Mechanik: Eine sehr schwere Kugel wird in einem engen steilen Tal weniger Zickzacks hinterlassen. So entsteht die Idee, eine <b>künstliche Trägheit</b> in die Iteration einzubauen.»</p><p>$$\\mathbf{s}=\\lambda\\mathbf{z}_k,\\qquad \\mathbf{z}_k=\\mathrm{D}\\Phi(\\mathbf{x}^{(k)})+\\beta\\mathbf{z}^{(k-1)}$$</p><p>Die Komponenten quer zum Tal wechseln in jedem Schritt das Vorzeichen und heben sich in der Summe weg; die Komponente <i>entlang</i> des Tals zeigt immer in dieselbe Richtung und summiert sich auf. Genau das Gegenmittel gegen den Zickzack.</p><p><b>ADAM</b> «wählt spezielle $\\lambda$ und $\\beta$ und liefert die einfache Iteration</p><p>$$\\mathbf{x}^{(k+1)}=\\mathbf{x}_k-\\lambda\\mathbf{z}_k,\\qquad \\mathbf{z}^{(k+1)}=\\mathrm{D}\\Phi(\\mathbf{x}^{(k)})+\\beta\\mathbf{z}^{(k)},$$</p><p>was eine verblüffende Ähnlichkeit zur <b>Verlet-Methode</b> für die Newtonsche Gleichung in der Mechanik aufweist». Die Analogie ist nicht oberflächlich: beide integrieren eine Bewegungsgleichung mit Trägheit.</p>"
+    },
+    {
+      "id": "w13-z17",
+      "titel": "Was die Laufzeitmessungen zeigen",
+      "ref": {
+        "abschnitt": "8.2.3",
+        "seite": 291,
+        "nummer": "Abb. 8.2.12–8.2.13, S. 291"
+      },
+      "text": "<p>Das Skript misst die Verfahren an zwei Zielfunktionen durch — am engen Tal $\\Phi=\\tfrac12(x_1^{2}+0.02\\,x_2^{2})$ und an $\\Phi(x,y)=(1+(3x-2.3)^{3})^{2}+(1+(0.7-1.5y)^{3})^{2}$.</p><p><b>Quadratischer Fall</b>, Genauigkeit $10^{-12}$: ADAM $1.5$ ms, GD mit line search $32$ ms, GD mit Momentum $32$ ms. Bei der gröberen Toleranz $2\\cdot10^{-7}$ zieht ADAM mit $0.6$ ms fast mit <code>optimize.minimize</code> ($0.5$ ms, BFGS in FORTRAN) gleich — «das ist beachtlich, denn unsere naive Implementierung von ADAM ist <b>gar nicht</b> auf Rechenzeit optimiert».</p><p><b>Nichttrivialer Fall</b>, Toleranz $10^{-6}$: <code>optimize.minimize</code> $0.84$ ms, ADAM $0.88$ ms, GDM $22.7$ ms — und GD mit line search braucht $75.8$ ms für 1000 Iterationen, «ohne zu konvergieren: Es bleibt in einem lokalen Minimum gefangen».</p><p>Das Fazit des Skripts: «In mehreren Dimensionen und wenn die Ableitungen nicht mehr so günstig zur Verfügung stehen, <b>gewinnt ADAM dank deutlich kürzerer Rechenzeiten gegen BFGS</b>. Das macht ADAM zur am häufigsten verwendeten Methode in Machine Learning.»</p><p>Und zur Erinnerung: gezählt wird <b>Zeit</b>, nicht Iterationen. Ein Verfahren mit höherer Ordnung kann trotzdem langsamer sein, wenn jeder Schritt zu teuer ist.</p>"
+    },
+    {
+      "id": "w13-z18",
+      "titel": "In Python",
+      "ref": {
+        "abschnitt": "8.2.3",
+        "seite": 291,
+        "nummer": "S. 291"
+      },
+      "text": "<p>«In Python verwendet man die Funktion <code>scipy.optimize.leastsq</code>, wo man auch unter einigen Iterationsmethoden auswählen kann.»</p><p>Die moderne Schnittstelle ist <code>scipy.optimize.least_squares</code> mit <code>method='lm'</code> (Levenberg-Marquardt), <code>'trf'</code> (Trust-Region-Reflective, erlaubt Schranken) oder <code>'dogbox'</code>. Für das allgemeine Optimierungsproblem ohne Residuenstruktur ist es <code>scipy.optimize.minimize</code> mit <code>method</code> unter anderem <code>'BFGS'</code>, <code>'CG'</code> oder <code>'Newton-CG'</code>.</p><p>Wichtig in der Praxis: wer die Jacobi-Matrix analytisch angeben kann, sollte es tun (<code>jac=</code>). Die Laufzeitmessungen des Skripts nennen das ausdrücklich — <code>optimize.minimize</code> war dort «dank analytisch gegebener Ableitungen» so schnell. Ohne <code>jac</code> werden die Ableitungen per finiter Differenz geschätzt, was pro Schritt $n$ zusätzliche Auswertungen kostet und die Genauigkeit begrenzt.</p>"
+    }
+  ],
+  "moodle": [
+    {
+      "id": "m-w13-01",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Newton gegen Gauss-Newton",
+      "frageHtml": "<p>Worin genau unterscheidet sich die Gauss-Newton-Iteration von der Newton-Iteration für $\\Phi(\\mathbf{x})=\\tfrac12\\|\\mathbf{F}(\\mathbf{x})\\|_2^{2}$?</p>",
+      "optionen": [
+        "Die rechte Seite $\\mathrm{D}\\Phi$ wird durch $\\mathrm{D}\\mathbf{F}^{T}\\mathbf{F}$ ersetzt.",
+        "Die Hesse-Matrix wird durch $\\mathrm{D}\\mathbf{F}^{T}\\mathrm{D}\\mathbf{F}$ ersetzt — der Term $\\sum_jF_j\\mathrm{D}^{2}F_j$ wird weggelassen.",
+        "Gauss-Newton verwendet eine Dämpfung, Newton nicht.",
+        "Gauss-Newton löst in jedem Schritt ein nichtlineares statt eines linearen Systems."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Das Skript sagt es wörtlich: «Der Unterschied ist: Die Hesse-Matrix (8.2.5) wurde durch die Matrix $\\mathrm{D}\\mathbf{F}^{T}\\mathrm{D}\\mathbf{F}$ ersetzt, was dem <b>Weglassen der letzten Summe</b> in (8.2.5) entspricht.»</p><p>Die exakte Hesse-Matrix ist $\\mathbf{H}_\\Phi=\\mathrm{D}\\mathbf{F}^{T}\\mathrm{D}\\mathbf{F}+\\sum_{j=1}^{m}F_j\\mathrm{D}^{2}F_j$. Der weggelassene Teil ist genau der, der zweite Ableitungen braucht — $m$ Hesse-Matrizen der Grösse $n\\times n$.</p><p>Option 1 ist die Falle: die rechte Seite ist in <b>beiden</b> Verfahren dieselbe, nämlich $\\mathrm{D}\\Phi=\\mathrm{D}\\mathbf{F}^{T}\\mathbf{F}$. Nur die Systemmatrix unterscheidet sich — genau so stellt es die Übersicht in Abschnitt 8.2.3 dar.</p><p>Wann ist das Weglassen harmlos? Wenn die Residuen $F_j$ klein sind (gutes Modell) oder die Krümmung schwach ist. Dann ist Gauss-Newton fast so schnell wie Newton; sonst fällt es auf lineare Konvergenz zurück.</p>",
+      "skriptRef": {
+        "abschnitt": "8.2.2",
+        "seite": 279,
+        "nummer": "(8.2.5), (8.2.13)"
+      }
+    },
+    {
+      "id": "m-w13-02",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Das Nickel-Beispiel",
+      "frageHtml": "<p>Lösen Sie das Beispiel 8.2.3 nach: Modell $I_1(t)=a_1+b_1e^{-c_1t}$ für den Heizvorgang mit den Messwerten $(0,24.34),(5,18.93),(10,17.09),(15,16.27),(20,15.97),(25,15.91)$ und Startvektor $(10,5,0)$. Geben Sie $a_1$, $b_1$ und $c_1$ an (vier Nachkommastellen).</p>",
+      "felder": [
+        {
+          "label": "a_1",
+          "wert": 15.8489,
+          "tol": 0.001,
+          "tolTyp": "rel"
+        },
+        {
+          "label": "b_1",
+          "wert": 8.4822,
+          "tol": 0.001,
+          "tolTyp": "rel"
+        },
+        {
+          "label": "c_1",
+          "wert": 0.1991,
+          "tol": 0.003,
+          "tolTyp": "rel"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Mit der Jacobi-Matrix $\\mathbf{J}_k=\\left(1,\\ e^{-c_1t_k},\\ -t_kb_1e^{-c_1t_k}\\right)$ und der Iteration $\\mathbf{s}=\\texttt{lstsq}(\\mathbf{J}(\\mathbf{x}),\\mathbf{F}(\\mathbf{x}))$, $\\mathbf{x}\\leftarrow\\mathbf{x}-\\mathbf{s}$ konvergiert Gauss-Newton in <b>6 Schritten</b> auf $a_1=15.8489$, $b_1=8.4822$, $c_1=0.1991$ — genau die Werte des Skripts.</p><p>Die Residuennorm ist $0.106$ bei Strömen um $20$ mA, das Modell passt also sehr gut. Physikalisch interessant ist nur $a_1$: es ist der Grenzwert $I_1(t\\to\\infty)$, und aus ihm zusammen mit $a_2=25.0657$ des Abkühlvorgangs folgt die Wärmeleitfähigkeit.</p><p><i>Beachtenswert am Startvektor</i> $(10,5,0)$: mit $c_1=0$ ist $e^{-c_1t}\\equiv1$, die zweite und dritte Spalte der Jacobi-Matrix sind also $(1,\\dots,1)^{T}$ und $(0,-5b_1,\\dots)^{T}$. Das ist gerade noch vollen Ranges — ein etwas waghalsiger, aber funktionierender Start.</p>",
+      "skriptRef": {
+        "abschnitt": "8.2.2",
+        "seite": 280,
+        "nummer": "Bsp. 8.2.3, Code 8.2.4"
+      }
+    },
+    {
+      "id": "m-w13-03",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Das überraschende Ergebnis von Abb. 8.2.8",
+      "frageHtml": "<p>Das Skript vergleicht Newton, Gauss-Newton und <b>gedämpftes</b> Newton an demselben Problem mit zwei Startwerten. Welches Ergebnis berichtet es?</p>",
+      "optionen": [
+        "Alle drei konvergieren; das gedämpfte Newton-Verfahren am schnellsten.",
+        "Newton konvergiert quadratisch, Gauss-Newton linear — und das <b>gedämpfte</b> Newton-Verfahren bleibt bei einem Startwert in einem lokalen Minimum gefangen und scheitert beim anderen ganz.",
+        "Nur Gauss-Newton konvergiert, die beiden Newton-Varianten divergieren.",
+        "Alle drei liefern dieselbe Lösung, unterscheiden sich aber nur in der Rechenzeit."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Die Bildunterschrift von Abb. 8.2.8 ist eindeutig: «Für den Anfangswert $(1.8,1.8,0.1)^{T}$ bleibt die Iteration des gedämpften Newton-Verfahrens in einem <b>lokalen Minimum gefangen</b>, so dass die gelieferte Lösung weit weg von den wahren Parametern liegt; für den Anfangswert $(1.5,1.5,0.1)^{T}$ <b>scheitert</b> das gedämpfte Newton-Verfahren. Das ungedämpfte Newton-Verfahren konvergiert quadratisch. Das Gauss-Newton-Verfahren konvergiert <b>linear in beiden Fällen</b>.»</p><p>Das widerspricht der Intuition aus Woche 9, wo Dämpfung das Mittel gegen schlechte Startwerte war. Der Grund: der natürliche Monotonietest verlangt, dass $\\|\\mathbf{F}\\|$ in jedem Schritt fällt — und zwingt die Iteration damit in das nächstgelegene Tal, auch wenn das nur ein lokales Minimum ist. Ein ungedämpfter Schritt kann darüber hinwegspringen.</p><p>Der Kommentar im Code sagt es nüchtern: «d. newt. isn't a good technique for this problem».</p><p>Die Lehre: <b>Robustheit und Konvergenzordnung sind verschiedene Dinge.</b> Gauss-Newton ist das langsamste der drei und als einziges in beiden Fällen zuverlässig.</p>",
+      "skriptRef": {
+        "abschnitt": "8.2.2",
+        "seite": 286,
+        "nummer": "Bsp. 8.2.6, Abb. 8.2.8"
+      }
+    },
+    {
+      "id": "m-w13-04",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Gradient Descent im engen Tal",
+      "frageHtml": "<p>Für $\\Phi(\\mathbf{x})=\\tfrac12(x_1^{2}+bx_2^{2})$ liefert Gradient Descent mit optimaler Schrittweite den Zickzack mit $r=\\frac{1-b}{1+b}$ und $\\Phi(\\mathbf{x}^{(k)})=r^{2k}\\Phi(\\mathbf{x}^{(0)})$. Berechnen Sie $r$ für $b=0.02$ und $b=0.5$ sowie die Anzahl Schritte, die für $b=0.02$ nötig ist, um $\\Phi$ um den Faktor $10^{-6}$ zu senken.</p>",
+      "felder": [
+        {
+          "label": "r\\ (b=0.02)",
+          "wert": 0.9607843137254902,
+          "tol": 1e-05,
+          "tolTyp": "rel",
+          "anzeige": "0.98/1.02 \\approx 0.96078"
+        },
+        {
+          "label": "r\\ (b=0.5)",
+          "wert": 0.3333333333333333,
+          "tol": 1e-05,
+          "tolTyp": "rel",
+          "anzeige": "0.5/1.5 = 1/3"
+        },
+        {
+          "label": "k\\ \\text{für Faktor } 10^{-6}",
+          "wert": 172.7,
+          "tol": 2.0,
+          "tolTyp": "abs",
+          "anzeige": "\\log(10^{-6})/(2\\log r) \\approx 173"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>$r=\\frac{1-b}{1+b}$: für $b=0.02$ ist das $\\frac{0.98}{1.02}=0.96078$, für $b=0.5$ nur $\\frac{0.5}{1.5}=\\tfrac13$.</p><p>Aus $r^{2k}=10^{-6}$ folgt $k=\\frac{\\log10^{-6}}{2\\log r}\\approx173$ für $b=0.02$ — gegenüber rund <b>6</b> Schritten bei $b=0.5$. Das ist der ganze Punkt des Skripts: «was umso langsamer konvergiert, je kleiner $b$ ist».</p><p>$b$ ist hier nichts anderes als der Kehrwert der Konditionszahl der Hesse-Matrix $\\operatorname{diag}(1,b)$. Ein enges steiles Tal heisst schlechte Kondition, und Gradient Descent reagiert darauf extrem empfindlich — der Gradient zeigt quer zum Tal statt entlang.</p><p>Und das gilt <b>trotz optimaler Schrittweite</b>: «Ein in jedem Schritt optimiertes $\\lambda$ kann unter Umständen sogar kontraproduktiv sein.» Genau dagegen helfen CG, Momentum und ADAM.</p>",
+      "skriptRef": {
+        "abschnitt": "8.2.3",
+        "seite": 290,
+        "nummer": "S. 290, Abb. 8.2.12"
+      }
+    },
+    {
+      "id": "m-w13-05",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Levenberg-Marquardt",
+      "frageHtml": "<p>Levenberg-Marquardt löst in jedem Schritt $\\left(\\mathrm{D}\\mathbf{F}^{T}\\mathrm{D}\\mathbf{F}+\\lambda\\mathbf{I}\\right)\\mathbf{s}=\\mathrm{D}\\mathbf{F}^{T}\\mathbf{F}$. Was bewirkt der Term $\\lambda\\mathbf{I}$?</p>",
+      "optionen": [
+        "Er beschleunigt die Konvergenz auf quadratische Ordnung.",
+        "Er <b>bestraft grosse Schritte</b> und interpoliert zwischen Gauss-Newton ($\\lambda\\to0$) und einem kleinen Gradientenschritt ($\\lambda\\to\\infty$).",
+        "Er ersetzt die fehlende zweite Ableitung in der Hesse-Matrix.",
+        "Er sorgt dafür, dass $\\mathrm{D}\\mathbf{F}$ vollen Rang bekommt."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Die Herleitung macht es klar: statt $\\|\\mathbf{F}-\\mathrm{D}\\mathbf{F}\\mathbf{s}\\|^{2}$ minimiert man $\\|\\mathbf{F}-\\mathrm{D}\\mathbf{F}\\mathbf{s}\\|^{2}+\\lambda\\|\\mathbf{s}\\|_2^{2}$ — der zweite Term <b>bestraft die Länge des Schritts</b>. Das Skript: «Wenn diese in die falsche Richtung gehen, sind sie zumindest nicht lang; so besteht die Hoffnung, noch im Konvergenzbereich zu bleiben.»</p><p>Für $\\lambda\\to0$ verschwindet die Strafe und man ist bei Gauss-Newton. Für grosses $\\lambda$ dominiert $\\lambda\\mathbf{I}$ die Systemmatrix und $\\mathbf{s}\\approx\\tfrac1\\lambda\\mathrm{D}\\Phi$ — ein kleiner Gradientenschritt. In der Praxis wird $\\lambda$ adaptiv geführt: klein, solange es gut läuft, gross, sobald ein Schritt den Fehler erhöht.</p><p>Die Motivation steht direkt davor: «Die ersten Schritte von Gradient Descent können die Iteration in die Nähe eines (lokalen) Minimums bringen, so dass Gauss-Newton einen guten Startpunkt bekommt.»</p><p>Option 4 beschreibt einen echten Nebeneffekt — $\\mathrm{D}\\mathbf{F}^{T}\\mathrm{D}\\mathbf{F}+\\lambda\\mathbf{I}$ ist auch bei Rangdefekt regulär —, aber das ist nicht die Absicht, und $\\mathbf{DF}$ selbst ändert sich dadurch nicht.</p>",
+      "skriptRef": {
+        "abschnitt": "8.2.3",
+        "seite": 290,
+        "nummer": "(8.2.14)"
+      }
+    },
+    {
+      "id": "m-w13-06",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Der gemeinsame Rahmen",
+      "frageHtml": "<p>Abschnitt 8.2.3 stellt alle Verfahren unter einen Hut. Was ist bei Newton, BFGS, Gauss-Newton, Levenberg-Marquardt und Gradient Descent <b>identisch</b>?</p>",
+      "optionen": [
+        "Die Konvergenzordnung.",
+        "Die Systemmatrix, aus der das Update $\\mathbf{s}$ bestimmt wird.",
+        "Die rechte Seite $\\mathrm{D}\\Phi(\\mathbf{x}^{(k)})=\\mathrm{D}\\mathbf{F}(\\mathbf{x}^{(k)})^{T}\\mathbf{F}(\\mathbf{x}^{(k)})$ und die Form $\\mathbf{x}^{(k+1)}=\\mathbf{x}^{(k)}-\\mathbf{s}$.",
+        "Die Anzahl Funktionsauswertungen pro Schritt."
+      ],
+      "loesung": 2,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>«Alle Methoden bauen Iterationen der Form $\\mathbf{x}^{(k+1)}=\\mathbf{x}^{(k)}-\\mathbf{s}$ und unterscheiden sich <b>nur durch die Wahl und die Berechnungsart des Updates $\\mathbf{s}$</b>.»</p><p>Die rechte Seite ist überall $\\mathrm{D}\\Phi$ — notwendige Bedingung für ein Minimum ist ja $\\mathrm{D}\\Phi=0$, und alle Verfahren arbeiten darauf hin. Was wechselt, ist die Matrix davor:</p><ul><li>Newton: $\\mathrm{D}^{2}\\Phi$ (exakt, teuer)</li><li>Gauss-Newton: $\\mathrm{D}\\mathbf{F}^{T}\\mathrm{D}\\mathbf{F}$</li><li>Levenberg-Marquardt: dasselbe $+\\lambda\\mathbf{I}$</li><li>BFGS: eine aufdatierte Näherung</li><li>Gradient Descent: $\\tfrac1{\\lambda_k}\\mathbf{I}$, also gar keine</li></ul><p>Das Skript merkt zur rechten Seite an, dass sie «selbst nicht ganz günstig zu berechnen» ist — bei SGD wird deshalb nur ein zufälliger Teil davon ausgewertet.</p><p>Option 2 ist genau das Gegenteil des Richtigen: die Systemmatrix ist der <i>einzige</i> Unterschied.</p>",
+      "skriptRef": {
+        "abschnitt": "8.2.3",
+        "seite": 289,
+        "nummer": "S. 289"
+      }
+    },
+    {
+      "id": "m-w13-07",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Warum Gauss-Newton statt Newton",
+      "frageHtml": "<p>Sie passen ein Modell mit $n=5$ Parametern an $m=2000$ Messpunkte an. Warum nimmt man hier Gauss-Newton statt des reinen Newton-Verfahrens?</p>",
+      "optionen": [
+        "Weil Newton bei überbestimmten Problemen gar nicht anwendbar ist.",
+        "Weil die Hesse-Matrix den Term $\\sum_{j=1}^{2000}F_j\\mathrm{D}^{2}F_j$ enthält — 2000 zweite Ableitungsmatrizen pro Schritt, die oft gar nicht verfügbar sind.",
+        "Weil Gauss-Newton schneller konvergiert.",
+        "Weil Newton einen Startwert braucht und Gauss-Newton nicht."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Das Skript nennt genau zwei Gründe: «Das reine Newton-Verfahren ist <b>aufwendig</b>, selbst wenn man die Matrixinversion durch das Lösen eines LGS ersetzt. Zudem ist $\\mathbf{F}(\\mathbf{x})$ <b>nicht immer zweimal stetig differenzierbar</b>, was das Aufstellen der Hesse-Matrix unmöglich macht.»</p><p>Bei $m=2000$ und $n=5$ bedeutet der Term $\\sum_jF_j\\mathrm{D}^{2}F_j$ 2000 Matrizen der Grösse $5\\times5$ — in jedem Iterationsschritt neu. Gauss-Newton braucht dagegen nur die <i>eine</i> Jacobi-Matrix $\\mathrm{D}\\mathbf{F}$ der Grösse $2000\\times5$, die man ohnehin hat.</p><p>Option 3 ist falsch herum: Gauss-Newton konvergiert <b>langsamer</b>, «die Konvergenzordnung ist niedriger als die des Newton-Verfahrens ($p\\le2$)». Man tauscht Geschwindigkeit gegen Machbarkeit. Option 4 ist falsch — <i>beide</i> brauchen einen guten Startwert, das Skript betont es für Gauss-Newton ausdrücklich.</p>",
+      "skriptRef": {
+        "abschnitt": "8.2.2",
+        "seite": 279,
+        "nummer": "S. 279–280"
+      }
+    },
+    {
+      "id": "m-w13-08",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "GPS",
+      "frageHtml": "<p>Warum braucht ein GPS-Empfänger das Signal von <b>vier</b> Satelliten, obwohl drei für eine Position im Raum genügen würden?</p>",
+      "optionen": [
+        "Weil ein Satellit immer als Reserve bereitstehen muss.",
+        "Weil die Uhr des Empfängers nicht genau genug ist und die Empfängerzeit $t_r$ als vierte Unbekannte mitgeschätzt werden muss.",
+        "Weil das Gauss-Newton-Verfahren mindestens vier Messungen braucht.",
+        "Weil die Erde gekrümmt ist und eine zusätzliche Korrektur nötig wird."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>«Theoretisch reichen dazu die Signale von drei Satelliten aus. In der Praxis haben aber GPS-Empfänger <b>keine Uhr, die genau genug ist</b>, um die Laufzeiten korrekt zu messen. Deshalb wird das Signal eines vierten Satelliten benötigt, mit dem dann auch die genaue Zeit im Empfänger bestimmt werden kann.»</p><p>Gesucht ist also $\\mathbf{x}=[t_r,x_r,y_r,z_r]$ — vier Unbekannte, vier Gleichungen. Jedes Residuum</p><p>$$r_i=-c^{2}(t_r-t_{s,i})^{2}+(x_r-x_{s,i})^{2}+(y_r-y_{s,i})^{2}+(z_r-z_{s,i})^{2}$$</p><p>ist quadratisch in allen Unbekannten, also nichtlinear.</p><p>Die Grössenordnung macht es anschaulich: Licht legt in einer Nanosekunde $30$ cm zurück — eine Uhrabweichung von $1\\,\\mu$s wären $300$ m Fehler. Eine Atomuhr im Mobiltelefon ist keine Option, also schätzt man die Zeit mit.</p><p>Mehr als vier Satelliten machen das Problem überbestimmt und damit robuster gegen Messfehler — Abb. 8.2.10 zeigt den Positionsfehler über der Satellitenzahl für vier verschiedene Zeitmessgenauigkeiten.</p>",
+      "skriptRef": {
+        "abschnitt": "8.2.2",
+        "seite": 287,
+        "nummer": "Bsp. 8.2.9, Abb. 8.2.10"
+      }
+    },
+    {
+      "id": "m-w13-09",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "ADAM und Momentum",
+      "frageHtml": "<p>Warum hilft ein Momentum-Term $\\mathbf{z}_k=\\mathrm{D}\\Phi(\\mathbf{x}^{(k)})+\\beta\\mathbf{z}_{k-1}$ gegen das Zickzack-Problem von Gradient Descent?</p>",
+      "optionen": [
+        "Weil er die Schrittweite in jedem Schritt optimiert.",
+        "Weil die quer zum Tal wechselnden Gradientenanteile sich in der Summe aufheben, während die Komponente entlang des Tals sich aufsummiert — eine künstliche <b>Trägheit</b>.",
+        "Weil er die Hesse-Matrix approximiert.",
+        "Weil er die Zielfunktion glättet."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>«Die Idee kommt aus der Mechanik: Eine <b>sehr schwere Kugel</b> wird in einem engen steilen Tal weniger Zickzacks hinterlassen. So entsteht die Idee, eine künstliche Trägheit in die Iteration einzubauen.»</p><p>Mechanisch gesprochen: die Komponente des Gradienten <i>quer</i> zum Tal wechselt in jedem Schritt das Vorzeichen, in der gewichteten Summe $\\mathbf{z}_k$ heben sich die Beiträge also weitgehend weg. Die Komponente <i>entlang</i> des Tals zeigt dagegen immer in dieselbe Richtung und summiert sich auf. Die Kugel rollt das Tal hinunter statt zwischen den Wänden hin und her.</p><p>ADAM «wählt spezielle $\\lambda$ und $\\beta$» und ergibt eine Iteration, «was eine verblüffende Ähnlichkeit zur <b>Verlet-Methode</b> für die Newtonsche Gleichung in der Mechanik aufweist» — die Analogie ist also keine blosse Metapher.</p><p>Die Laufzeitmessungen des Skripts geben ihr recht: im quadratischen Beispiel braucht ADAM $1.5$ ms gegen $32$ ms für Gradient Descent mit line search — und «in mehreren Dimensionen gewinnt ADAM dank deutlich kürzerer Rechenzeiten gegen BFGS. Das macht ADAM zur am häufigsten verwendeten Methode in Machine Learning.»</p>",
+      "skriptRef": {
+        "abschnitt": "8.2.3",
+        "seite": 291,
+        "nummer": "S. 290–291"
+      }
+    },
+    {
+      "id": "m-w13-10",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Existenz und Eindeutigkeit",
+      "frageHtml": "<p>Was sagt Bem. 8.2.1 über Lösungen des nichtlinearen Ausgleichsproblems?</p>",
+      "optionen": [
+        "Es gibt immer genau eine Lösung, wie beim linearen Problem.",
+        "Existenz und Eindeutigkeit sind im Allgemeinen <b>nicht klar</b>; aus dem Satz über implizite Funktionen folgt nur, dass eine Lösung <i>lokal</i> eindeutig ist, falls sie existiert.",
+        "Es gibt nie eine eindeutige Lösung, weil $\\mathbf{F}$ nichtlinear ist.",
+        "Die Lösung ist eindeutig, sobald $m&gt;n$ gilt."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>«Die Existenz und Eindeutigkeit einer Lösung von (8.2.1) ist im Allgemeinen <b>nicht klar</b>. Aus der Analysis ist bekannt (Satz über implizite Funktionen), dass es eine Umgebung $U_\\epsilon(\\mathbf{x})$ gibt, in welcher $\\operatorname{rang}(\\mathrm{D}\\Phi(\\mathbf{x}))=n$ ist. Da dies aber eine <b>lokale</b> Eigenschaft ist, lässt sich lediglich folgern, dass eine Lösung lokal eindeutig ist, <i>wenn sie existiert</i>.»</p><p>Das ist der entscheidende Unterschied zu Woche 12. Dort war das Problem konvex und die Lösung durch (8.1.3) eindeutig festgelegt. Hier kann $\\Phi$ mehrere lokale Minima haben, Sattelpunkte, oder ins Unendliche abfallen.</p><p>Die praktischen Folgen ziehen sich durch das ganze Kapitel: jedes Verfahren braucht einen <b>guten Startwert</b>, keines garantiert das globale Minimum, und Abb. 8.2.8 führt vor, dass derselbe Algorithmus bei zwei nahe beieinander liegenden Startwerten völlig verschieden ausgeht.</p><p>Option 4 verwechselt es mit dem linearen Fall — und selbst dort liefert $m&gt;n$ allein noch keine Eindeutigkeit, dafür braucht es vollen Spaltenrang oder Bedingung (ii).</p>",
+      "skriptRef": {
+        "abschnitt": "8.2",
+        "seite": 278,
+        "nummer": "Bem. 8.2.1"
+      }
+    }
+  ],
   "codeexpert": []
 }

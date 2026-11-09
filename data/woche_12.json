@@ -1,13 +1,471 @@
 {
   "woche": 12,
   "titel": "Lineare Ausgleichsrechnung",
-  "status": "platzhalter",
+  "status": "nur_zusammenfassung",
   "skript": {
     "kapitel": "8.1",
     "seiten": "266–276"
   },
   "vorlage": "wochenplan/Vorlage12_LinAusgleich_V0.pdf",
-  "zusammenfassung": [],
-  "moodle": [],
+  "einleitung": "<p>Mehr Messungen als Parameter — das überbestimmte System $\\mathbf{A}\\mathbf{x}=\\mathbf{b}$ mit $m&gt;n$. Exakt lösbar ist es nicht, also minimiert man das Residuum in der 2-Norm: die <b>Methode der kleinsten Quadrate</b>.</p><p>Das Kapitel bietet drei Wege dorthin, und die Wahl ist eine echte Entscheidung:</p><table><thead><tr><th>Weg</th><th>Kondition</th><th>geeignet für</th></tr></thead><tbody><tr><td>Normalengleichungen</td><td>$\\operatorname{cond}(\\mathbf{A})^{2}$</td><td>dünn besetzt, $m,n$ gross</td></tr><tr><td>QR-Zerlegung</td><td>$\\operatorname{cond}(\\mathbf{A})$</td><td>voll besetzt, $m\\gg n$ — der Standard</td></tr><tr><td>SVD / Pseudoinverse</td><td>$\\operatorname{cond}(\\mathbf{A})$</td><td>Rangdefekt, sehr schlechte Kondition</td></tr></tbody></table><p>Der rote Faden ist derselbe wie in Woche 10: <b>normerhaltende Transformationen kosten Rechenzeit und sparen Genauigkeit</b>. Die Normalengleichungen sind der kürzeste Weg und quadrieren dabei die Konditionszahl — bei $\\operatorname{cond}(\\mathbf{A})=10^{8}$ bleibt davon nichts mehr übrig.</p><p>Am Ende steht mit der totalen Ausgleichsrechnung ein Problem, das direkt auf Eckart–Young aus Woche 11 zurückfällt — und mit $I(t)=\\alpha\\pm\\beta e^{-\\gamma t}$ die Überleitung zur nichtlinearen Variante in Woche 13.</p>",
+  "moodleHinweis": "Für diese Woche liegt <b>noch kein</b> Moodle-Quiz vor — es kommt im Lauf des Semesters dazu und wird dann hier ergänzt. Bis dahin sind alle Fragen von mir im Stil der Originalfragen geschrieben und mit Skript-Verweis begründet. Alle Zahlenwerte sind mit NumPy nachgerechnet.",
+  "aufgabenUebersicht": {
+    "moodle": 10,
+    "codeexpert": 0
+  },
+  "zusammenfassung": [
+    {
+      "id": "w12-z1",
+      "titel": "Die Aufgabe der Ausgleichsrechnung",
+      "ref": {
+        "abschnitt": "8.0",
+        "seite": 266,
+        "nummer": "Kapiteleinleitung"
+      },
+      "text": "<p>Gegeben ein Modell $y=\\Psi(\\mathbf{a},x)$ mit $n$ Parametern $\\mathbf{a}=(a_1,\\dots,a_n)$ und $m$ Messungen $(x_i,y_i)$. Gesucht ist das $\\mathbf{a}$, das</p><p>$$\\sum_{i=1}^{m}\\|\\Psi(\\mathbf{a},x_i)-y_i\\|^{2}$$</p><p>minimiert. «Wenn die Funktion $\\Psi$ <b>linear vom Parameter $\\mathbf{a}$</b> abhängt, dann haben wir mit linearer Ausgleichsrechnung zu tun.»</p><p>Die Unterscheidung ist feiner, als sie klingt: es geht um Linearität in den <b>Parametern</b>, nicht in $x$. Ein Ausgleichs<i>polynom</i> $f(t)=\\sum_jx_jt^{j-1}$ ist in $t$ hochgradig nichtlinear, in den Koeffizienten $x_j$ aber linear — also ein <b>lineares</b> Ausgleichsproblem. Dagegen ist $I(t)=\\alpha\\pm\\beta e^{-\\gamma t}$ wegen des $\\gamma$ im Exponenten nichtlinear, und das ist Woche 13.</p>",
+      "merke": "Linear heisst: linear in den <i>Parametern</i>. Ein Polynomfit ist deshalb ein lineares Problem."
+    },
+    {
+      "id": "w12-z2",
+      "titel": "Die beiden Physikbeispiele",
+      "ref": {
+        "abschnitt": "8.0",
+        "seite": 266,
+        "nummer": "Kapiteleinleitung, Tabellen S. 266–267"
+      },
+      "text": "<p>Das Kapitel beginnt mit zwei Messreihen aus dem Anfängerpraktikum — eine für jeden Fall.</p><p><b>Nichtlinear (Woche 13):</b> die Wärmeleitfähigkeit von Nickel. Ein Stück Nickelstab wirkt als wärmevariabler Widerstand in einer Kompensationsschaltung; gemessen wird die Stromstärke über 25 Minuten, je einmal beim Abkühlen und beim Heizen. Das bekannte Modell ist $I(t)=\\alpha\\pm\\beta e^{-\\gamma t}$ — nichtlinear in $\\gamma$.</p><p><b>Linear (diese Woche):</b> der absolute Nullpunkt. Ein mit Helium gefüllter Gaskolben wird bei $20^{\\circ}$C auf Luftdruck normiert; dann misst man den Druck bei drei Temperaturen (kochendes Wasser $98.269^{\\circ}$C, Gefrierpunkt $0^{\\circ}$C, kochender Stickstoff $-194.96^{\\circ}$C). Nach dem Gesetz von Gay-Lussac ist der Zusammenhang affin, also schätzt man eine Gerade und extrapoliert sie auf Druck null.</p><p>Drei Messungen, zwei Parameter — ein überbestimmtes System. Genau darum geht es im ganzen Kapitel.</p>"
+    },
+    {
+      "id": "w12-z3",
+      "titel": "Methode der kleinsten Quadrate",
+      "ref": {
+        "abschnitt": "8.1",
+        "seite": 267,
+        "nummer": "Bsp. 8.1.1, (8.1.1), Abb. 8.1.2"
+      },
+      "text": "<p>Modell: eine affine Beziehung $y=\\mathbf{a}^{T}\\mathbf{x}+c$. «Typischerweise führt man mehr Messungen durch, als es Parameter gibt, also $m\\ge n+1$. Da die Messungen fehlerbehaftet sind, können die gemessenen Werte $y_i$ nicht in einer Ebene liegen. Wir können aber eine solche Ebene konstruieren, so dass die Summe der Abstände minimal ist.»</p><p>$$(\\mathbf{a},c)=\\operatorname*{argmin}_{\\mathbf{p}\\in\\mathbb{R}^{n},q\\in\\mathbb{R}}\\ \\sum_{i=1}^{m}\\left|y_i-\\mathbf{p}^{T}\\mathbf{x}_i-q\\right|^{2}$$</p><p>Dass <b>quadriert</b> wird und nicht etwa der Betrag genommen, hat zwei Gründe: die Zielfunktion wird differenzierbar (man kann ableiten und null setzen, siehe Punkt 7), und es entsteht ein <i>lineares</i> Gleichungssystem statt eines Optimierungsproblems. Der Preis sind Ausreisser — sie gehen quadratisch ein und ziehen die Gerade stark zu sich.</p>"
+    },
+    {
+      "id": "w12-z4",
+      "titel": "Daten-Fit mit Basisfunktionen",
+      "ref": {
+        "abschnitt": "8.1",
+        "seite": 268,
+        "nummer": "Bsp. 8.1.3, (8.1.2)"
+      },
+      "text": "<p>Die affine Relation lässt sich verallgemeinern. Gegeben $m$ Knoten $(t_i,y_i)$ und $n$ Basisfunktionen $b_j\\colon I\\to\\mathbb{K}$, suche Koeffizienten $x_j$ mit</p><p>$$\\sum_{i=1}^{m}|f(t_i)-y_i|\\to\\min,\\qquad f(t):=\\sum_{j=1}^{n}x_j\\,b_j(t).$$</p><p>«Im Fall der Polynome $b_j(t)=t^{j-1}$ spricht man von <b>Ausgleichspolynomen</b>. In Python verwenden wir die Funktion <code>numpy.polyfit</code>.»</p><p>Der Unterschied zur Interpolation aus den Wochen 3–6 ist genau einer: dort war $m=n$ und die Kurve ging <i>durch</i> alle Punkte, hier ist $m&gt;n$ und sie geht <i>neben</i> ihnen vorbei. Bei verrauschten Daten ist das ein Vorteil — ein Interpolationspolynom hohen Grades würde dem Rauschen folgen statt dem Signal.</p>"
+    },
+    {
+      "id": "w12-z5",
+      "titel": "Die saubere Formulierung (8.1.3)",
+      "ref": {
+        "abschnitt": "8.1",
+        "seite": 268,
+        "nummer": "(8.1.3)"
+      },
+      "text": "<p><b>Gegeben:</b> $\\mathbf{A}\\in\\mathbb{K}^{m,n}$, $\\mathbf{b}\\in\\mathbb{K}^{m}$.<br><b>Finde:</b> $\\mathbf{x}\\in\\mathbb{K}^{n}$, so dass</p><ol><li>$\\|\\mathbf{A}\\mathbf{x}-\\mathbf{b}\\|_2=\\inf\\{\\|\\mathbf{A}\\mathbf{y}-\\mathbf{b}\\|_2:\\mathbf{y}\\in\\mathbb{K}^{n}\\}$ und</li><li>$\\|\\mathbf{x}\\|_2$ <b>minimal</b> ist.</li></ol><p>Bedingung (ii) ist kein Schönheitsfehler, sondern notwendig. Hat $\\mathbf{A}$ keinen vollen Spaltenrang, so löst mit $\\mathbf{x}$ auch jedes $\\mathbf{x}+\\mathbf{x}_n$ mit $\\mathbf{x}_n\\in\\ker\\mathbf{A}$ das Problem (i) — die Lösung ist dann nicht eindeutig. Erst die Forderung nach minimaler Norm pickt genau eine heraus: diejenige, die <b>senkrecht auf dem Kern</b> steht.</p><p>Mit beiden Bedingungen ist die Lösung immer eindeutig (Bem. 8.1.8) — und genau das erlaubt es, die Pseudoinverse zu definieren.</p>",
+      "merke": "Bedingung (ii) macht die Lösung eindeutig, auch wenn $\\mathbf{A}$ keinen vollen Rang hat."
+    },
+    {
+      "id": "w12-z6",
+      "titel": "Das Residuum als Qualitätsmass",
+      "ref": {
+        "abschnitt": "8.1",
+        "seite": 269,
+        "nummer": "Bem. 8.1.6–8.1.7"
+      },
+      "text": "<p>«Die Norm des Residuums $\\|\\mathbf{b}-\\mathbf{A}\\mathbf{x}\\|_2$ erlaubt es uns, die <b>Qualität des Modells</b> zu beurteilen.»</p><p>Das ist eine andere Aussage als in Woche 10. Dort war das Residuum ein Hinweis auf die Genauigkeit des <i>Algorithmus</i>; hier misst es, wie gut das <i>Modell</i> zu den Daten passt. Ein grosses Residuum heisst: die gewählten Basisfunktionen können die Daten nicht beschreiben — mehr Parameter oder ein anderes Modell.</p><p>Bem. 8.1.7: «In Python verwenden wir die Funktion <code>numpy.linalg.lstsq</code>.» Sie gibt neben der Lösung auch die Residuenquadratsumme, den numerischen Rang und die Singulärwerte zurück — alles, was man zur Beurteilung braucht.</p>"
+    },
+    {
+      "id": "w12-z7",
+      "titel": "Die Normalengleichung",
+      "ref": {
+        "abschnitt": "8.1.1",
+        "seite": 269,
+        "nummer": "Def. 8.1.9, (8.1.4)"
+      },
+      "text": "<p>Ausmultiplizieren von $f(\\mathbf{x})=\\|\\mathbf{b}-\\mathbf{A}\\mathbf{x}\\|_2^{2}$ gibt</p><p>$$f(\\mathbf{x})=\\mathbf{b}^{H}\\mathbf{b}-2\\mathbf{b}^{H}\\mathbf{A}\\mathbf{x}+\\mathbf{x}^{H}\\mathbf{A}^{H}\\mathbf{A}\\mathbf{x}.$$</p><p>Im Minimum muss $\\mathrm{D}f(\\mathbf{x})=0$ gelten, also $2(\\mathbf{A}^{H}\\mathbf{A})\\mathbf{x}-2\\mathbf{A}^{H}\\mathbf{b}=0$ und damit</p><p>$$\\boxed{\\ \\mathbf{A}^{H}\\mathbf{A}\\,\\mathbf{x}=\\mathbf{A}^{H}\\mathbf{b}\\ }$$</p><p>Aus $m$ Gleichungen in $n$ Unbekannten sind $n$ Gleichungen in $n$ Unbekannten geworden — ein gewöhnliches quadratisches System. Geometrisch sagt die Gleichung, dass das Residuum <b>senkrecht</b> auf dem Spaltenraum von $\\mathbf{A}$ steht: $\\mathbf{A}^{H}(\\mathbf{b}-\\mathbf{A}\\mathbf{x})=\\mathbf{0}$. Daher der Name.</p>"
+    },
+    {
+      "id": "w12-z8",
+      "titel": "Normalengleichungen lösen",
+      "ref": {
+        "abschnitt": "8.1.1",
+        "seite": 269,
+        "nummer": "Bem. 8.1.10"
+      },
+      "text": "<p>«Die Matrix $\\mathbf{A}^{H}\\mathbf{A}$ ist hermitesch symmetrisch und, wenn $\\mathbf{A}$ vollen Rang hat, dann auch <b>positiv definit</b>; somit besitzt das System eine eindeutige Lösung. Sie lässt sich mithilfe der LU-Zerlegung oder, <b>noch besser</b>, der Cholesky-Zerlegung bestimmen.»</p><p>Hier zahlt sich Woche 10 aus: s.p.d. heisst Cholesky, und Cholesky heisst halber Aufwand und keine Pivotisierung. Der Gesamtaufwand ist $\\mathcal{O}(mn^{2})$ für das Aufstellen von $\\mathbf{A}^{H}\\mathbf{A}$ plus $\\mathcal{O}(n^{3}/3)$ für Cholesky — bei $m\\gg n$ dominiert der erste Term.</p><p>Das ist der <b>schnellste</b> der drei Wege. Nur leider auch der ungenaueste, siehe Punkt 9.</p>"
+    },
+    {
+      "id": "w12-z9",
+      "titel": "Der Haken: die Kondition wird quadriert",
+      "ref": {
+        "abschnitt": "8.1.1",
+        "seite": 270,
+        "nummer": "S. 270"
+      },
+      "text": "<p>«Der Nachteil der Normalengleichungen ist vor allem ihre <b>schlechte Konditionierung</b> und die damit verbundene numerische Instabilität.» Die Rechnung geht über die SVD:</p><p>$$\\operatorname{cond}(\\mathbf{A}^{H}\\mathbf{A})=\\operatorname{cond}(\\mathbf{V}\\boldsymbol\\Sigma\\mathbf{U}^{H}\\mathbf{U}\\boldsymbol\\Sigma\\mathbf{V}^{H})=\\operatorname{cond}(\\boldsymbol\\Sigma^{2})=\\frac{\\sigma_1^{2}}{\\sigma_n^{2}}=\\operatorname{cond}(\\mathbf{A})^{2}$$</p><p>Das ist dieselbe Falle wie in Woche 11 bei der Berechnung der Singulärwerte über $\\mathbf{A}^{H}\\mathbf{A}$ — und sie ist hier genauso teuer. Bei $\\operatorname{cond}(\\mathbf{A})=10^{8}$ wird daraus $10^{16}$, und in doppelter Genauigkeit ist nichts mehr übrig. «In diesem Fall läuft man Gefahr, im Verlauf der Berechnungen eine <b>enorme Vergrösserung der Rundungsfehler</b> auftreten zu lassen, was zu einer falschen Lösung führen würde.»</p><p>Für das Beispiel des Skripts mit $\\mathbf{A}(\\epsilon)$ und $\\epsilon=10^{-3}$: $\\operatorname{cond}(\\mathbf{A})=2\\cdot10^{3}$, $\\operatorname{cond}(\\mathbf{A}^{H}\\mathbf{A})=4\\cdot10^{6}$.</p>",
+      "merke": "$\\operatorname{cond}(\\mathbf{A}^{H}\\mathbf{A})=\\operatorname{cond}(\\mathbf{A})^{2}$ — die halbe Genauigkeit, für nichts."
+    },
+    {
+      "id": "w12-z10",
+      "titel": "Der zweite Haken: Dünnbesetztheit geht verloren",
+      "ref": {
+        "abschnitt": "8.1.1",
+        "seite": 270,
+        "nummer": "S. 270"
+      },
+      "text": "<p>«Wenn $\\mathbf{A}$ dünn besetzt ist, so ist es $\\mathbf{A}^{H}\\mathbf{A}$ <b>im Allgemeinen nicht</b>. Dies kann bei grossem $\\mathbf{A}$ zu einem Speicherüberlauf oder zu sehr langen Rechenzeiten führen. Weiterhin wird so die Möglichkeit der Anwendung effizienter direkter Lösungsmethoden für dünn besetzte Matrizen verschwendet.»</p><p>Der Grund ist leicht einzusehen: $(\\mathbf{A}^{H}\\mathbf{A})_{jk}$ ist genau dann ungleich null, wenn die Spalten $j$ und $k$ <i>irgendeine</i> gemeinsame Zeile mit Nichtnull-Einträgen haben. Schon wenige dichte Zeilen in $\\mathbf{A}$ füllen $\\mathbf{A}^{H}\\mathbf{A}$ vollständig auf.</p><p>Das ist der Grund, warum es Punkt 11 überhaupt gibt.</p>"
+    },
+    {
+      "id": "w12-z11",
+      "titel": "Das erweiterte System: Normalengleichungen ohne $\\mathbf{A}^{H}\\mathbf{A}$",
+      "ref": {
+        "abschnitt": "8.1.1",
+        "seite": 270,
+        "nummer": "Bem. 8.1.11, (8.1.5)"
+      },
+      "text": "<p>Man behandelt das Residuum $\\mathbf{r}=\\mathbf{A}\\mathbf{x}-\\mathbf{b}$ als <b>weitere Unbekannte</b> und schreibt die Normalengleichung als ein grösseres, aber dünn besetztes System:</p><p>$$\\mathbf{A}^{H}\\mathbf{A}\\mathbf{x}=\\mathbf{A}^{H}\\mathbf{b}\\iff \\begin{pmatrix}-\\mathbf{I}&\\mathbf{A}\\\\ \\mathbf{A}^{H}&\\mathbf{0}\\end{pmatrix}\\begin{pmatrix}\\mathbf{r}\\\\ \\mathbf{x}\\end{pmatrix}=\\begin{pmatrix}\\mathbf{b}\\\\ \\mathbf{0}\\end{pmatrix}$$</p><p>Die Matrix $\\mathbf{B}$ hat die Grösse $(m+n)\\times(m+n)$, enthält $\\mathbf{A}$ aber <b>unverändert</b> — die Dünnbesetztheit bleibt also erhalten, und man kann die effizienten Sparse-Löser benutzen.</p><p>Allgemeiner setzt man $\\mathbf{r}:=\\tfrac1a(\\mathbf{A}\\mathbf{x}-\\mathbf{b})$ mit $a&gt;0$ und ersetzt $-\\mathbf{I}$ durch $-a\\mathbf{I}$. «Dabei wählt man $a$ so, dass $\\kappa(\\mathbf{B}_a)$ minimal wird.» Für das Beispiel 8.1.13 nennt das Skript (ohne Beweis) $a=\\epsilon\\|\\mathbf{A}\\|/\\sqrt2$.</p>"
+    },
+    {
+      "id": "w12-z12",
+      "titel": "Der Konditionsvergleich",
+      "ref": {
+        "abschnitt": "8.1.1",
+        "seite": 271,
+        "nummer": "Bsp. 8.1.13, Abb. 8.1.12"
+      },
+      "text": "<p>$$\\mathbf{A}(\\epsilon)=\\begin{pmatrix}1+\\epsilon&1\\\\1-\\epsilon&1\\\\\\epsilon&\\epsilon\\end{pmatrix}$$</p><p>Abb. 8.1.12 trägt vier Konditionszahlen über $\\epsilon$ von $10^{-5}$ bis $1$ auf: $\\operatorname{cond}(\\mathbf{A})$, $\\operatorname{cond}_2(\\mathbf{A}^{H}\\mathbf{A})$, $\\operatorname{cond}_2(\\mathbf{B})$ und $\\operatorname{cond}_2(\\mathbf{B}_a)$.</p><p>Das Bild ist eindeutig: $\\operatorname{cond}(\\mathbf{A}^{H}\\mathbf{A})$ liegt durchweg bei $\\operatorname{cond}(\\mathbf{A})^{2}$ — bei $\\epsilon=10^{-5}$ sind das $4\\cdot10^{10}$ gegen $2\\cdot10^{5}$. Die erweiterten Systeme $\\mathbf{B}$ und besonders $\\mathbf{B}_a$ bleiben <b>deutlich darunter</b>.</p><p>Der Preis: ein $(m+n)\\times(m+n)$-System statt eines $n\\times n$-Systems. Das lohnt nur, wenn $\\mathbf{A}$ dünn besetzt ist — sonst nimmt man gleich QR oder SVD.</p>"
+    },
+    {
+      "id": "w12-z13",
+      "titel": "Lösung über die QR-Zerlegung",
+      "ref": {
+        "abschnitt": "8.1.2",
+        "seite": 272,
+        "nummer": "(8.1.6)"
+      },
+      "text": "<p>«Aus Beispiel 8.1.13 sieht man, dass die Normalengleichungen zur numerischen Lösung des Ausgleichsproblems schlecht geeignet sind. Auch das LU-Verfahren kann für eine Matrix mit $m&gt;n$ nicht sinnvoll angewandt werden.»</p><p>Mit der vollen QR-Zerlegung $\\mathbf{A}=\\mathbf{Q}\\mathbf{R}=\\mathbf{Q}\\binom{\\tilde{\\mathbf{R}}}{\\mathbf{0}}$ und der Normerhaltung:</p><p>$$\\|\\mathbf{A}\\mathbf{x}-\\mathbf{b}\\|_2^{2}=\\|\\mathbf{Q}\\mathbf{R}\\mathbf{x}-\\mathbf{Q}\\mathbf{Q}^{H}\\mathbf{b}\\|_2^{2}=\\|\\mathbf{Q}(\\mathbf{R}\\mathbf{x}-\\mathbf{Q}^{H}\\mathbf{b})\\|_2^{2}=\\|\\mathbf{R}\\mathbf{x}-\\tilde{\\mathbf{b}}\\|_2^{2},\\qquad \\tilde{\\mathbf{b}}=\\mathbf{Q}^{H}\\mathbf{b}$$</p><p>Weil $\\mathbf{R}$ unterhalb der ersten $n$ Zeilen nur Nullen hat, zerfällt das in zwei Teile: die oberen $n$ Komponenten lassen sich durch $\\tilde{\\mathbf{R}}\\mathbf{x}=\\tilde{\\mathbf{b}}_{1:n}$ exakt auf null bringen (Rückwärtssubstitution!), die unteren $m-n$ sind von $\\mathbf{x}$ <b>unabhängig</b> und bilden das unvermeidbare Residuum.</p><p>Entscheidend: die Konditionszahl von $\\mathbf{A}$ bleibt erhalten (Bem. 7.1.24), es wird nichts quadriert. Das ist «der Lösungsansatz, der stabiler als die Normalengleichungen ist» — und er steckt «auch hinter professionellen Lösern wie <code>numpy.linalg.lstsq</code>».</p>",
+      "merke": "QR: $\\|\\mathbf{A}\\mathbf{x}-\\mathbf{b}\\|$ minimieren heisst $\\tilde{\\mathbf{R}}\\mathbf{x}=(\\mathbf{Q}^{H}\\mathbf{b})_{1:n}$ rückwärts auflösen."
+    },
+    {
+      "id": "w12-z14",
+      "titel": "Lösung über die SVD",
+      "ref": {
+        "abschnitt": "8.1.2",
+        "seite": 274,
+        "nummer": "(8.1.7)–(8.1.9)"
+      },
+      "text": "<p>Dasselbe Argument mit der SVD, aber allgemeiner — es funktioniert auch bei <b>Rangdefekt</b>. Mit $\\operatorname{rank}\\mathbf{A}=r&lt;\\min(m,n)$ und der Blockaufteilung $\\mathbf{A}=[\\mathbf{U}_1\\ \\mathbf{U}_2]\\begin{psmallmatrix}\\boldsymbol\\Sigma_r&0\\\\0&0\\end{psmallmatrix}\\begin{psmallmatrix}\\mathbf{V}_1^{H}\\\\\\mathbf{V}_2^{H}\\end{psmallmatrix}$ wird</p><p>$$\\|\\mathbf{A}\\mathbf{x}-\\mathbf{b}\\|_2=\\left\\|\\binom{\\boldsymbol\\Sigma_r\\mathbf{V}_1^{H}\\mathbf{x}}{\\mathbf{0}}-\\binom{\\mathbf{U}_1^{H}\\mathbf{b}}{\\mathbf{U}_2^{H}\\mathbf{b}}\\right\\|_2.$$</p><p>Der untere Block lässt sich nicht beeinflussen — er ist das minimale Residuum $\\|\\mathbf{U}_2^{H}\\mathbf{b}\\|_2$. Der obere wird null für</p><p>$$\\mathbf{x}=\\mathbf{V}_1\\boldsymbol\\Sigma_r^{+}\\mathbf{U}_1^{H}\\mathbf{b},\\qquad \\boldsymbol\\Sigma_r^{+}=\\operatorname{diag}\\!\\left(\\tfrac1{\\sigma_1},\\dots,\\tfrac1{\\sigma_r}\\right).$$</p><p>Dieses $\\mathbf{x}$ liegt in $\\operatorname{Im}(\\mathbf{A}^{H})=\\operatorname{span}\\{\\mathbf{v}_1,\\dots,\\mathbf{v}_r\\}$ und steht damit <b>senkrecht auf $\\ker\\mathbf{A}$</b> — es erfüllt also auch Bedingung (ii) und ist die eindeutige Lösung von (8.1.3). Jedes $\\mathbf{x}+\\mathbf{x}_n$ mit $\\mathbf{x}_n\\in\\ker\\mathbf{A}$ löst zwar (i) genauso, hat aber grössere Norm.</p>"
+    },
+    {
+      "id": "w12-z15",
+      "titel": "Die Pseudoinverse",
+      "ref": {
+        "abschnitt": "8.1.2",
+        "seite": 275,
+        "nummer": "Def. 8.1.15"
+      },
+      "text": "<p>$$\\mathbf{A}^{+}=\\left(\\mathbf{A}^{H}\\mathbf{A}\\right)^{-1}\\mathbf{A}^{H}=\\mathbf{V}_1\\boldsymbol\\Sigma_r^{+}\\mathbf{U}_1^{H}$$</p><p>Die <b>Moore-Penrose-Pseudoinverse</b>. Die erste Darstellung gilt nur bei vollem Spaltenrang (sonst ist $\\mathbf{A}^{H}\\mathbf{A}$ singulär), die zweite immer — und sie ist auch die numerisch brauchbare.</p><p>Damit schreibt sich die Lösung einfach als $\\mathbf{x}=\\mathbf{A}^{+}\\mathbf{b}$, genau wie $\\mathbf{x}=\\mathbf{A}^{-1}\\mathbf{b}$ im quadratischen Fall. In Python: <code>numpy.linalg.pinv</code> und <code>scipy.linalg.pinv</code>.</p><p><b>Aber:</b> dieselbe Warnung wie in Woche 10 gilt auch hier. Die Pseudoinverse <i>explizit</i> aufzustellen, um sie einmal mit $\\mathbf{b}$ zu multiplizieren, ist Verschwendung — <code>lstsq</code> ist schneller und genauer. Die Pseudoinverse lohnt, wenn man dieselbe Matrix mit vielen rechten Seiten braucht oder sie als Objekt untersuchen will.</p>"
+    },
+    {
+      "id": "w12-z16",
+      "titel": "Numerischer Rang in der Praxis",
+      "ref": {
+        "abschnitt": "8.1.2",
+        "seite": 275,
+        "nummer": "Code 8.1.16"
+      },
+      "text": "<p>Der SVD-Löser des Skripts bestimmt den Rang über ein <b>relatives</b> Kriterium:</p><p>$$r=\\max\\{i:\\sigma_i/\\sigma_1&gt;\\texttt{tol}\\}$$</p><pre><code>def lsqsvd(A, b, eps=1e-6):\n    U, s, Vh = svd(A)\n    r = 1 + where(s/s[0] &gt; eps)[0].max()   # numerischer Rang\n    y = dot(Vh[:r,:].T, dot(U[:,:r].T, b)/s[:r])\n    return y</code></pre><p>Die Division durch $\\sigma_1$ macht das Kriterium <b>skalierungsinvariant</b>: multipliziert man alle Messwerte mit $1000$, ändert sich der ermittelte Rang nicht. Ein absoluter Schwellenwert hätte diese Eigenschaft nicht.</p><p>Die Wahl von <code>tol</code> ist eine Modellentscheidung, keine numerische: sie sagt, ab welchem Verhältnis man einen Singulärwert als Rauschen betrachtet. Zu klein gewählt nimmt man Rauschen als Signal (und teilt durch winzige $\\sigma_i$), zu gross wirft man Information weg.</p>"
+    },
+    {
+      "id": "w12-z17",
+      "titel": "Welches Verfahren wann",
+      "ref": {
+        "abschnitt": "8.1.2",
+        "seite": 275,
+        "nummer": "S. 275"
+      },
+      "text": "<p>Das Skript ordnet die drei Verfahren zwei Fällen zu:</p><table><thead><tr><th>Fall</th><th>Verfahren</th><th>Grund</th></tr></thead><tbody><tr><td><b>1.</b> $\\mathbf{A}$ voll besetzt, $n$ klein ($m\\gg n$)</td><td>QR oder SVD</td><td>«aufgrund ihrer numerischen Stabilität»</td></tr><tr><td><b>2.</b> $\\mathbf{A}$ dünn besetzt, $m,n$ gross</td><td>Normalengleichungen (ggf. als erweitertes System)</td><td>QR und SVD «können die spezifische Struktur dünn besetzter Matrizen nicht ausnutzen»</td></tr></tbody></table><p>Es ist also <i>nicht</i> so, dass Normalengleichungen immer falsch wären — sie sind die richtige Wahl, wenn Dünnbesetztheit wichtiger ist als die letzten Stellen. Innerhalb von Fall 1 ist QR der Standard (schneller) und SVD die Reserve für rangdefiziente oder sehr schlecht konditionierte Probleme.</p>"
+    },
+    {
+      "id": "w12-z18",
+      "titel": "Das durchgerechnete Beispiel: der absolute Nullpunkt",
+      "ref": {
+        "abschnitt": "8.1.2",
+        "seite": 275,
+        "nummer": "Bsp. 8.1.17, Code 8.1.18"
+      },
+      "text": "<p>$$\\mathbf{A}=\\begin{pmatrix}98.269&1\\\\0&1\\\\-194.96&1\\end{pmatrix},\\qquad \\mathbf{b}=\\begin{pmatrix}852.7\\\\624.5\\\\172.7\\end{pmatrix}$$</p><p>Die QR-Zerlegung liefert</p><p>$$\\mathbf{Q}=\\begin{pmatrix}0.45010&0.71625\\\\0&0.59720\\\\-0.89298&0.36102\\end{pmatrix},\\qquad \\mathbf{R}=\\begin{pmatrix}218.32590&-0.44287\\\\0&1.67447\\end{pmatrix},$$</p><p>und nach $\\tilde{\\mathbf{b}}=\\mathbf{Q}^{T}\\mathbf{b}$ und Rückwärtseinsetzen</p><p>$$m=x_1=2.3188,\\qquad c=x_2=624.7017.$$</p><p>Die Nullstelle von $f(t)=mt+c$ liegt bei $t=-269.41$ — «eine relativ gute Approximation» an $T_0=-273.15\\,^{\\circ}$C, mit drei Messpunkten und einer Extrapolation weit über den Messbereich hinaus.</p><p>Code 8.1.18 rechnet dasselbe auf drei Wegen (QR, <code>lsqsvd</code>, <code>lstsq</code>) und bekommt dreimal dasselbe. <i>Kleine Beobachtung beim Nachrechnen:</i> <code>numpy.linalg.qr</code> liefert $\\mathbf{Q}$ und $\\mathbf{R}$ mit umgekehrten Vorzeichen in beiden Spalten — das ist die bekannte Vorzeichenfreiheit der QR-Zerlegung und ändert an $\\mathbf{x}$ nichts.</p>"
+    },
+    {
+      "id": "w12-z19",
+      "titel": "Totale Ausgleichsrechnung",
+      "ref": {
+        "abschnitt": "8.1.3",
+        "seite": 276,
+        "nummer": "Abschnitt 8.1.3"
+      },
+      "text": "<p>«Was soll man tun, wenn <b>auch die Matrix</b> und die rechte Seite in $\\mathbf{A}\\mathbf{x}=\\mathbf{b}$ fehlerbehaftet sind?»</p><p>Bisher wurde unterstellt, dass nur $\\mathbf{b}$ Messfehler enthält — bei den Temperaturmessungen ist aber auch die Temperatur selbst ungenau. Dann sucht man $\\hat{\\mathbf{A}}$ und $\\hat{\\mathbf{b}}$ mit $\\hat{\\mathbf{b}}\\in\\operatorname{Im}\\hat{\\mathbf{A}}$, die</p><p>$$\\left\\|[\\mathbf{A}\\ \\mathbf{b}]-[\\hat{\\mathbf{A}}\\ \\hat{\\mathbf{b}}]\\right\\|_F\\ \\to\\ \\min$$</p><p>minimieren. Mit $\\mathbf{C}=[\\mathbf{A}\\ \\mathbf{b}]$ bedeutet die Bedingung «$\\hat{\\mathbf{b}}$ liegt im Bild von $\\hat{\\mathbf{A}}$» genau, dass $\\hat{\\mathbf{C}}$ den Rang $n$ statt $n+1$ hat. Das Problem lautet also</p><p>$$\\min_{\\operatorname{rank}\\hat{\\mathbf{C}}=n}\\|\\mathbf{C}-\\hat{\\mathbf{C}}\\|_F$$</p><p>— und «<b>Theorem 7.1.53 weist uns den Weg zur Lösung</b>». Das ist exakt Eckart–Young aus Woche 11: man nimmt die SVD von $\\mathbf{C}$ und streicht den kleinsten Singulärwert $\\sigma_{n+1}$.</p><p>Geometrisch ist der Unterschied anschaulich: gewöhnliche kleinste Quadrate minimieren die <b>vertikalen</b> Abstände zur Geraden, die totale Ausgleichsrechnung die <b>senkrechten</b>.</p>",
+      "merke": "Totale Ausgleichsrechnung = beste Rang-$n$-Näherung von $[\\mathbf{A}\\ \\mathbf{b}]$, also Eckart–Young."
+    }
+  ],
+  "moodle": [
+    {
+      "id": "m-w12-01",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Linear oder nichtlinear",
+      "frageHtml": "<p>Welches der folgenden Ausgleichsprobleme ist <b>nicht</b> linear im Sinne von Kapitel 8.1?</p>",
+      "optionen": [
+        "$f(t)=x_1+x_2t+x_3t^{2}+x_4t^{3}$ an Messpunkte anpassen",
+        "$f(t)=x_1\\sin t+x_2\\cos(3t)+x_3e^{t}$ anpassen",
+        "$I(t)=\\alpha+\\beta e^{-\\gamma t}$ mit den Parametern $\\alpha,\\beta,\\gamma$ anpassen",
+        "$f(t)=x_1\\log t+x_2\\sqrt{t}$ anpassen"
+      ],
+      "loesung": 2,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Entscheidend ist die Linearität in den <b>Parametern</b>, nicht in $t$. Optionen 1, 2 und 4 sind Linearkombinationen fester Basisfunktionen $f(t)=\\sum_jx_jb_j(t)$ — exakt die Form von (8.1.2). Dass $t^{3}$, $\\cos(3t)$ oder $\\log t$ nichtlinear in $t$ sind, spielt keine Rolle: man wertet sie an den Messstellen aus und schreibt die Werte in die Matrix.</p><p>Bei $I(t)=\\alpha+\\beta e^{-\\gamma t}$ steht $\\gamma$ im Exponenten. Die Ableitung nach $\\gamma$ hängt von $\\gamma$ selbst ab, es entsteht also kein lineares Gleichungssystem. Genau dieses Beispiel — die Wärmeleitfähigkeit von Nickel — stellt das Skript der nichtlinearen Ausgleichsrechnung voran (Woche 13).</p><p><i>Am Rande:</i> wären $\\alpha$ und $\\gamma$ bekannt und nur $\\beta$ gesucht, wäre auch das wieder linear. Die Trennlinie verläuft nicht zwischen Funktionen, sondern zwischen Parametersätzen.</p>",
+      "skriptRef": {
+        "abschnitt": "8.0",
+        "seite": 266,
+        "nummer": "Kapiteleinleitung, Bsp. 8.1.3"
+      }
+    },
+    {
+      "id": "m-w12-02",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Normalengleichungen und Kondition",
+      "frageHtml": "<p>Eine Matrix $\\mathbf{A}$ habe $\\operatorname{cond}_2(\\mathbf{A})=10^{6}$. Wie gross ist $\\operatorname{cond}_2(\\mathbf{A}^{H}\\mathbf{A})$, und wie viele der 16 Dezimalstellen doppelter Genauigkeit bleiben beim Lösen über die Normalengleichungen ungefähr übrig ($16-\\log_{10}\\operatorname{cond}_2(\\mathbf{A}^{H}\\mathbf{A})$)?</p>",
+      "felder": [
+        {
+          "label": "\\operatorname{cond}_2(\\mathbf{A}^{H}\\mathbf{A})",
+          "wert": 1000000000000.0,
+          "tol": 1e-06,
+          "tolTyp": "rel",
+          "anzeige": "(10^{6})^{2}=10^{12}"
+        },
+        {
+          "label": "\\text{verbleibende Stellen}",
+          "wert": 4.0,
+          "tol": 0.3,
+          "tolTyp": "abs",
+          "anzeige": "16-12 = 4"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Das Skript rechnet es über die SVD vor: $\\operatorname{cond}(\\mathbf{A}^{H}\\mathbf{A})=\\operatorname{cond}(\\mathbf{V}\\boldsymbol\\Sigma^{2}\\mathbf{V}^{H})=\\sigma_1^{2}/\\sigma_n^{2}=\\operatorname{cond}(\\mathbf{A})^{2}$, also $10^{12}$.</p><p>Nach der Faustregel aus Woche 1 kostet $\\operatorname{cond}=10^{k}$ rund $k$ Dezimalstellen. Von 16 bleiben also <b>4</b> — für eine Messauswertung meist noch tragbar, aber knapp. Bei $\\operatorname{cond}(\\mathbf{A})=10^{8}$ wäre gar nichts mehr übrig.</p><p>Über QR oder SVD bleibt es bei $\\operatorname{cond}(\\mathbf{A})=10^{6}$, also bei 10 Stellen. Das ist der ganze Grund, warum Abschnitt 8.1.2 existiert: «Es ist deshalb nicht empfehlenswert, Normalengleichungen zur Lösung von linearen Ausgleichsproblemen zu verwenden, die durch eine schlecht konditionierte Matrix dargestellt werden.»</p>",
+      "skriptRef": {
+        "abschnitt": "8.1.1",
+        "seite": 270,
+        "nummer": "Herleitung S. 270"
+      }
+    },
+    {
+      "id": "m-w12-03",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Der absolute Nullpunkt",
+      "frageHtml": "<p>Lösen Sie das Ausgleichsproblem aus Bsp. 8.1.17 mit</p><p>$$\\mathbf{A}=\\begin{pmatrix}98.269&1\\\\0&1\\\\-194.96&1\\end{pmatrix},\\qquad \\mathbf{b}=\\begin{pmatrix}852.7\\\\624.5\\\\172.7\\end{pmatrix}$$</p><p>und geben Sie Steigung $m$, Achsenabschnitt $c$ und die Nullstelle $t=-c/m$ an (mindestens fünf signifikante Ziffern).</p>",
+      "felder": [
+        {
+          "label": "m",
+          "wert": 2.318779813763016,
+          "tol": 0.0001,
+          "tolTyp": "rel",
+          "anzeige": "2.31878"
+        },
+        {
+          "label": "c",
+          "wert": 624.7017129908534,
+          "tol": 1e-05,
+          "tolTyp": "rel",
+          "anzeige": "624.70171"
+        },
+        {
+          "label": "t\\ [^\\circ\\mathrm{C}]",
+          "wert": -269.4096736925877,
+          "tol": 0.0001,
+          "tolTyp": "rel",
+          "anzeige": "-269.41"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Mit <code>Q, R = np.linalg.qr(A)</code> und <code>x = np.linalg.solve(R, Q.T @ b)</code> — oder gleich mit <code>np.linalg.lstsq(A, b, rcond=None)</code> — kommt $m=2.31878$, $c=624.70171$ heraus, genau wie im Skript.</p><p>Die Nullstelle $t=-c/m=-269.41\\,^{\\circ}$C ist die Schätzung des absoluten Nullpunkts; der wahre Wert ist $T_0=-273.15\\,^{\\circ}$C. Ein Fehler von $1.4\\,\\%$ — bemerkenswert für drei Messpunkte und eine Extrapolation um $75^{\\circ}$ über den Messbereich hinaus.</p><p>Das Residuum ist $\\|\\mathbf{A}\\mathbf{x}-\\mathbf{b}\\|_2=0.2515$ bei Druckwerten um $600$ — das Modell passt also sehr gut, und die verbleibende Abweichung vom wahren $T_0$ kommt nicht vom Fit, sondern von der Physik (Helium ist kein ideales Gas).</p><p><i>Beim Nachrechnen:</i> <code>np.linalg.qr</code> liefert $\\mathbf{Q}$ und $\\mathbf{R}$ mit anderen Vorzeichen als das Skript. Das ist die Vorzeichenfreiheit der QR-Zerlegung — $\\mathbf{x}$ ist identisch.</p>",
+      "skriptRef": {
+        "abschnitt": "8.1.2",
+        "seite": 275,
+        "nummer": "Bsp. 8.1.17, Code 8.1.18"
+      }
+    },
+    {
+      "id": "m-w12-04",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Verfahrenswahl",
+      "frageHtml": "<p>Sie haben ein lineares Ausgleichsproblem mit einer <b>sehr grossen, dünn besetzten</b> Matrix $\\mathbf{A}$ ($m,n$ beide gross). Welches Verfahren empfiehlt das Skript?</p>",
+      "optionen": [
+        "QR-Zerlegung, weil sie immer am stabilsten ist.",
+        "Normalengleichungen, gegebenenfalls als erweitertes System — QR und SVD können die Dünnbesetztheit nicht ausnutzen.",
+        "Singulärwertzerlegung, weil sie den numerischen Rang mitliefert.",
+        "<code>numpy.linalg.pinv</code>, weil die Pseudoinverse immer existiert."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Das Skript ordnet ausdrücklich zwei Fälle zu: «Im ersten Fall [voll besetzt, $n$ klein] bieten sich QR-Zerlegung und Singulärwertzerlegung aufgrund ihrer numerischen Stabilität an. Da beide jedoch die spezifische Struktur dünn besetzter Matrizen nicht ausnutzen können, wendet man auf Probleme der <b>zweiten Art</b> Normalengleichungen an.»</p><p>Der Grund: $\\mathbf{Q}$ ist bei dünn besetztem $\\mathbf{A}$ im Allgemeinen voll besetzt, und eine $m\\times m$-Matrix mit $m=10^{6}$ passt in keinen Speicher. Die SVD ist noch schlimmer.</p><p>Dass $\\mathbf{A}^{H}\\mathbf{A}$ dabei selbst auffüllt, ist das verbleibende Problem — und genau dafür gibt es das erweiterte System (8.1.5) mit $\\mathbf{B}=\\begin{psmallmatrix}-\\mathbf{I}&\\mathbf{A}\\\\\\mathbf{A}^{H}&\\mathbf{0}\\end{psmallmatrix}$, das $\\mathbf{A}$ unverändert enthält und deshalb dünn besetzt bleibt.</p><p>Die Lehre: «am stabilsten» ist nicht automatisch «am besten». Ein Verfahren, das nicht in den Speicher passt, hilft nicht.</p>",
+      "skriptRef": {
+        "abschnitt": "8.1.2",
+        "seite": 275,
+        "nummer": "S. 275, Bem. 8.1.11"
+      }
+    },
+    {
+      "id": "m-w12-05",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Die zweite Bedingung in (8.1.3)",
+      "frageHtml": "<p>Warum verlangt die Aufgabenstellung (8.1.3) neben $\\|\\mathbf{A}\\mathbf{x}-\\mathbf{b}\\|_2\\to\\min$ zusätzlich, dass $\\|\\mathbf{x}\\|_2$ minimal sein soll?</p>",
+      "optionen": [
+        "Um Rundungsfehler klein zu halten.",
+        "Weil die erste Bedingung allein die Lösung nicht eindeutig festlegt, sobald $\\mathbf{A}$ keinen vollen Spaltenrang hat.",
+        "Weil sonst das Residuum nicht senkrecht auf dem Spaltenraum steht.",
+        "Es ist eine reine Normierung ohne mathematische Bedeutung."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Hat $\\mathbf{A}$ einen nichttrivialen Kern, so löst mit $\\mathbf{x}$ auch jedes $\\mathbf{x}_g=\\mathbf{x}+\\mathbf{x}_n$ mit $\\mathbf{x}_n\\in\\ker\\mathbf{A}$ die Bedingung (i) — denn $\\mathbf{A}\\mathbf{x}_g=\\mathbf{A}\\mathbf{x}$. Die Lösungsmenge ist ein ganzer affiner Unterraum.</p><p>Bedingung (ii) pickt daraus genau einen Punkt: denjenigen mit kleinster Norm, also den <b>senkrecht auf dem Kern</b>. Das Skript zeigt in (8.1.9), dass $\\mathbf{x}=\\mathbf{V}_1\\boldsymbol\\Sigma_r^{+}\\mathbf{U}_1^{H}\\mathbf{b}$ in $\\operatorname{span}\\{\\mathbf{v}_1,\\dots,\\mathbf{v}_r\\}$ liegt und damit orthogonal zu $\\ker\\mathbf{A}=\\operatorname{span}\\{\\mathbf{v}_{r+1},\\dots,\\mathbf{v}_n\\}$ steht — «die Bedingung (ii) legt also genau eine spezielle Lösung fest».</p><p>Erst dadurch wird aus der Abbildung $\\mathbf{b}\\mapsto\\mathbf{x}$ eine wohldefinierte Funktion, und erst dadurch kann man die Pseudoinverse überhaupt definieren (Bem. 8.1.8).</p><p>Option 3 beschreibt eine Eigenschaft, die schon aus (i) folgt — die Normalengleichung sagt ja gerade $\\mathbf{A}^{H}(\\mathbf{b}-\\mathbf{A}\\mathbf{x})=\\mathbf{0}$.</p>",
+      "skriptRef": {
+        "abschnitt": "8.1",
+        "seite": 268,
+        "nummer": "(8.1.3), Bem. 8.1.8, (8.1.9)"
+      }
+    },
+    {
+      "id": "m-w12-06",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "QR-Lösung",
+      "frageHtml": "<p>Sie lösen $\\min\\|\\mathbf{A}\\mathbf{x}-\\mathbf{b}\\|_2$ für $\\mathbf{A}\\in\\mathbb{R}^{m\\times n}$, $m&gt;n$, über die volle QR-Zerlegung $\\mathbf{A}=\\mathbf{Q}\\binom{\\tilde{\\mathbf{R}}}{\\mathbf{0}}$. Was ist zu tun, und wie gross ist das minimale Residuum?</p>",
+      "optionen": [
+        "$\\mathbf{Q}\\mathbf{x}=\\mathbf{b}$ lösen; das Residuum ist null.",
+        "$\\tilde{\\mathbf{R}}\\mathbf{x}=(\\mathbf{Q}^{H}\\mathbf{b})_{1:n}$ rückwärts auflösen; das Residuum ist die Norm der <b>restlichen</b> $m-n$ Komponenten von $\\mathbf{Q}^{H}\\mathbf{b}$.",
+        "$\\tilde{\\mathbf{R}}^{H}\\tilde{\\mathbf{R}}\\mathbf{x}=\\tilde{\\mathbf{R}}^{H}\\mathbf{Q}^{H}\\mathbf{b}$ lösen.",
+        "$\\mathbf{x}=\\tilde{\\mathbf{R}}^{-1}\\mathbf{Q}^{-1}\\mathbf{b}$ berechnen, wobei $\\mathbf{Q}^{-1}$ explizit zu invertieren ist."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Weil $\\mathbf{Q}$ unitär ist und die Norm erhält (Bem. 7.1.5), gilt (8.1.6):</p><p>$$\\|\\mathbf{A}\\mathbf{x}-\\mathbf{b}\\|_2=\\|\\mathbf{R}\\mathbf{x}-\\mathbf{Q}^{H}\\mathbf{b}\\|_2$$</p><p>$\\mathbf{R}$ hat unterhalb von Zeile $n$ nur Nullen. Die Summe zerfällt damit in zwei Teile: die oberen $n$ Komponenten lassen sich durch geeignetes $\\mathbf{x}$ <b>exakt auf null</b> bringen (Rückwärtssubstitution in $\\tilde{\\mathbf{R}}$), die unteren $m-n$ enthalten kein $\\mathbf{x}$ mehr und bleiben stehen. Sie sind das unvermeidbare Residuum.</p><p>Option 1 ist falsch, weil $\\mathbf{Q}\\mathbf{x}=\\mathbf{b}$ für $m&gt;n$ gar nicht lösbar ist und das Residuum eben nicht null wird. Option 3 wendet die Normalengleichungen auf $\\tilde{\\mathbf{R}}$ an — richtig, aber unnötig und mit quadrierter Kondition. Option 4 verlangt eine explizite Inverse, was Woche 10 ausdrücklich verbietet; ausserdem ist $\\mathbf{Q}^{-1}=\\mathbf{Q}^{H}$ gratis zu haben.</p>",
+      "skriptRef": {
+        "abschnitt": "8.1.2",
+        "seite": 272,
+        "nummer": "(8.1.6)"
+      }
+    },
+    {
+      "id": "m-w12-07",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Pseudoinverse",
+      "frageHtml": "<p>Welche Aussage über die Pseudoinverse $\\mathbf{A}^{+}=\\mathbf{V}_1\\boldsymbol\\Sigma_r^{+}\\mathbf{U}_1^{H}$ ist <b>falsch</b>?</p>",
+      "optionen": [
+        "$\\mathbf{x}=\\mathbf{A}^{+}\\mathbf{b}$ löst das Ausgleichsproblem (8.1.3) vollständig, also beide Bedingungen.",
+        "Die Darstellung $\\mathbf{A}^{+}=(\\mathbf{A}^{H}\\mathbf{A})^{-1}\\mathbf{A}^{H}$ gilt für jede Matrix $\\mathbf{A}$.",
+        "$\\boldsymbol\\Sigma_r^{+}=\\operatorname{diag}(1/\\sigma_1,\\dots,1/\\sigma_r)$ invertiert nur die von null verschiedenen Singulärwerte.",
+        "In Python heisst sie <code>numpy.linalg.pinv</code>."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>$(\\mathbf{A}^{H}\\mathbf{A})^{-1}\\mathbf{A}^{H}$ setzt voraus, dass $\\mathbf{A}^{H}\\mathbf{A}$ <b>invertierbar</b> ist — und das gilt nur bei vollem Spaltenrang $r=n$. Bei Rangdefekt ist $\\mathbf{A}^{H}\\mathbf{A}$ singulär und die Formel sinnlos.</p><p>Die SVD-Darstellung $\\mathbf{V}_1\\boldsymbol\\Sigma_r^{+}\\mathbf{U}_1^{H}$ dagegen ist <b>immer</b> definiert: man invertiert nur die $r$ von null verschiedenen Singulärwerte und lässt den Rest weg. Genau deshalb steht sie im Skript neben der anderen.</p><p>Dass $\\mathbf{A}^{+}\\mathbf{b}$ auch Bedingung (ii) erfüllt, folgt aus der Lage: das Ergebnis liegt in $\\operatorname{span}\\{\\mathbf{v}_1,\\dots,\\mathbf{v}_r\\}$, also senkrecht auf dem Kern — und hat damit unter allen Lösungen die kleinste Norm.</p><p>Praktischer Hinweis: auch wenn <code>pinv</code> existiert, ist <code>lstsq</code> für ein einzelnes $\\mathbf{b}$ die bessere Wahl — dieselbe Begründung wie beim Verbot von <code>inv</code> in Woche 10.</p>",
+      "skriptRef": {
+        "abschnitt": "8.1.2",
+        "seite": 275,
+        "nummer": "Def. 8.1.15, (8.1.9)"
+      }
+    },
+    {
+      "id": "m-w12-08",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Numerischer Rang im Löser",
+      "frageHtml": "<p>Der SVD-Löser des Skripts bestimmt den Rang über $r=\\max\\{i:\\sigma_i/\\sigma_1&gt;\\texttt{tol}\\}$. Warum wird durch $\\sigma_1$ geteilt statt ein absoluter Schwellenwert verwendet?</p>",
+      "optionen": [
+        "Damit das Kriterium <b>skalierungsinvariant</b> ist: multipliziert man alle Daten mit einem Faktor, ändert sich der ermittelte Rang nicht.",
+        "Weil $\\sigma_1$ immer gleich 1 ist.",
+        "Um Division durch null zu vermeiden.",
+        "Weil die Singulärwerte sonst nicht sortiert wären."
+      ],
+      "loesung": 0,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Multipliziert man $\\mathbf{A}$ mit $1000$ — etwa weil man von Metern auf Millimeter wechselt —, so werden alle $\\sigma_i$ tausendmal grösser. Ein absoluter Schwellenwert wie $10^{-6}$ würde dann plötzlich einen ganz anderen Rang liefern, obwohl sich am Problem nichts geändert hat.</p><p>Das Verhältnis $\\sigma_i/\\sigma_1$ ist von der Skalierung unabhängig und misst, was wirklich zählt: wie klein ein Singulärwert <i>im Vergleich zum grössten</i> ist. Das ist dieselbe Idee wie beim relativen statt absoluten Fehler in Woche 1.</p><p>Option 2 ist falsch — $\\sigma_1=\\|\\mathbf{A}\\|_2$ ist irgendeine positive Zahl. Option 3 trifft das Gegenteil: man <i>teilt</i> ja durch $\\sigma_1$. Vermieden wird die Division durch die <i>kleinen</i> $\\sigma_i$, und zwar dadurch, dass sie gar nicht erst mitgenommen werden.</p><p>Dieselbe Konvention benutzt <code>numpy.linalg.matrix_rank</code> mit der Vorgabe $\\texttt{tol}=\\max(m,n)\\cdot\\varepsilon_{\\text{mach}}$ und <code>lstsq</code> mit dem Parameter <code>rcond</code>.</p>",
+      "skriptRef": {
+        "abschnitt": "8.1.2",
+        "seite": 275,
+        "nummer": "Code 8.1.16, Bem. 7.1.44"
+      }
+    },
+    {
+      "id": "m-w12-09",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Totale Ausgleichsrechnung",
+      "frageHtml": "<p>Wann greift man zur totalen Ausgleichsrechnung, und mit welchem Satz löst man sie?</p>",
+      "optionen": [
+        "Wenn das Residuum zu gross ist; gelöst wird mit den Normalengleichungen.",
+        "Wenn <b>auch die Matrix</b> $\\mathbf{A}$ fehlerbehaftet ist; gelöst wird über Theorem 7.1.53 (Eckart–Young) als beste Rang-$n$-Näherung von $[\\mathbf{A}\\ \\mathbf{b}]$.",
+        "Wenn $\\mathbf{A}$ mehr Spalten als Zeilen hat; gelöst wird mit der Pseudoinversen.",
+        "Wenn die Daten nichtlinear vom Parameter abhängen; gelöst wird mit dem Gauss-Newton-Verfahren."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>«Was soll man tun, wenn <b>auch die Matrix</b> und die rechte Seite in $\\mathbf{A}\\mathbf{x}=\\mathbf{b}$ fehlerbehaftet sind?» Die gewöhnliche Methode der kleinsten Quadrate unterstellt, dass nur $\\mathbf{b}$ Fehler enthält — bei den Temperaturmessungen des Eingangsbeispiels ist aber auch die Temperatur ungenau gemessen.</p><p>Man sucht dann $\\hat{\\mathbf{A}},\\hat{\\mathbf{b}}$, die $\\|[\\mathbf{A}\\ \\mathbf{b}]-[\\hat{\\mathbf{A}}\\ \\hat{\\mathbf{b}}]\\|_F$ minimieren unter der Nebenbedingung $\\hat{\\mathbf{b}}\\in\\operatorname{Im}\\hat{\\mathbf{A}}$ — und das heisst genau, dass $\\hat{\\mathbf{C}}=[\\hat{\\mathbf{A}}\\ \\hat{\\mathbf{b}}]$ den Rang $n$ statt $n+1$ hat. Damit ist es das Problem $\\min_{\\operatorname{rank}\\hat{\\mathbf{C}}=n}\\|\\mathbf{C}-\\hat{\\mathbf{C}}\\|_F$, und «Theorem 7.1.53 weist uns den Weg zur Lösung»: SVD von $\\mathbf{C}$, kleinsten Singulärwert streichen.</p><p>Anschaulich: gewöhnliche kleinste Quadrate minimieren die <b>vertikalen</b> Abstände zur Geraden, die totale Ausgleichsrechnung die <b>senkrechten</b>. Option 4 beschreibt Woche 13, Option 3 ein ganz anderes Problem.</p>",
+      "skriptRef": {
+        "abschnitt": "8.1.3",
+        "seite": 276,
+        "nummer": "Abschnitt 8.1.3, Thm. 7.1.53"
+      }
+    },
+    {
+      "id": "m-w12-10",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Normalengleichung geometrisch",
+      "frageHtml": "<p>Die Normalengleichung $\\mathbf{A}^{H}\\mathbf{A}\\mathbf{x}=\\mathbf{A}^{H}\\mathbf{b}$ lässt sich auch $\\mathbf{A}^{H}(\\mathbf{b}-\\mathbf{A}\\mathbf{x})=\\mathbf{0}$ schreiben. Was bedeutet das geometrisch?</p>",
+      "optionen": [
+        "Das Residuum ist null.",
+        "Das Residuum steht <b>senkrecht</b> auf dem von den Spalten von $\\mathbf{A}$ aufgespannten Raum.",
+        "$\\mathbf{b}$ liegt im Spaltenraum von $\\mathbf{A}$.",
+        "$\\mathbf{x}$ steht senkrecht auf $\\mathbf{b}$."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>$\\mathbf{A}^{H}\\mathbf{r}=\\mathbf{0}$ heisst: jede Spalte von $\\mathbf{A}$ hat mit $\\mathbf{r}$ das Skalarprodukt null. Das Residuum steht also senkrecht auf $\\operatorname{Im}\\mathbf{A}$ — daher der Name <b>Normalen</b>gleichung.</p><p>Das ist genau die Bedingung dafür, dass $\\mathbf{A}\\mathbf{x}$ die <b>orthogonale Projektion</b> von $\\mathbf{b}$ auf den Spaltenraum ist. Und das wiederum ist nach Pythagoras der nächstgelegene Punkt: jeder andere Punkt im Spaltenraum hat grösseren Abstand zu $\\mathbf{b}$. Die Minimumsbedingung $\\mathrm{D}f(\\mathbf{x})=0$ aus der Herleitung und die geometrische Anschauung sagen dasselbe.</p><p>Option 1 und 3 sind nur im Spezialfall richtig, dass $\\mathbf{b}$ ohnehin im Spaltenraum liegt — dann ist das System exakt lösbar und es gibt gar kein Ausgleichsproblem.</p><p>Die Projektionsmatrix ist übrigens $\\mathbf{Q}\\mathbf{Q}^{H}$ mit $\\mathbf{Q}$ aus der sparsamen QR-Zerlegung — genau der Projektor, der in Woche 10 schon aufgetaucht ist.</p>",
+      "skriptRef": {
+        "abschnitt": "8.1.1",
+        "seite": 269,
+        "nummer": "Def. 8.1.9, (8.1.4)"
+      }
+    }
+  ],
   "codeexpert": []
 }

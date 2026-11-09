@@ -66,10 +66,19 @@ JSON-Datei plus einem Eintrag in `data/index.json`.
 | 7 | Numerische Quadratur | 5.1–5.6 | **4 Original** + 10 eigene | 3 (17 Lücken) |
 | 8 | Quadratur in $d$ Dimensionen, Monte-Carlo | 5.7–5.9 | **6 Original** + 10 eigene | 3 (19 Lücken) |
 | 9 | Nullstellensuche | 6.1–6.9 | **9 Original** + 10 eigene | – (keine im Material) |
-| 10–14 | Lineare Algebra bis DNNs | 7–8 | Platzhalter, «Aufgaben folgen» | |
+| 10 | Numerische lineare Algebra I | 7.1.1–7.1.2 | 10 eigene | folgt |
+| 11 | Numerische lineare Algebra II: SVD | 7.1.2–7.1.3 | 10 eigene | folgt |
+| 12 | Lineare Ausgleichsrechnung | 8.1 | 10 eigene | folgt |
+| 13 | Nichtlineare Ausgleichsrechnung | 8.2 | 10 eigene | folgt |
+| 14 | Deep Neural Networks | 8.3 | 10 eigene | folgt |
 
-Wochen 1–9 sind vollständig: **119 Moodle-Fragen** (36 davon Original aus den
-Quiz-Screenshots) und **28 CodeExpert-Aufgaben mit 134 Lücken**, alle verifiziert.
+**Alle 14 Wochen haben eine Zusammenfassung und Übungsfragen:** 216 Kernpunkte mit
+Abschnitts- und Seitenverweis, 169 Moodle-Fragen (36 davon Original aus den
+Quiz-Screenshots) und 28 CodeExpert-Aufgaben mit 134 Lücken.
+
+Wochen 1–9 sind `vollstaendig`. Wochen 10–14 stehen auf `nur_zusammenfassung`:
+Zusammenfassung und eigene Fragen sind da, die Original-Moodle- und
+CodeExpert-Aufgaben kommen im Lauf des Semesters dazu.
 
 Seitenzahlen sind die **gedruckten** Nummern im Skript (PDF-Seite = Skriptseite + 1).
 
