@@ -19,9 +19,17 @@ const Py = (() => {
   // Offline-Prüfung nicht auseinanderlaufen.
   let shimNames = [];
 
+  // Relativ zur DATEI aufloesen, nicht zur Seite: der Runner wird sowohl von
+  // index.html (Wurzel) als auch von tools/pyodide-selftest.html geladen.
+  const SHIM_URL = (() => {
+    const src = (document.currentScript && document.currentScript.src) || '';
+    try { return new URL('../data/shims.json', src).href; }
+    catch { return 'data/shims.json'; }
+  })();
+
   async function writeShims(py) {
-    const res = await fetch('data/shims.json', { cache: 'no-cache' });
-    if (!res.ok) throw new Error('data/shims.json nicht ladbar (' + res.status + ')');
+    const res = await fetch(SHIM_URL, { cache: 'no-cache' });
+    if (!res.ok) throw new Error('shims.json nicht ladbar (' + res.status + '): ' + SHIM_URL);
     const mods = (await res.json()).module || {};
     shimNames = Object.keys(mods);
     for (const [name, src] of Object.entries(mods)) {

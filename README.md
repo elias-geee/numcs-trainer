@@ -35,17 +35,19 @@ numcs/
   css/style.css              Light/Dark über CSS-Tokens
   js/util.js                 esc / el / KaTeX / Zahlen-Parser
   js/progress.js             localStorage, Export/Import
-  js/pyodide-runner.js       Python im Browser, Plot-Capture, timerpro-Shim
+  js/pyodide-runner.js       Python im Browser, Plot-Capture, Ersatzmodule
   js/quiz.js                 Moodle-Fragetypen
   js/codetask.js             CodeExpert-Stufen 1–3
   js/summary.js              Zusammenfassung
   js/app.js                  Router, Sidebar, Views
   data/index.json            Liste der Wochen
+  data/shims.json            Ersatzmodule (timerpro, plotstuff, …)
   data/woche_XX.json         eine Datei pro Woche — die einzige Inhaltsquelle
   assets/ref/<taskId>.png    Referenzgrafiken (generiert)
   tools/check_solutions.py   führt alle Lösungen aus und prüft die Teststärke
   tools/check_content.py     statische Prüfung der Inhalte
   tools/pyodide-selftest.html prüft dieselben Lösungen im echten Browser
+  tools/testserver.py        Server dafür (nimmt das Ergebnis per POST entgegen)
 ```
 
 **Der Code kennt keine Inhalte.** Eine neue Woche besteht nur aus einer neuen
@@ -58,17 +60,20 @@ JSON-Datei plus einem Eintrag in `data/index.json`.
 | 1 | Rundungsfehler und Fehlerpropagation | 1.1 | 9 eigene | 3 (10 Lücken) |
 | 2 | Rechenaufwand, Rechnen mit Matrizen | 1.2–1.3 | 10 eigene | 4 (11 Lücken) |
 | 3 | Polynominterpolation | 2.1–2.3 | **6 Original** + 6 eigene | 2 (8 Lücken) |
-| 4 | Chebyshev-Interpolation | 2.4 | 10 eigene | 1 (4 Lücken) |
-| 5 | Trigonometrische Interpolation, DFT | 3.1–3.6 | **4 Original** + 8 eigene | 4 (20 Lücken) |
-| 6 | Stückweise polynomiale Interpolation | 4.1–4.3 | **7 Original** + 10 eigene | – (keine im Material) |
-| 7–14 | Quadratur bis DNNs | 5–8 | Platzhalter, «Aufgaben folgen» | |
+| 4 | Chebyshev-Interpolation | 2.4 | 10 eigene | 4 (18 Lücken) |
+| 5 | Trigonometrische Interpolation, DFT | 3.1–3.6 | **4 Original** + 8 eigene | 5 (26 Lücken) |
+| 6 | Stückweise polynomiale Interpolation | 4.1–4.3 | **7 Original** + 10 eigene | 4 (25 Lücken) |
+| 7 | Numerische Quadratur | 5.1–5.6 | **4 Original** + 10 eigene | 3 (17 Lücken) |
+| 8 | Quadratur in $d$ Dimensionen, Monte-Carlo | 5.7–5.9 | **6 Original** + 10 eigene | 3 (19 Lücken) |
+| 9 | Nullstellensuche | 6.1–6.9 | **9 Original** + 10 eigene | – (keine im Material) |
+| 10–14 | Lineare Algebra bis DNNs | 7–8 | Platzhalter, «Aufgaben folgen» | |
 
-Wochen 1–6 sind vollständig: 80 Moodle-Fragen (17 davon Original) und
-14 CodeExpert-Aufgaben mit 53 Lücken, alle verifiziert.
+Wochen 1–9 sind vollständig: **119 Moodle-Fragen** (36 davon Original aus den
+Quiz-Screenshots) und **28 CodeExpert-Aufgaben mit 134 Lücken**, alle verifiziert.
 
 Seitenzahlen sind die **gedruckten** Nummern im Skript (PDF-Seite = Skriptseite + 1).
 
-> **Zu den Moodle-Lösungen:** In keinem der 17 Screenshots ist die offizielle
+> **Zu den Moodle-Lösungen:** In keinem der 36 Screenshots ist die offizielle
 > Antwort markiert. Alle Lösungen sind selbst erarbeitet, im Interface als
 > «Eigene Lösung – nicht offiziell» gekennzeichnet und mit Skript-Verweis
 > begründet. Prüfe sie im Zweifel dort nach.
@@ -264,9 +269,24 @@ python3 -m http.server 8000
 open "http://localhost:8000/tools/pyodide-selftest.html?weeks=4"
 ```
 
+Automatisiert (headless) geht es mit `tools/testserver.py`, der zusätzlich ein
+`POST /result` annimmt — sonst weiss das Skript nicht, wann Pyodide fertig ist:
+
+```bash
+python3 tools/testserver.py 8765 /tmp/selftest.txt &
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new \
+  --disable-gpu --user-data-dir=/tmp/numcs-chrome \
+  "http://127.0.0.1:8765/tools/pyodide-selftest.html?weeks=1,2,3,4,5,6,7,8,9" &
+until [ -s /tmp/selftest.txt ]; do sleep 5; done; head -1 /tmp/selftest.txt
+```
+
+Ohne `--virtual-time-budget`: der Schalter lässt Chrome die Uhr vorspulen und
+beendet ihn, lange bevor Pyodide seine rund 50 MB geladen hat.
+
 Beides muss grün sein. Der Browser-Test hat zum Beispiel gefunden, dass der
-Prelude `matplotlib` importierte, obwohl eine Aufgabe nur NumPy lädt — offline
-war davon nichts zu sehen.
+Prelude `matplotlib` importierte, obwohl eine Aufgabe nur NumPy lädt, und dass
+`data/shims.json` relativ zur *Datei* aufgelöst werden muss statt zur Seite —
+offline war von beidem nichts zu sehen.
 
 ## Fortschritt
 
