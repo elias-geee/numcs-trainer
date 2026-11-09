@@ -70,15 +70,15 @@
       "woche": 10,
       "titel": "Numerische lineare Algebra I",
       "kapitel": "7.1.1–7.1.2",
-      "seiten": "234–262",
-      "status": "platzhalter"
+      "seiten": "234–254",
+      "status": "nur_zusammenfassung"
     },
     {
       "woche": 11,
-      "titel": "Numerische lineare Algebra II",
-      "kapitel": "7.1.2–7.1.3",
-      "seiten": "237–265",
-      "status": "platzhalter"
+      "titel": "Numerische lineare Algebra II: SVD",
+      "kapitel": "7.1.2 (SVD)–7.1.3",
+      "seiten": "255–265",
+      "status": "nur_zusammenfassung"
     },
     {
       "woche": 12,

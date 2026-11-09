@@ -1,13 +1,520 @@
 {
   "woche": 10,
   "titel": "Numerische lineare Algebra I",
-  "status": "platzhalter",
+  "status": "nur_zusammenfassung",
   "skript": {
     "kapitel": "7.1.1–7.1.2",
-    "seiten": "234–262"
+    "seiten": "234–254"
   },
   "vorlage": "wochenplan/Vorlage10_ILAp1.pdf",
-  "zusammenfassung": [],
-  "moodle": [],
+  "einleitung": "<p>Kapitel 7 heisst im Skript ausdrücklich «<b>Intermezzo</b> über (numerische) lineare Algebra» — es ist das Werkzeugkapitel, auf das die Ausgleichsrechnung in Kapitel 8 aufbaut. Zwei Fragen ziehen sich durch:</p><p><b>1. Wie löst man $\\mathbf{A}\\mathbf{x}=\\mathbf{b}$ effizient?</b> Antwort: zerlegen. Die teure Arbeit steckt in der Faktorisierung ($\\mathcal{O}(n^{3})$), das Lösen danach ist billig ($\\mathcal{O}(n^{2})$) — also zerlegt man einmal und verwendet die Faktoren wieder.</p><p><b>2. Wie löst man es <i>genau</i>?</b> Hier trennen sich die Wege. Die LU-Zerlegung arbeitet mit Dreiecksmatrizen und kann dabei die Kondition verderben — die Wilkinson-Matrix führt sie vor. Die QR-Zerlegung benutzt ausschliesslich <b>normerhaltende</b> Transformationen (Spiegelungen, Drehungen, Permutationen) und lässt die Konditionszahl deshalb unverändert. Sie kostet rund das Doppelte und ist das jeden Franken wert, sobald es kritisch wird.</p><p>Dazwischen steht die zentrale Begriffsunterscheidung des ganzen Kurses: <b>Kondition</b> ist eine Eigenschaft des Problems, <b>Stabilität</b> eine des Algorithmus. Die Wilkinson-Matrix ist gut konditioniert und bringt Gauss trotzdem zu Fall; eine schlecht konditionierte Matrix bringt auch der beste Algorithmus nicht zum Reden.</p>",
+  "moodleHinweis": "Für diese Woche liegt <b>noch kein</b> Moodle-Quiz vor — es kommt im Lauf des Semesters dazu und wird dann hier ergänzt. Bis dahin sind alle Fragen von mir im Stil der Originalfragen geschrieben (Single Choice mit Scoring SC1/0, Zahleneingaben) und mit Skript-Verweis begründet. Alle Zahlenwerte sind mit NumPy nachgerechnet.",
+  "aufgabenUebersicht": {
+    "moodle": 10,
+    "codeexpert": 0
+  },
+  "zusammenfassung": [
+    {
+      "id": "w10-z1",
+      "titel": "Was eine Matrix mit einem Vektor macht",
+      "ref": {
+        "abschnitt": "7.1.1",
+        "seite": 234,
+        "nummer": "Bem. 7.1.1"
+      },
+      "text": "<p>$\\mathbf{A}\\mathbf{x}=\\sum_{i=1}^{n}x_i\\,\\mathbf{A}_{:,i}$ — das Produkt ist eine <b>Linearkombination der Spalten</b> von $\\mathbf{A}$, mit den Einträgen von $\\mathbf{x}$ als Koeffizienten.</p><p>Das ist nicht nur eine Umschreibung: fast jede Aussage des Kapitels wird damit anschaulich. $\\mathbf{A}\\mathbf{x}=\\mathbf{b}$ lösbar heisst «$\\mathbf{b}$ liegt im Spann der Spalten». Rang heisst «Dimension dieses Spanns». Und schlechte Kondition heisst «die Spalten sind fast linear abhängig» — dann ändern winzige Änderungen an $\\mathbf{b}$ die Koeffizienten $\\mathbf{x}$ drastisch.</p>",
+      "merke": "Spaltensicht: $\\mathbf{A}\\mathbf{x}$ ist eine Linearkombination der Spalten."
+    },
+    {
+      "id": "w10-z2",
+      "titel": "Regulär oder singulär — die Äquivalenztabelle",
+      "ref": {
+        "abschnitt": "7.1.1",
+        "seite": 234,
+        "nummer": "Tabelle S. 234"
+      },
+      "text": "<p>Das Skript stellt 13 gleichwertige Formulierungen nebeneinander. Die für die Numerik wichtigsten:</p><table><thead><tr><th>regulär (invertierbar)</th><th>singulär</th></tr></thead><tbody><tr><td>Spalten linear unabhängig</td><td>Spalten linear abhängig</td></tr><tr><td>$\\det\\mathbf{A}\\neq0$</td><td>$\\det\\mathbf{A}=0$</td></tr><tr><td>$\\mathbf{A}$ hat vollen Rang $n$</td><td>Rang $r&lt;n$</td></tr><tr><td>$n$ Nichtnull-Pivote</td><td>$r&lt;n$ Pivote</td></tr><tr><td>$0\\notin\\sigma(\\mathbf{A})$</td><td>$0\\in\\sigma(\\mathbf{A})$</td></tr><tr><td>$\\mathbf{A}^{H}\\mathbf{A}$ ist s.p.d.</td><td>$\\mathbf{A}^{H}\\mathbf{A}$ nur semidefinit</td></tr><tr><td>$n$ positive Singulärwerte</td><td>$r&lt;n$ positive Singulärwerte</td></tr></tbody></table><p><b>Numerisch ist diese Tabelle eine Falle.</b> «Determinante ungleich null» ist eine Ja/Nein-Frage, in Gleitkomma aber nutzlos: $\\det(\\varepsilon\\mathbf{I}_{100})=\\varepsilon^{100}$ ist für $\\varepsilon=0.1$ schon $10^{-100}$, obwohl die Matrix perfekt konditioniert ist. Brauchbar ist nur die letzte Zeile — der Abstand der Singulärwerte von null, siehe Woche 11.</p>",
+      "merke": "Die Determinante sagt nichts über die numerische Qualität einer Matrix. Die Singulärwerte schon."
+    },
+    {
+      "id": "w10-z3",
+      "titel": "Orthonormale Vektoren und unitäre Matrizen",
+      "ref": {
+        "abschnitt": "7.1.1",
+        "seite": 234,
+        "nummer": "Def. 7.1.2, Bem. 7.1.3–7.1.4"
+      },
+      "text": "<p>$\\mathbf{q}_1,\\dots,\\mathbf{q}_n$ heissen <b>orthogonal</b>, falls $\\mathbf{q}_i^{H}\\mathbf{q}_j=0$ für $i\\neq j$, und <b>orthonormal</b>, wenn zusätzlich $\\mathbf{q}_i^{H}\\mathbf{q}_i=1$ gilt. Gemeint ist immer die euklidische Norm $\\|\\mathbf{q}\\|_2^{2}=\\mathbf{q}^{H}\\mathbf{q}$.</p><p>Stellt man sie als Spalten in $\\mathbf{Q}$, so ist $\\mathbf{Q}^{H}\\mathbf{Q}=\\mathbf{I}_n$. Ist $\\mathbf{Q}$ <b>quadratisch</b>, folgt daraus</p><p>$$\\mathbf{Q}^{-1}=\\mathbf{Q}^{H}.$$</p><p>Das ist der praktische Punkt: die Inverse einer unitären Matrix kostet nichts — transponieren und konjugieren. Deshalb ist ein System $\\mathbf{Q}\\mathbf{x}=\\mathbf{b}$ in $\\mathcal{O}(n^{2})$ gelöst statt in $\\mathcal{O}(n^{3})$.</p><p>Achtung auf das Wort <i>quadratisch</i>: bei einer $m\\times n$-Matrix mit $m&gt;n$ und orthonormalen Spalten gilt $\\mathbf{Q}^{H}\\mathbf{Q}=\\mathbf{I}_n$, aber $\\mathbf{Q}\\mathbf{Q}^{H}\\neq\\mathbf{I}_m$ — das ist nur ein Projektor.</p>"
+    },
+    {
+      "id": "w10-z4",
+      "titel": "Normerhaltung: der rote Faden des Kapitels",
+      "ref": {
+        "abschnitt": "7.1.1",
+        "seite": 235,
+        "nummer": "Bem. 7.1.5–7.1.7, Abb. 7.1.8–7.1.9"
+      },
+      "text": "<p>$$\\|\\mathbf{Q}\\mathbf{x}\\|_2^{2}=(\\mathbf{Q}\\mathbf{x})^{H}(\\mathbf{Q}\\mathbf{x})=\\mathbf{x}^{H}\\mathbf{Q}^{H}\\mathbf{Q}\\mathbf{x}=\\mathbf{x}^{H}\\mathbf{x}=\\|\\mathbf{x}\\|_2^{2}$$</p><p>Unitäre Transformationen <b>erhalten die euklidische Norm</b>. Drei Familien tauchen im Kapitel immer wieder auf:</p><ul><li><b>Permutationen</b> (Bem. 7.1.6): Zeilen der Einheitsmatrix in anderer Reihenfolge, $\\mathbf{P}^{H}\\mathbf{P}=\\mathbf{I}$. Umordnen ändert keine Länge — das rechtfertigt die Pivotsuche.</li><li><b>Drehungen</b> (Bem. 7.1.7, Abb. 7.1.8): die Drehmatrix um $\\theta$ in der $1$-$3$-Ebene. Daraus werden die Givens-Rotationen.</li><li><b>Spiegelungen</b> (Abb. 7.1.9): $\\mathbf{H}=\\mathbf{I}-\\mathbf{u}\\mathbf{u}^{H}$ mit $\\mathbf{H}\\mathbf{u}=-\\mathbf{u}$. Daraus werden die Householder-Transformationen.</li></ul><p>Dass diese Abbildungen Längen erhalten, ist der <i>einzige</i> Grund, warum die QR-Zerlegung stabiler ist als die LU-Zerlegung — siehe Punkt 13.</p>",
+      "merke": "Drehen, spiegeln und umordnen ändert keine Länge. Genau darauf beruht die numerische Stabilität der QR-Zerlegung."
+    },
+    {
+      "id": "w10-z5",
+      "titel": "Gram-Schmidt: richtig, aber instabil",
+      "ref": {
+        "abschnitt": "7.1.1",
+        "seite": 236,
+        "nummer": "Bem. 7.1.10–7.1.11"
+      },
+      "text": "<p>Der aus der linearen Algebra bekannte Algorithmus</p><p>$$\\mathbf{q}_1:=\\frac{\\mathbf{a}_1}{\\|\\mathbf{a}_1\\|},\\qquad \\tilde{\\mathbf{q}}_2:=\\mathbf{a}_2-(\\mathbf{q}_1^{H}\\mathbf{a}_2)\\mathbf{q}_1,\\qquad \\mathbf{q}_2:=\\frac{\\tilde{\\mathbf{q}}_2}{\\|\\tilde{\\mathbf{q}}_2\\|_2},\\ \\dots$$</p><p>liefert eine <b>QR-Zerlegung</b> $\\mathbf{A}=\\mathbf{Q}\\mathbf{R}$: die ersten $k$ Spalten von $\\mathbf{Q}$ sind eine Orthonormalbasis des von den ersten $k$ Spalten von $\\mathbf{A}$ aufgespannten Raums, und $\\mathbf{R}$ beschreibt den Basiswechsel.</p><p>Das Skript warnt aber unmissverständlich: «Dieser Algorithmus ist aber <b>instabil</b>; deswegen berechnet man $\\mathbf{q}_1,\\dots,\\mathbf{q}_n$ numerisch mit dem <b>modifizierten</b> Gram-Schmidt-Algorithmus.» Der Unterschied ist nur die Reihenfolge der Subtraktionen — man zieht jede Projektion sofort von allen verbleibenden Vektoren ab statt am Schluss. Abb. 7.1.34 zeigt, was das ausmacht: bei einer Vandermonde-Matrix mit 20 Spalten liegt $\\|\\mathbf{I}-\\mathbf{Q}^{T}\\mathbf{Q}\\|_2$ für klassisches Gram-Schmidt bei $1$, für das modifizierte bei etwa $10^{-10}$ und für Householder bei $10^{-15}$.</p>"
+    },
+    {
+      "id": "w10-z6",
+      "titel": "LU-Zerlegung: Gauss-Elimination in Matrixform",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 237,
+        "nummer": "Bsp. 7.1.12, Bem. 7.1.16"
+      },
+      "text": "<p>$\\mathbf{A}=\\mathbf{L}\\mathbf{U}$ mit $\\mathbf{L}$ unterer Dreiecksmatrix <b>mit Einsen auf der Diagonalen</b> und $\\mathbf{U}$ oberer Dreiecksmatrix.</p><p>«Die Gauss-Elimination ergibt die $LU$-Zerlegung.» Im Beispiel 7.1.12 sieht man es direkt: $\\mathbf{U}$ ist die Zeilenstufenform, und $\\mathbf{L}$ sammelt in Position $(i,j)$ genau den Multiplikator, mit dem Zeile $j$ von Zeile $i$ abgezogen wurde. Man muss also nichts zusätzlich rechnen — die Zerlegung <b>fällt bei der Elimination ab</b>, wenn man die Multiplikatoren aufhebt, statt sie wegzuwerfen. Deshalb kann sie «in situ» im Speicher der ursprünglichen Matrix stehen.</p><p>Bem. 7.1.16: «Gauss-Elimination und LU-Zerlegung sind äquivalent.»</p>"
+    },
+    {
+      "id": "w10-z7",
+      "titel": "Der Dreischritt und seine Kosten",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 238,
+        "nummer": "Bem. 7.1.13"
+      },
+      "text": "<p>$\\mathbf{A}\\mathbf{x}=\\mathbf{b}$ löst man in drei Schritten:</p><table><thead><tr><th>Schritt</th><th>Operationen</th><th>für $n=100$</th></tr></thead><tbody><tr><td>1. $\\mathbf{A}=\\mathbf{L}\\mathbf{U}$ zerlegen</td><td>$\\tfrac13n(n-1)(n-2)$</td><td>$323\\,400$</td></tr><tr><td>2. $\\mathbf{L}\\mathbf{z}=\\mathbf{b}$ vorwärts</td><td>$\\tfrac12n(n-1)$</td><td>$4\\,950$</td></tr><tr><td>3. $\\mathbf{U}\\mathbf{x}=\\mathbf{z}$ rückwärts</td><td>$\\tfrac12n(n-1)$</td><td>$4\\,950$</td></tr></tbody></table><p><b>Schritt 1 ist der teure</b> — er kostet rund $\\tfrac{n^{3}}{3}$, die beiden Substitutionen zusammen nur $n^{2}$. Bei $n=100$ ist die Zerlegung <b>33-mal</b> so teuer wie das anschliessende Lösen, bei $n=1000$ schon 334-mal.</p><p>Daraus folgt die praktische Regel: braucht man dieselbe Matrix mit <b>mehreren rechten Seiten</b>, zerlegt man <i>einmal</i> und löst dann beliebig oft fast umsonst.</p><p>Die Fussnote des Skripts ist lesenswert: Gauss-Elimination lässt sich theoretisch bis $\\mathcal{O}(n^{2.373})$ beschleunigen, aber nur mit «sehr komplizierten (also unpraktischen) Algorithmen». Eine Methode in $\\mathcal{O}(n^{2})$ «würde die ganze Wissenschaft revolutionieren, so wie es die FFT nach 1965 tat».</p>",
+      "merke": "Zerlegen kostet $\\mathcal{O}(n^3)$, Lösen nur $\\mathcal{O}(n^2)$. Faktoren aufheben, nicht neu zerlegen."
+    },
+    {
+      "id": "w10-z8",
+      "titel": "Pivotisierung: $\\mathbf{A}=\\mathbf{P}\\mathbf{L}\\mathbf{U}$",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 239,
+        "nummer": "Lemma 7.1.15, Bsp. 7.1.14"
+      },
+      "text": "<p>Ohne Zeilentausch scheitert die Elimination schon an einer Null auf der Diagonalen — und numerisch bereits an einem <i>kleinen</i> Pivot, weil der Multiplikator dann riesig wird. Lemma 7.1.15 sichert zu, dass es immer geht:</p><p>Für jede reguläre $n\\times n$-Matrix $\\mathbf{A}$ gibt es eine Permutationsmatrix $\\mathbf{P}$, eine untere Dreiecksmatrix $\\mathbf{L}$ mit Einsen auf der Diagonalen und eine obere Dreiecksmatrix $\\mathbf{U}$ mit</p><p>$$\\mathbf{A}=\\mathbf{P}\\mathbf{L}\\mathbf{U}.$$</p><p><b>Die Konventionsfalle</b>, die das Skript eigens als «Achtung» hervorhebt: <code>scipy.linalg.lu</code> liefert $\\mathbf{A}=\\mathbf{P}\\mathbf{L}\\mathbf{U}$, «andere Software eventuell $\\mathbf{P}\\mathbf{A}=\\mathbf{L}\\mathbf{U}$». Die beiden $\\mathbf{P}$ sind zueinander invers. Wer die Konvention verwechselt, permutiert in die falsche Richtung und bekommt eine Lösung, die plausibel aussieht und falsch ist.</p>",
+      "merke": "scipy: $\\mathbf{A}=\\mathbf{P}\\mathbf{L}\\mathbf{U}$. Nicht $\\mathbf{P}\\mathbf{A}=\\mathbf{L}\\mathbf{U}$."
+    },
+    {
+      "id": "w10-z9",
+      "titel": "Welche Python-Funktion wann",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 239,
+        "nummer": "Bem. 7.1.16"
+      },
+      "text": "<p><code>scipy.linalg.lu_factor</code> / <code>lu_solve</code> geben Zugriff auf die Faktoren — richtig, wenn man sie <b>wiederverwenden</b> will.</p><p><code>numpy.linalg.solve</code> gibt «keinen Zugang zu den (intern verwendeten) Faktoren $\\mathbf{P},\\mathbf{L},\\mathbf{U}$», kann dafür aber «parallel auf ganze <b>Batches</b> agieren, d.h. auf ein hochdimensionales ndarray, wobei sich die Gauss-Elimination auf die letzten zwei Koordinaten bezieht». Für viele <i>kleine</i> Systeme auf einmal ist das die schnellere Variante.</p><p>Für symmetrisch positiv definite Matrizen: <code>cholesky</code>, <code>cho_factor</code>, <code>cho_solve</code> (Punkt 12).</p>"
+    },
+    {
+      "id": "w10-z10",
+      "titel": "Matrixnorm und Konditionszahl",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 239,
+        "nummer": "Bem. 7.1.17, Def. 7.1.18"
+      },
+      "text": "<p>Jede Vektornorm <b>induziert</b> eine Matrixnorm:</p><p>$$\\|\\mathbf{A}\\|:=\\sup_{\\mathbf{x}\\neq\\mathbf{0}}\\frac{\\|\\mathbf{A}\\mathbf{x}\\|}{\\|\\mathbf{x}\\|}=\\sup_{\\|\\mathbf{x}\\|=1}\\|\\mathbf{A}\\mathbf{x}\\|$$</p><p>— der grösstmögliche Streckungsfaktor. Damit:</p><p>$$\\operatorname{cond}(\\mathbf{A}):=\\|\\mathbf{A}^{-1}\\|\\cdot\\|\\mathbf{A}\\|,\\qquad \\operatorname{cond}(\\mathbf{I}_m)=1.$$</p><p>Anschaulich ist das das Verhältnis aus stärkster und schwächster Streckung. «Wenn $\\operatorname{cond}(\\mathbf{A})\\gg1$, dann können kleine Änderungen in der Matrix $\\mathbf{A}$ sehr grosse Änderungen im Ergebnis $\\mathbf{x}$ produzieren: Man sagt, das <b>mathematische Problem</b> ist schlecht konditioniert.»</p><p>Die Betonung liegt auf <i>mathematisch</i>: die Kondition ist eine Eigenschaft des Problems, nicht des Algorithmus. Kein noch so guter Löser kann sie reparieren. Faustregel aus Woche 1: bei $\\operatorname{cond}=10^{k}$ verliert man rund $k$ Dezimalstellen.</p>",
+      "merke": "Kondition ist eine Eigenschaft des Problems, Stabilität eine des Algorithmus. Die beiden sind nicht dasselbe."
+    },
+    {
+      "id": "w10-z11",
+      "titel": "Die Wilkinson-Matrix: wenn LU versagt",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 240,
+        "nummer": "Bsp. 7.1.20, Abb. 7.1.21"
+      },
+      "text": "<p>$$a_{ij}=\\begin{cases}1,&i=j\\\\ 1,&j=n\\\\ -1,&i&gt;j\\\\ 0,&\\text{sonst}\\end{cases}$$</p><p>Eine harmlos aussehende Matrix aus $0$, $\\pm1$. Abb. 7.1.21 trägt den relativen Fehler über $n$ bis $1000$ auf: die <b>Gauss-Elimination liefert einen riesigen Rundungsfehler</b>, «während die QR-Zerlegung […] ziemlich genaue Ergebnisse liefert».</p><p>Der Grund: bei der Elimination verdoppelt sich die letzte Spalte in jedem Schritt, $\\mathbf{U}$ enthält am Ende Einträge der Grössenordnung $2^{n-1}$. Das <b>Wachstum der Zwischenergebnisse</b> ist das Problem, nicht die Kondition der Matrix selbst — sie ist mit $\\operatorname{cond}_2\\approx4.4$ für $n=10$ sogar ausgezeichnet.</p><p>Die Fussnote des Skripts relativiert trocken: in der Praxis passiert das selten, «so wie Wilkinson selber meint: <i>Anyone that unlucky has already been run over by a bus!</i>» Und: «Das ist heute noch eine offene Frage: Warum zeigt sich die Gauss-Elimination in allen praktischen Fällen stabil?»</p>",
+      "merke": "Die Wilkinson-Matrix ist gut konditioniert und bringt die Gauss-Elimination trotzdem zu Fall — Instabilität des Algorithmus, nicht des Problems."
+    },
+    {
+      "id": "w10-z12",
+      "titel": "Niemals die Inverse berechnen",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 241,
+        "nummer": "Abb. 7.1.23"
+      },
+      "text": "<p>«Aufgrund der Instabilitäten (und der Rechenzeiten) ist die Berechnung der Inversen einer Matrix <b>immer zu vermeiden</b>; stattdessen sollten nur lineare Gleichungssysteme via LU-Zerlegung gelöst werden.»</p><p>Das Experiment des Skripts mit $\\mathbf{A}=\\mathbf{u}\\mathbf{v}^{T}+\\varepsilon\\mathbf{I}_n$ zeigt den Unterschied an zwei Grössen:</p><ul><li><b>LU:</b> der Fehler in $\\mathbf{x}$ ist riesig (die Matrix ist eben schlecht konditioniert), «jedoch bleibt das Residuum $\\mathbf{A}\\mathbf{x}-\\mathbf{b}$ bei Maschinengenauigkeit».</li><li><b>Inverse:</b> «die Berechnung der Inversen ist nicht nur viel zu teuer, sondern auch nutzlos: Das Residuum der entsprechenden Lösung ist <b>riesig</b>.»</li></ul><p>Ein kleines Residuum ist das Beste, was man bei schlechter Kondition überhaupt erreichen kann — und genau das wirft die explizite Inverse weg. Dazu kostet sie rund dreimal so viel wie eine Zerlegung. In Python heisst das: <code>np.linalg.solve(A, b)</code>, nie <code>np.linalg.inv(A) @ b</code>.</p>",
+      "merke": "<code>solve(A, b)</code> statt <code>inv(A) @ b</code> — teurer <i>und</i> ungenauer wäre die Inverse."
+    },
+    {
+      "id": "w10-z13",
+      "titel": "Cholesky: die halbe Arbeit für s.p.d. Matrizen",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 242,
+        "nummer": "Abschnitt 1a)"
+      },
+      "text": "<p>Für eine hermitesch-symmetrische Matrix vollen Rangs lässt sich die LU-Zerlegung so umschreiben, dass die Pivote in einer Diagonalmatrix $\\mathbf{D}$ stehen:</p><p>$$\\mathbf{A}=\\mathbf{L}\\mathbf{U}=\\mathbf{L}\\mathbf{D}\\mathbf{L}^{H}=\\mathbf{R}^{H}\\mathbf{R},\\qquad \\mathbf{R}=\\sqrt{\\mathbf{D}}\\,\\mathbf{L}^{H}.$$</p><p>Cholesky zeigte: für eine <b>symmetrisch positiv definite</b> Matrix ist <b>keine Permutation nötig</b>, und der Algorithmus kommt mit der <b>Hälfte</b> der Operationen einer LU-Zerlegung aus. Beides folgt aus der Definitheit — die Pivote können gar nicht klein oder negativ werden.</p><p>In Python: <code>numpy.linalg.cholesky(A)</code> liefert $\\mathbf{L}$ ohne weitere Optionen; <code>scipy.linalg.cholesky</code> kann auch $\\mathbf{L}^{T}$ zurückgeben, die Matrix überschreiben oder die Prüfung der Einträge abschalten — beides nützlich für kürzere Laufzeiten. Zum Wiederverwenden: <code>cho_factor</code> und <code>cho_solve</code>.</p><p>Nebenbei ist Cholesky der <b>sauberste Test auf positive Definitheit</b>: schlägt die Zerlegung fehl, ist die Matrix es nicht.</p>"
+    },
+    {
+      "id": "w10-z14",
+      "titel": "Warum QR überhaupt: die Kondition bleibt",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 243,
+        "nummer": "Bem. 7.1.24"
+      },
+      "text": "<p>«<b>Unitäre/orthogonale Transformationen lassen die Konditionszahl einer Matrix unverändert.</b>»</p><p>Der Beweis steht in zwei Zeilen: sind $\\mathbf{T}$ und $\\mathbf{S}^{-1}$ normerhaltend, so ist $\\|\\mathbf{B}\\|=\\sup_{\\|\\tilde{\\mathbf{x}}\\|=1}\\|\\mathbf{S}^{-1}\\mathbf{A}\\mathbf{T}\\tilde{\\mathbf{x}}\\|=\\sup_{\\|\\mathbf{x}\\|=1}\\|\\mathbf{A}\\mathbf{x}\\|=\\|\\mathbf{A}\\|$, und analog für die Inverse.</p><p>Das ist der ganze Grund für den Aufwand mit Spiegelungen und Drehungen. Die LU-Zerlegung arbeitet mit <b>Dreiecks</b>matrizen — die sind nicht normerhaltend und können die Kondition unterwegs verschlechtern. Genau das sieht man an der Gram-Schmidt-Orthogonalisierung: «Dabei kann sich eine schlecht konditionierte Matrix so auswirken, dass das Resultat <i>gar keine orthogonale Basis</i> ist.»</p><p>Die Frage des Abschnitts lautet deshalb: wie bringt man $\\mathbf{A}$ auf obere Dreiecksform, <b>indem man nur orthogonale Transformationen verwendet</b>? Es gibt zwei Antworten — Spiegelungen und Drehungen.</p>",
+      "merke": "QR ist teurer als LU und dafür stabil: unitäre Transformationen können die Kondition nicht verschlechtern."
+    },
+    {
+      "id": "w10-z15",
+      "titel": "Householder-Spiegelungen",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 245,
+        "nummer": "S. 245, Abb. 7.1.27"
+      },
+      "text": "<p><b>Aufgabe:</b> gegeben $\\mathbf{a}\\in\\mathbb{R}^{n}$, finde orthogonales $\\mathbf{Q}$ mit $\\mathbf{Q}\\mathbf{a}=\\|\\mathbf{a}\\|_2\\mathbf{e}_1$ — eine ganze Spalte auf einen Schlag ausräumen.</p><p>$$\\mathbf{Q}=\\mathbf{H}(\\mathbf{v}):=\\mathbf{I}-2\\,\\frac{\\mathbf{v}\\mathbf{v}^{H}}{\\mathbf{v}^{H}\\mathbf{v}},\\qquad \\mathbf{v}=\\tfrac12\\left(\\mathbf{a}+\\|\\mathbf{a}\\|_2\\mathbf{e}_1\\right)$$</p><p>Entscheidend ist die <b>Vorzeichenwahl</b>:</p><p>$$\\mathbf{v}=\\begin{cases}\\tfrac12(\\mathbf{a}+\\|\\mathbf{a}\\|_2\\mathbf{e}_1),&a_1&gt;0\\\\[2pt] \\tfrac12(\\mathbf{a}-\\|\\mathbf{a}\\|_2\\mathbf{e}_1),&a_1\\le0\\end{cases}$$</p><p>Geometrisch gibt es zwei Spiegelebenen, die $\\mathbf{a}$ auf die Achse werfen (Abb. 7.1.25 und 7.1.27). Beide sind mathematisch korrekt — «man verwendet die <b>stabilere</b> Version (bezüglich Rundungsfehlern)». Die falsche Wahl führt auf $\\mathbf{a}\\mp\\|\\mathbf{a}\\|\\mathbf{e}_1$ mit fast gleichen Summanden, also auf <b>Auslöschung</b> — genau das Thema von Woche 1, hier wieder.</p><p>Im komplexen Fall mit $a_1=|a_1|e^{i\\varphi}$ nimmt man $\\mathbf{v}=\\tfrac12(\\mathbf{a}+\\|\\mathbf{a}\\|_2\\mathbf{e}_1e^{-i\\varphi})$.</p>"
+    },
+    {
+      "id": "w10-z16",
+      "titel": "Givens-Rotationen",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 246,
+        "nummer": "(7.1.2)"
+      },
+      "text": "<p>Eine Givens-Rotation $\\mathbf{G}_{1k}$ räumt <b>genau einen</b> Eintrag aus:</p><p>$$\\gamma=\\frac{\\bar a_1}{\\sqrt{|a_1|^{2}+|a_k|^{2}}},\\qquad \\sigma=\\frac{\\bar a_k}{\\sqrt{|a_1|^{2}+|a_k|^{2}}}$$</p><p>«Nützlich dabei ist, dass die Multiplikation von links mit der Givens-Rotation $\\mathbf{G}_{jk}$ an die Matrix $\\mathbf{B}$ <b>nur die Elemente aus den Zeilen $j$ und $k$</b> modifiziert. Für jede Spalte sind so viele Givens-Rotationen nötig, wie es Einträge gibt, die nicht null sind.»</p><p>Darin steckt die Arbeitsteilung des Kapitels:</p><table><thead><tr><th></th><th>Householder</th><th>Givens</th></tr></thead><tbody><tr><td>räumt aus</td><td>eine ganze Spalte</td><td>einen Eintrag</td></tr><tr><td>Schritte, volle $n\\times n$</td><td>$n-1$</td><td>$\\tfrac{n(n-1)}{2}$</td></tr><tr><td>gut für</td><td>vollbesetzte Matrizen</td><td>dünn besetzte Matrizen</td></tr></tbody></table><p>Bei einer dünn besetzten Matrix sind die meisten Einträge schon null — eine Householder-Spiegelung würde sie <i>auffüllen</i>, Givens lässt sie in Ruhe.</p>",
+      "merke": "Householder für voll, Givens für dünn besetzt."
+    },
+    {
+      "id": "w10-z17",
+      "titel": "Die QR-Zerlegung und ihre Formen",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 246,
+        "nummer": "(7.1.1), (7.1.3)"
+      },
+      "text": "<p>Ob mit Spiegelungen oder Rotationen — nach $n-1$ Schritten ist</p><p>$$\\mathbf{Q}_{n-1}\\mathbf{Q}_{n-2}\\cdots\\mathbf{Q}_1\\mathbf{A}=\\mathbf{R}\\quad\\Longrightarrow\\quad \\mathbf{A}=\\mathbf{Q}\\mathbf{R},\\quad \\mathbf{Q}=\\mathbf{Q}_1^{H}\\cdots\\mathbf{Q}_{n-1}^{H}.$$</p><p>Die Form hängt vom Seitenverhältnis ab:</p><ul><li>$m&gt;n$: <b>sparsame</b> («economic») Zerlegung mit $\\mathbf{Q}\\in\\mathbb{K}^{m,n}$, $\\mathbf{R}\\in\\mathbb{K}^{n,n}$. Hier ist nur $\\mathbf{Q}^{H}\\mathbf{Q}=\\mathbf{I}_n$, $\\mathbf{Q}$ ist nicht quadratisch.</li><li>$m&lt;n$: $\\mathbf{Q}\\in\\mathbb{K}^{m,m}$ unitär, $\\mathbf{R}\\in\\mathbb{K}^{m,n}$.</li></ul><p>In Python:</p><pre><code>Q, R = scipy.linalg.qr(A)                      # voll\nQ, R = scipy.linalg.qr(A, mode='economic')     # sparsam\nQ, R = numpy.linalg.qr(A, mode='reduced')      # dasselbe bei numpy\nQ, R, piv = scipy.linalg.qr(A, mode='economic', pivoting=True)</code></pre><p><b>Pivotisierung</b> lohnt bei schlecht konditionierten Matrizen: «Wenn die Spalten von $\\mathbf{A}$ fast linear abhängig sind, ist die Pivottechnik numerisch stabiler und <b>verrät auch den Rang</b> der Matrix» — er lässt sich an den Grössenordnungen von <code>np.diag(R)</code> ablesen. Es gilt dann <code>A[:,piv] = Q @ R</code>.</p>"
+    },
+    {
+      "id": "w10-z18",
+      "titel": "Aufwand der QR-Zerlegung",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 247,
+        "nummer": "Bsp. 7.1.30, Abb. 7.1.32"
+      },
+      "text": "<p>$$\\texttt{qr(A)}:\\ \\mathcal{O}(m^{2}n),\\qquad \\texttt{qr(A, mode='economic')}:\\ \\mathcal{O}(mn^{2})$$</p><p>Der Unterschied ist für «lange, schmale» Matrizen dramatisch: bei $m=2000$, $n=50$ stehen $2\\cdot10^{8}$ gegen $5\\cdot10^{6}$ Operationen — Faktor $m/n=40$. Und die volle Variante baut zusätzlich eine $2000\\times2000$-Matrix $\\mathbf{Q}$ auf, die man fast nie braucht.</p><p>Zum Vergleich: die LU-Zerlegung einer $n\\times n$-Matrix kostet $\\sim\\tfrac{n^{3}}{3}$, die Householder-QR etwa $\\tfrac{2n^{3}}{3}$ — QR ist rund <b>doppelt so teuer</b>. Das ist der Preis für die Stabilität aus Punkt 14.</p><p>Bsp. 7.1.30 misst das nach, mit $m=n^{2}$; Abb. 7.1.32 zeigt die Kurven neben den Referenzlinien $\\mathcal{O}(n^{4})$ und $\\mathcal{O}(n^{6})$ — in $n$ ausgedrückt, weil $m=n^{2}$. Nützlich ist auch <code>mode='r'</code>, wenn $\\mathbf{Q}$ gar nicht gebraucht wird.</p>"
+    },
+    {
+      "id": "w10-z19",
+      "titel": "Die Transformationen platzsparend speichern",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 253,
+        "nummer": "Bem. 7.1.33"
+      },
+      "text": "<p>$\\mathbf{Q}$ explizit aufzustellen kostet Platz und Zeit — meist braucht man nur die <i>Wirkung</i> von $\\mathbf{Q}$ auf einen Vektor.</p><ul><li><b>Householder:</b> «Die Householder-Vektoren $\\mathbf{v}_j$ werden in jedem Schritt kürzer, so dass wir diese im <b>unteren Teil von $\\mathbf{A}$</b> speichern können» — genau dort, wo die Nullen entstanden sind. $\\mathbf{R}$ steht oben, die $\\mathbf{v}_j$ unten, kein zusätzlicher Speicher.</li><li><b>Givens:</b> eine Rotation wird als Tripel $(i,j,\\rho)$ abgelegt, mit einer trickreichen Kodierung, die $\\gamma$ und $\\sigma$ aus <i>einer</i> Zahl rekonstruiert: $\\rho=\\tfrac12\\operatorname{sign}(\\gamma)\\sigma$ falls $|\\sigma|&lt;|\\gamma|$, sonst $\\rho=2\\operatorname{sign}(\\sigma)/\\gamma$. Beim Auslesen gilt $|\\rho|&lt;1\\Rightarrow\\sigma=2\\rho,\\ \\gamma=\\sqrt{1-\\sigma^{2}}$ und $|\\rho|&gt;1\\Rightarrow\\gamma=2/\\rho,\\ \\sigma=\\sqrt{1-\\gamma^{2}}$. «Das ist effizient, falls die Matrix $\\mathbf{A}$ dünn besetzt ist.»</li></ul>"
+    },
+    {
+      "id": "w10-z20",
+      "titel": "Welches Orthogonalisierungsverfahren wann",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 254,
+        "nummer": "Bem. 7.1.35, Abb. 7.1.34"
+      },
+      "text": "<p>Abb. 7.1.34 misst $\\|\\mathbf{I}-\\mathbf{Q}^{T}\\mathbf{Q}\\|_2$ für die QR-Zerlegung einer Vandermonde-Matrix mit $m=20$ über die Spaltenzahl. Die drei Kurven liegen Welten auseinander: klassisches Gram-Schmidt verliert die Orthogonalität vollständig, das modifizierte hält sich, Householder bleibt bei Maschinengenauigkeit.</p><p>Bem. 7.1.35 fasst zusammen:</p><ol><li><b>Modifiziertes Gram-Schmidt</b> orthogonalisiert über trianguläre Operationen. <i>Vorteil:</i> «Wir können früher aufhören und haben schon die ersten orthogonalen Spalten.» <i>Nachteil:</i> «Die Stabilität ist nicht garantiert.»</li><li><b>Orthogonale Transformationen</b> — Householder für vollbesetzte, Givens für dünn besetzte Matrizen. <i>Vorteil:</i> «$\\mathbf{Q}$ ist <b>trotz Rundungsfehlern orthogonal</b>.»</li></ol><p>Der Grund ist strukturell: bei Householder und Givens ist $\\mathbf{Q}$ ein <i>Produkt</i> exakt orthogonaler Matrizen. Rundungsfehler verschieben die einzelnen Faktoren leicht, aber jeder bleibt orthogonal — also auch das Produkt. Bei Gram-Schmidt dagegen entsteht die Orthogonalität erst durch Subtraktion, und die kann auslöschen.</p>",
+      "merke": "«Die Entwicklung mehrerer Methoden zur Lösung eines Problems hat meistens etwas mit der numerischen Stabilität der einzelnen Verfahren zu tun.»"
+    },
+    {
+      "id": "w10-z21",
+      "titel": "Dünn besetzte Matrizen — nur in der Vorlesung",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 246,
+        "nummer": "Wochenplan 10 (Vorlage10_ILAp1), im Skript nicht enthalten"
+      },
+      "text": "<p><b>Achtung für die Prüfung:</b> der Wochenplan behandelt dünn besetzte Matrizen ausführlich, im Skript steht dazu nichts — nachschlagen nützt hier also nichts.</p><ul><li><b>COO</b> (coordinate): Tripel $(i,j,a_{ij})$. Wiederholungen sind erlaubt, identische Indizes werden aufsummiert.</li><li><b>CRS/CSR</b> (compressed row storage): Werte und Spaltenindizes zeilenweise, plus ein Zeiger-Array auf den Zeilenanfang. Kompakter als COO und schnell für Matrix-Vektor-Produkte.</li><li><b>Bandmatrizen:</b> ist $\\mathbf{A}=\\mathbf{L}\\mathbf{U}$, so entsteht <b>Fill-in nur innerhalb der Envelope</b> — ausserhalb des Bandes bleibt alles null. Deshalb lohnen Bandlöser: <code>scipy.linalg.cholesky_banded</code>, <code>solve_banded</code>.</li><li><b>Stabilität ohne Pivotisierung:</b> ist $\\mathbf{A}$ regulär und <b>diagonaldominant mit positiver Diagonale</b>, so ist die LU-Zerlegung ohne Permutation stabil. Dasselbe gilt für s.p.d. Matrizen (Cholesky).</li><li>Direkte dünn besetzte Löser: SuperLU, UMFPACK, PARDISO — in <code>scipy.sparse.linalg</code>.</li></ul>"
+    }
+  ],
+  "moodle": [
+    {
+      "id": "m-w10-01",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Kosten der LU-Zerlegung",
+      "frageHtml": "<p>Für eine $100\\times100$-Matrix: wie viele Operationen kostet die LU-Zerlegung, wie viele die Vorwärts- <b>und</b> Rückwärtssubstitution zusammen, und um welchen Faktor ist die Zerlegung teurer? (Die Formeln aus Bem. 7.1.13, exakt — keine Näherung durch $n^{3}/3$.)</p>",
+      "felder": [
+        {
+          "label": "\\text{LU-Zerlegung}",
+          "wert": 323400,
+          "tol": 0.5,
+          "tolTyp": "abs",
+          "anzeige": "\\tfrac13\\cdot100\\cdot99\\cdot98 = 323\\,400"
+        },
+        {
+          "label": "\\text{beide Substitutionen}",
+          "wert": 9900,
+          "tol": 0.5,
+          "tolTyp": "abs",
+          "anzeige": "2\\cdot\\tfrac12\\cdot100\\cdot99 = 9\\,900"
+        },
+        {
+          "label": "\\text{Faktor}",
+          "wert": 32.666666666666664,
+          "tol": 0.01,
+          "tolTyp": "rel",
+          "anzeige": "323400/9900 \\approx 32.67"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>$\\tfrac13n(n-1)(n-2)=\\tfrac13\\cdot100\\cdot99\\cdot98=323\\,400$ für die Zerlegung, $\\tfrac12n(n-1)=4\\,950$ je Substitution, zusammen $9\\,900$.</p><p>Der Faktor $32.67$ ist die eigentliche Aussage und wächst linear mit $n$: bei $n=1000$ sind es schon $334$. Daher die Regel aus Bem. 7.1.16 — bei mehreren rechten Seiten einmal zerlegen und die Faktoren aufheben (<code>lu_factor</code>/<code>lu_solve</code>), nicht für jede rechte Seite neu eliminieren.</p><p>Zur Kontrolle der Grössenordnung: $\\tfrac{n^{3}}{3}=333\\,333$, also rund 3 % über dem exakten Wert — die Näherung ist für grosse $n$ völlig in Ordnung.</p>",
+      "skriptRef": {
+        "abschnitt": "7.1.2",
+        "seite": 238,
+        "nummer": "Bem. 7.1.13"
+      }
+    },
+    {
+      "id": "m-w10-02",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Warum nie die Inverse",
+      "frageHtml": "<p>Sie sollen $\\mathbf{A}\\mathbf{x}=\\mathbf{b}$ für eine schlecht konditionierte Matrix lösen. Was spricht laut Skript gegen <code>x = np.linalg.inv(A) @ b</code>?</p>",
+      "optionen": [
+        "Nichts — das Ergebnis ist identisch zu <code>solve</code>, nur langsamer.",
+        "Es ist teurer <b>und</b> ungenauer: das Residuum der so berechneten Lösung ist riesig, während die LU-Lösung ein Residuum auf Maschinengenauigkeit behält.",
+        "Die Inverse existiert für schlecht konditionierte Matrizen nicht.",
+        "<code>np.linalg.inv</code> funktioniert nur für symmetrische Matrizen."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Das Skript ist hier ungewöhnlich deutlich: «Aufgrund der Instabilitäten (und der Rechenzeiten) ist die Berechnung der Inversen einer Matrix <b>immer</b> zu vermeiden.»</p><p>Entscheidend ist die Unterscheidung zweier Fehlermasse. Bei schlechter Kondition ist der <b>Fehler</b> $\\|\\mathbf{x}-\\mathbf{x}^{*}\\|$ zwangsläufig gross — daran kann kein Algorithmus etwas ändern, das liegt am Problem. Das <b>Residuum</b> $\\|\\mathbf{A}\\mathbf{x}-\\mathbf{b}\\|$ dagegen kann klein bleiben, und die LU-Zerlegung schafft das auch (Abb. 7.1.23). Die explizite Inverse wirft selbst das weg.</p><p>Dazu kommt der Preis: die Inverse kostet rund drei LU-Zerlegungen — man löst ja $n$ Systeme mit den Einheitsvektoren als rechten Seiten.</p><p>Option 3 ist falsch: schlecht konditioniert heisst nicht singulär. Die Inverse existiert, sie ist nur gross und schwer genau zu berechnen.</p>",
+      "skriptRef": {
+        "abschnitt": "7.1.2",
+        "seite": 241,
+        "nummer": "Abb. 7.1.23"
+      }
+    },
+    {
+      "id": "m-w10-03",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Konditionszahl in Zahlen",
+      "frageHtml": "<p>Berechnen Sie $\\operatorname{cond}_2$ der beiden Matrizen</p><p>$$\\mathbf{A}=\\begin{pmatrix}2&1\\\\1&3\\end{pmatrix},\\qquad \\mathbf{B}=\\begin{pmatrix}1&1\\\\1&1{.}0001\\end{pmatrix}.$$</p><p>Wie viele Dezimalstellen verliert man bei $\\mathbf{B}$ ungefähr ($\\log_{10}\\operatorname{cond}_2$, auf eine Stelle genau)?</p>",
+      "felder": [
+        {
+          "label": "\\operatorname{cond}_2(\\mathbf{A})",
+          "wert": 2.618033988749895,
+          "tol": 0.01,
+          "tolTyp": "rel",
+          "anzeige": "\\approx 2.618"
+        },
+        {
+          "label": "\\operatorname{cond}_2(\\mathbf{B})",
+          "wert": 40002.00007494912,
+          "tol": 0.01,
+          "tolTyp": "rel",
+          "anzeige": "\\approx 4.0\\cdot10^{4}"
+        },
+        {
+          "label": "\\log_{10}\\operatorname{cond}_2(\\mathbf{B})",
+          "wert": 4.602066,
+          "tol": 0.15,
+          "tolTyp": "abs",
+          "anzeige": "\\approx 4.6"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>$\\operatorname{cond}_2=\\sigma_{\\max}/\\sigma_{\\min}$. Für $\\mathbf{A}$ sind die Singulärwerte $3.618$ und $1.382$, also $\\operatorname{cond}_2\\approx2.618$ — eine makellos konditionierte Matrix.</p><p>$\\mathbf{B}$ sieht harmlos aus, hat aber zwei fast identische Spalten. $\\operatorname{cond}_2\\approx4\\cdot10^{4}$: in doppelter Genauigkeit ($\\approx16$ Stellen) bleiben noch rund $11$ verlässliche Stellen. Mit $1{.}000001$ statt $1{.}0001$ wären es $10^{6}$ und nur noch $10$ Stellen.</p><p>Zur Kontrolle: in NumPy ist das <code>np.linalg.cond(A)</code>, und das benutzt intern die SVD (Bem. 7.1.51).</p><p>Die Faustregel aus Woche 1 gilt unverändert: $\\operatorname{cond}=10^{k}$ kostet rund $k$ Dezimalstellen.</p>",
+      "skriptRef": {
+        "abschnitt": "7.1.2",
+        "seite": 239,
+        "nummer": "Def. 7.1.18, Bem. 7.1.19"
+      }
+    },
+    {
+      "id": "m-w10-04",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Householder oder Givens",
+      "frageHtml": "<p>Sie bringen eine grosse, <b>dünn besetzte</b> Matrix mit orthogonalen Transformationen auf obere Dreiecksform. Welches Verfahren nehmen Sie und warum?</p>",
+      "optionen": [
+        "Householder, weil es pro Spalte nur eine einzige Transformation braucht.",
+        "Givens, weil jede Rotation nur zwei Zeilen verändert und die vorhandenen Nullen dadurch erhalten bleiben.",
+        "Householder, weil Givens-Rotationen die Konditionszahl verschlechtern.",
+        "Beide sind gleichwertig; der Unterschied liegt nur in der Rechenzeit, nicht im Speicher."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>«Die Multiplikation von links mit der Givens-Rotation $\\mathbf{G}_{jk}$ modifiziert <b>nur die Elemente aus den Zeilen $j$ und $k$</b>. Für jede Spalte sind so viele Givens-Rotationen nötig, wie es Einträge gibt, die nicht null sind.»</p><p>Bei einer dünn besetzten Matrix sind das sehr wenige. Eine Householder-Spiegelung dagegen fasst die <i>ganze</i> Spalte an — sie würde die vorhandenen Nullen durch allgemeine Werte ersetzen (<b>Fill-in</b>) und die Dünnbesetztheit zerstören, die man gerade ausnutzen wollte.</p><p>Option 1 beschreibt den echten Vorteil von Householder korrekt, zieht aber den falschen Schluss: bei einer <i>vollbesetzten</i> Matrix ist «eine Transformation pro Spalte» tatsächlich das Argument, bei dünner Besetzung nicht. Option 3 ist falsch — beide sind orthogonal und lassen die Kondition unverändert (Bem. 7.1.24). Zum Speicher: eine Givens-Rotation lässt sich als Tripel $(i,j,\\rho)$ ablegen, «was effizient ist, falls die Matrix dünn besetzt ist» (Bem. 7.1.33).</p>",
+      "skriptRef": {
+        "abschnitt": "7.1.2",
+        "seite": 246,
+        "nummer": "(7.1.2), Bem. 7.1.33/7.1.35"
+      }
+    },
+    {
+      "id": "m-w10-05",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Die scipy-Konvention bei lu",
+      "frageHtml": "<p>Sie rufen <code>P, L, U = scipy.linalg.lu(A)</code> auf. Welche Gleichung gilt?</p>",
+      "optionen": [
+        "$\\mathbf{P}\\mathbf{A}=\\mathbf{L}\\mathbf{U}$",
+        "$\\mathbf{A}=\\mathbf{P}\\mathbf{L}\\mathbf{U}$",
+        "$\\mathbf{A}\\mathbf{P}=\\mathbf{L}\\mathbf{U}$",
+        "$\\mathbf{A}=\\mathbf{L}\\mathbf{U}\\mathbf{P}$"
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Das Skript hebt es eigens als «Achtung» hervor: «<code>scipy.linalg.lu</code> liefert $\\mathbf{A}=\\mathbf{P}\\mathbf{L}\\mathbf{U}$, <b>andere Software eventuell</b> $\\mathbf{P}\\mathbf{A}=\\mathbf{L}\\mathbf{U}$.»</p><p>Die beiden Konventionen unterscheiden sich um eine Inversion: aus $\\mathbf{A}=\\mathbf{P}\\mathbf{L}\\mathbf{U}$ folgt $\\mathbf{P}^{-1}\\mathbf{A}=\\mathbf{P}^{T}\\mathbf{A}=\\mathbf{L}\\mathbf{U}$. Wer die falsche Richtung permutiert, bekommt eine Lösung, die keinen Fehler wirft und trotzdem falsch ist — die unangenehmste Sorte Bug.</p><p>Die Probe kostet eine Zeile: <code>np.allclose(P @ L @ U, A)</code>.</p><p>Für das Lösen umgeht man die Falle am besten ganz und nimmt <code>lu_factor</code> zusammen mit <code>lu_solve</code> — die passen per Konstruktion zueinander.</p>",
+      "skriptRef": {
+        "abschnitt": "7.1.2",
+        "seite": 239,
+        "nummer": "Lemma 7.1.15"
+      }
+    },
+    {
+      "id": "m-w10-06",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Aufwand der QR-Varianten",
+      "frageHtml": "<p>Für eine $2000\\times50$-Matrix: wie viele Operationen kosten die volle und die sparsame QR-Zerlegung in führender Ordnung (nur $m^{2}n$ bzw. $mn^{2}$, ohne Konstante), und wie gross ist ihr Verhältnis?</p>",
+      "felder": [
+        {
+          "label": "m^{2}n\\ \\text{(voll)}",
+          "wert": 200000000.0,
+          "tol": 1e-09,
+          "tolTyp": "rel",
+          "anzeige": "2\\cdot10^{8}"
+        },
+        {
+          "label": "mn^{2}\\ \\text{(economic)}",
+          "wert": 5000000.0,
+          "tol": 1e-09,
+          "tolTyp": "rel",
+          "anzeige": "5\\cdot10^{6}"
+        },
+        {
+          "label": "\\text{Verhältnis}",
+          "wert": 40.0,
+          "tol": 1e-09,
+          "tolTyp": "rel",
+          "anzeige": "m/n = 40"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>$m^{2}n=2000^{2}\\cdot50=2\\cdot10^{8}$, $mn^{2}=2000\\cdot50^{2}=5\\cdot10^{6}$, Verhältnis $m/n=40$.</p><p>Bei «langen, schmalen» Matrizen — und genau die treten in der Ausgleichsrechnung auf, Woche 12 — ist das der Unterschied zwischen einer Sekunde und einer Minute. Dazu kommt der Speicher: die volle Variante baut eine $2000\\times2000$-Matrix $\\mathbf{Q}$ auf (32 MB in double), die sparsame nur $2000\\times50$ (0.8 MB).</p><p>Und $\\mathbf{Q}$ wird meist gar nicht gebraucht — für die Normalengleichungen genügt $\\mathbf{R}$, dafür gibt es <code>mode='r'</code>.</p><p>Merkhilfe: in beiden Ausdrücken steht die <i>kleinere</i> Dimension als Faktor, die <i>grössere</i> quadriert — und bei «economic» ist es umgekehrt.</p>",
+      "skriptRef": {
+        "abschnitt": "7.1.2",
+        "seite": 247,
+        "nummer": "Bsp. 7.1.30, Abb. 7.1.32"
+      }
+    },
+    {
+      "id": "m-w10-07",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Cholesky",
+      "frageHtml": "<p>Welche Aussage über die Cholesky-Zerlegung ist <b>falsch</b>?</p>",
+      "optionen": [
+        "Für symmetrisch positiv definite Matrizen braucht sie keine Permutation.",
+        "Sie kommt mit etwa der Hälfte der Operationen einer LU-Zerlegung aus.",
+        "Sie schreibt $\\mathbf{A}=\\mathbf{R}^{H}\\mathbf{R}$ mit oberer Dreiecksmatrix $\\mathbf{R}=\\sqrt{\\mathbf{D}}\\,\\mathbf{L}^{H}$.",
+        "Sie lässt sich auf jede symmetrische Matrix anwenden, auch auf indefinite."
+      ],
+      "loesung": 3,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Die ersten drei Aussagen stehen so im Skript. Die vierte ist falsch: gebraucht wird <b>positive Definitheit</b>, nicht nur Symmetrie. Sonst wird ein $D_{ii}$ negativ und $\\sqrt{D_{ii}}$ ist nicht mehr reell.</p><p>Genau das macht Cholesky zum saubersten <b>Test auf positive Definitheit</b>: man versucht die Zerlegung, und wenn sie fehlschlägt, ist die Matrix nicht s.p.d. Das ist deutlich billiger und zuverlässiger, als alle Eigenwerte zu berechnen.</p><p>Zum Ursprung der Formel: man schreibt die LU-Zerlegung so um, dass die Pivote in einer Diagonalmatrix isoliert sind, $\\mathbf{A}=\\mathbf{L}\\mathbf{D}\\mathbf{L}^{H}$, und zieht die Wurzel. Für symmetrische, aber indefinite Matrizen gibt es stattdessen die $\\mathbf{L}\\mathbf{D}\\mathbf{L}^{T}$-Zerlegung mit $2\\times2$-Blöcken in $\\mathbf{D}$ — die kommt ohne Wurzeln aus.</p>",
+      "skriptRef": {
+        "abschnitt": "7.1.2",
+        "seite": 242,
+        "nummer": "Abschnitt 1a)"
+      }
+    },
+    {
+      "id": "m-w10-08",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Wilkinson-Matrix",
+      "frageHtml": "<p>Die Wilkinson-Matrix hat für $n=10$ die Konditionszahl $\\operatorname{cond}_2\\approx4.4$, trotzdem liefert die Gauss-Elimination bei grösserem $n$ einen riesigen Fehler (Abb. 7.1.21). Wie passt das zusammen?</p>",
+      "optionen": [
+        "Die Konditionszahl ist nur für symmetrische Matrizen aussagekräftig.",
+        "Das Problem ist gut konditioniert, aber der <i>Algorithmus</i> ist hier instabil: die Einträge von $\\mathbf{U}$ wachsen wie $2^{n-1}$.",
+        "Die Matrix ist fast singulär, ihre Determinante ist nahezu null.",
+        "Der Fehler entsteht erst beim Aufstellen der Matrix, nicht beim Lösen."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Das ist die saubere Trennung von <b>Kondition</b> (Eigenschaft des Problems) und <b>Stabilität</b> (Eigenschaft des Algorithmus) — und die Wilkinson-Matrix ist das Lehrbuchbeispiel dafür, dass die beiden auseinanderfallen können.</p><p>Bei der Elimination verdoppeln sich die Einträge der letzten Spalte in jedem Schritt; $\\mathbf{U}$ enthält am Ende Zahlen der Grössenordnung $2^{n-1}$. Bei $n=60$ ist das bereits $5\\cdot10^{17}$ und damit grösser als der Kehrwert der Maschinengenauigkeit — die kleinen Einträge gehen in der Addition verloren. Dieses <b>Wachstum der Zwischenergebnisse</b> ist der ganze Mechanismus.</p><p>Die QR-Zerlegung macht den Fehler nicht mit, weil orthogonale Transformationen die Norm erhalten — die Zwischenergebnisse können gar nicht wachsen (Bem. 7.1.24).</p><p>Das Skript fügt beruhigend hinzu, dass solche Matrizen in der Praxis kaum vorkommen: «<i>Anyone that unlucky has already been run over by a bus!</i>» Warum sich die Gauss-Elimination praktisch immer stabil verhält, ist «heute noch eine offene Frage».</p>",
+      "skriptRef": {
+        "abschnitt": "7.1.2",
+        "seite": 240,
+        "nummer": "Bsp. 7.1.20, Abb. 7.1.21"
+      }
+    },
+    {
+      "id": "m-w10-09",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Orthogonale Matrizen",
+      "frageHtml": "<p>$\\mathbf{Q}\\in\\mathbb{R}^{m\\times n}$ mit $m&gt;n$ habe orthonormale Spalten. Welche Aussage gilt <b>nicht</b>?</p>",
+      "optionen": [
+        "$\\mathbf{Q}^{T}\\mathbf{Q}=\\mathbf{I}_n$",
+        "$\\|\\mathbf{Q}\\mathbf{x}\\|_2=\\|\\mathbf{x}\\|_2$ für alle $\\mathbf{x}\\in\\mathbb{R}^{n}$",
+        "$\\mathbf{Q}\\mathbf{Q}^{T}=\\mathbf{I}_m$",
+        "$\\mathbf{Q}\\mathbf{Q}^{T}$ ist die orthogonale Projektion auf den von den Spalten aufgespannten Raum"
+      ],
+      "loesung": 2,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>$\\mathbf{Q}^{T}\\mathbf{Q}=\\mathbf{I}_n$ gilt immer, wenn die Spalten orthonormal sind — das ist genau die Definition, Eintrag für Eintrag nachgerechnet (Bem. 7.1.4). Daraus folgt sofort die Normerhaltung (Bem. 7.1.5).</p><p>$\\mathbf{Q}\\mathbf{Q}^{T}=\\mathbf{I}_m$ gilt dagegen <b>nur für quadratisches $\\mathbf{Q}$</b>. Bei $m&gt;n$ ist das unmöglich: $\\mathbf{Q}\\mathbf{Q}^{T}$ hat Rang $n&lt;m$ und kann die Einheitsmatrix gar nicht sein. Die Formel $\\mathbf{Q}^{-1}=\\mathbf{Q}^{H}$ im Skript steht deshalb ausdrücklich unter dem Vorbehalt «Wenn $\\mathbf{Q}$ quadratisch ist».</p><p>Option 4 beschreibt, was $\\mathbf{Q}\\mathbf{Q}^{T}$ stattdessen ist: ein <b>Projektor</b> mit $(\\mathbf{Q}\\mathbf{Q}^{T})^{2}=\\mathbf{Q}\\mathbf{Q}^{T}$. Diese Matrix taucht in Woche 12 wieder auf — sie projiziert die rechte Seite auf den Spaltenraum und löst damit das lineare Ausgleichsproblem.</p><p>Praktisch heisst das: bei <code>mode='economic'</code> bekommt man ein $\\mathbf{Q}$, das man nicht einfach transponieren darf, um zu invertieren.</p>",
+      "skriptRef": {
+        "abschnitt": "7.1.1",
+        "seite": 234,
+        "nummer": "Bem. 7.1.4–7.1.5"
+      }
+    },
+    {
+      "id": "m-w10-10",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Gram-Schmidt",
+      "frageHtml": "<p>Warum verwendet man zur Berechnung einer QR-Zerlegung nicht einfach den Gram-Schmidt-Algorithmus aus der linearen Algebra?</p>",
+      "optionen": [
+        "Weil er eine falsche Zerlegung liefert — die Spalten von $\\mathbf{Q}$ spannen nicht denselben Raum auf wie die von $\\mathbf{A}$.",
+        "Weil er in exakter Arithmetik zwar korrekt, aber <b>instabil</b> ist: bei schlechter Kondition ist das Resultat am Ende gar keine orthogonale Basis.",
+        "Weil er nur für quadratische Matrizen definiert ist.",
+        "Weil er mehr Operationen braucht als die Householder-QR-Zerlegung."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Das Skript: «Dieser Algorithmus ist aber <b>instabil</b>; deswegen berechnet man $\\mathbf{q}_1,\\dots,\\mathbf{q}_n$ numerisch mit dem <b>modifizierten</b> Gram-Schmidt-Algorithmus.» Und zur Ursache: «Der Gram-Schmidt-Algorithmus verwendet Dreiecksmatrizen, um eine orthogonale Basis zu finden. Dabei kann sich eine schlecht konditionierte Matrix so auswirken, dass das Resultat <b>gar keine orthogonale Basis</b> ist.»</p><p>Der Mechanismus ist Auslöschung: $\\mathbf{a}_k$ und seine Projektion auf die bisherigen $\\mathbf{q}_j$ sind bei fast linear abhängigen Spalten fast gleich gross, und ihre Differenz verliert dann die führenden Stellen — das Thema von Woche 1.</p><p>Abb. 7.1.34 misst es an einer Vandermonde-Matrix: $\\|\\mathbf{I}-\\mathbf{Q}^{T}\\mathbf{Q}\\|_2$ steigt beim klassischen Verfahren bis auf $1$ (also völliger Verlust der Orthogonalität), während Householder bei $10^{-15}$ bleibt.</p><p>Option 4 trifft nicht zu — Gram-Schmidt ist sogar etwas <i>billiger</i>. Es geht allein um Stabilität. Und Bem. 7.1.35 nennt auch den verbleibenden Vorteil: man «kann früher aufhören und hat schon die ersten orthogonalen Spalten».</p>",
+      "skriptRef": {
+        "abschnitt": "7.1.1",
+        "seite": 236,
+        "nummer": "Bem. 7.1.10, Bem. 7.1.35, Abb. 7.1.34"
+      }
+    }
+  ],
   "codeexpert": []
 }

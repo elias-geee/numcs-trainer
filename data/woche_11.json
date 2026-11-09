@@ -1,13 +1,469 @@
 {
   "woche": 11,
-  "titel": "Numerische lineare Algebra II",
-  "status": "platzhalter",
+  "titel": "Numerische lineare Algebra II: SVD",
+  "status": "nur_zusammenfassung",
   "skript": {
-    "kapitel": "7.1.2–7.1.3",
-    "seiten": "237–265"
+    "kapitel": "7.1.2 (SVD)–7.1.3",
+    "seiten": "255–265"
   },
   "vorlage": "wochenplan/Vorlage11_ILAp2.pdf",
-  "zusammenfassung": [],
-  "moodle": [],
+  "einleitung": "<p>Die <b>Singulärwertzerlegung</b> ist die mächtigste Zerlegung des Kapitels und die einzige, die ohne jede Voraussetzung auskommt: $\\mathbf{A}=\\mathbf{U}\\boldsymbol\\Sigma\\mathbf{V}^{H}$ existiert für <i>jede</i> Matrix — rechteckig, singulär, beliebig.</p><p>Sie beantwortet mit einer einzigen Rechnung eine ganze Reihe von Fragen, die sonst einzeln angegangen werden müssten: Rang, Kern, Bild, Norm, Konditionszahl, beste Näherung niedrigen Rangs, Hauptkomponenten. Und sie beantwortet sie <b>numerisch belastbar</b> — anders als die Determinante, die über den Rang nichts aussagt, sobald Gleitkomma im Spiel ist.</p><p>Der rote Faden: $\\mathbf{A}=\\sum_j\\sigma_j\\mathbf{u}_j\\mathbf{v}_j^{H}$ zerlegt die Matrix in nach Wichtigkeit geordnete Rang-1-Bausteine. Bricht man die Summe ab, bekommt man nach dem Satz von Eckart und Young die <b>beste</b> Näherung dieses Rangs — mit einem Fehler, den man vorher kennt. Darauf beruhen Datenkompression, PCA, Rauschunterdrückung und in Woche 12 die Pseudoinverse.</p>",
+  "moodleHinweis": "Für diese Woche liegt <b>noch kein</b> Moodle-Quiz vor — es kommt im Lauf des Semesters dazu und wird dann hier ergänzt. Bis dahin sind alle Fragen von mir im Stil der Originalfragen geschrieben und mit Skript-Verweis begründet. Alle Zahlenwerte sind mit NumPy nachgerechnet.",
+  "aufgabenUebersicht": {
+    "moodle": 10,
+    "codeexpert": 0
+  },
+  "zusammenfassung": [
+    {
+      "id": "w11-z1",
+      "titel": "Die Frage, aus der die SVD entsteht: PCA",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 255,
+        "nummer": "Bsp. 7.1.36, Bem. 7.1.37"
+      },
+      "text": "<p>Gegeben sind $n$ Messpunkte $\\mathbf{a}_1,\\dots,\\mathbf{a}_n\\in\\mathbb{R}^{m}$, zusammengestellt als Spalten einer Matrix $\\mathbf{A}\\in\\mathbb{R}^{m\\times n}$.</p><p>«Ziel der <b>PCA</b> ist es, nur so viel Information aus den Messungen zu behalten wie notwendig; mathematisch bedeutet dies: Wenn $\\mathbf{a}_1,\\dots,\\mathbf{a}_n$ linear abhängig sind, d.h. wenn sie in einem $r$-dimensionalen Raum liegen, liefert die PCA die Zahl $r=\\operatorname{rank}(\\mathbf{A})$ und eine <b>orthonormale Basis</b> von $\\operatorname{Im}\\mathbf{A}$. Auf diese deterministische Art und Weise werden einige Messfehler eliminiert und alle Daten komprimiert.»</p><p>Bem. 7.1.37 schiebt die Warnung hinterher: die PCA ist eine Aufgabe der linearen Algebra, und «analog wie beim Lösen linearer Gleichungssysteme ist es wichtig, dass wir <b>stabile</b> Algorithmen zur Ermittlung von $r$ und der Basis verwenden». Den Rang über die Determinante oder über Gauss-Elimination zu bestimmen, ist in Gleitkomma sinnlos — dafür braucht es die SVD.</p>"
+    },
+    {
+      "id": "w11-z2",
+      "titel": "Theorem 7.1.38: die Zerlegung",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 255,
+        "nummer": "Thm. 7.1.38, Def. 7.1.39"
+      },
+      "text": "<p>Sei $\\mathbf{A}\\in\\mathbb{C}^{m\\times n}$ <b>beliebig</b>. Dann gibt es unitäre Matrizen $\\mathbf{U}\\in\\mathbb{C}^{m\\times m}$ und $\\mathbf{V}\\in\\mathbb{C}^{n\\times n}$ und eine $m\\times n$-Diagonalmatrix $\\boldsymbol\\Sigma=\\operatorname{diag}(\\sigma_1,\\dots,\\sigma_p)$ mit $p=\\min\\{m,n\\}$ und</p><p>$$\\sigma_1\\ge\\sigma_2\\ge\\dots\\ge\\sigma_p\\ge0,\\qquad \\mathbf{A}=\\mathbf{U}\\boldsymbol\\Sigma\\mathbf{V}^{H}.$$</p><p>Das Wort <b>beliebig</b> ist der ganze Punkt. Keine Quadratheit, keine Regularität, keine Symmetrie, kein voller Rang — jede Matrix hat eine SVD. Keine andere Zerlegung des Kapitels ist so anspruchslos: LU braucht Regularität, Cholesky positive Definitheit, die Eigenwertzerlegung Diagonalisierbarkeit.</p><p>Die Deutung: <b>jede</b> lineare Abbildung ist eine Drehung/Spiegelung ($\\mathbf{V}^{H}$), gefolgt von einer achsenweisen Streckung ($\\boldsymbol\\Sigma$), gefolgt von einer weiteren Drehung/Spiegelung ($\\mathbf{U}$). Das Bild der Einheitskugel ist deshalb immer ein Ellipsoid mit den Halbachsen $\\sigma_i$.</p>",
+      "merke": "Jede Matrix hat eine SVD — ohne jede Voraussetzung."
+    },
+    {
+      "id": "w11-z3",
+      "titel": "Die SVD als Summe von Rang-1-Matrizen",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 256,
+        "nummer": "Bem. 7.1.40"
+      },
+      "text": "<p>Ausmultipliziert wird aus der Zerlegung eine Summe:</p><p>$$\\mathbf{A}=\\sum_{j=1}^{p}\\sigma_j\\,\\mathbf{u}_j\\mathbf{v}_j^{H}$$</p><p>$\\mathbf{u}_1,\\dots,\\mathbf{u}_p$ sind die <b>linken</b> Singulärvektoren (Spalten von $\\mathbf{U}$), $\\mathbf{v}_1,\\dots,\\mathbf{v}_p$ die <b>rechten</b> (Spalten von $\\mathbf{V}$).</p><p>Jeder Summand $\\mathbf{u}_j\\mathbf{v}_j^{H}$ ist ein äusseres Produkt, hat also <b>Rang 1</b> und braucht nur $m+n$ Zahlen statt $mn$. Die Summe ist nach Wichtigkeit geordnet, weil die $\\sigma_j$ fallen.</p><p>Daraus folgt fast alles Weitere: bricht man die Summe nach $k$ Termen ab, bekommt man die <i>bestmögliche</i> Rang-$k$-Näherung (Thm. 7.1.53), und der weggeworfene Rest hat die Grösse $\\sigma_{k+1}$.</p>"
+    },
+    {
+      "id": "w11-z4",
+      "titel": "Eindeutigkeit",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 256,
+        "nummer": "Bem. 7.1.41"
+      },
+      "text": "<p>«Die SVD ist <b>nicht eindeutig</b>, aber die Singulärwerte sind es.»</p><p>Man kann etwa $\\mathbf{u}_j$ und $\\mathbf{v}_j$ gleichzeitig mit $-1$ multiplizieren, ohne $\\mathbf{A}$ zu ändern; bei mehrfachen Singulärwerten ist sogar eine beliebige unitäre Drehung innerhalb des zugehörigen Unterraums erlaubt.</p><p>Praktische Konsequenz: wer zwei SVD-Implementierungen vergleicht, darf nicht $\\mathbf{U}$ und $\\mathbf{V}$ gegeneinander halten — nur $\\boldsymbol\\Sigma$ und das Produkt $\\mathbf{U}\\boldsymbol\\Sigma\\mathbf{V}^{H}$. Im PCA-Code des Skripts sieht man das an der Zeile <code>plot(r, -Vh[0,:], ...)</code>: das Minuszeichen steht nur da, damit die Hauptkomponente im Plot dieselbe Orientierung hat wie der Modellvektor.</p>",
+      "merke": "Singulärwerte eindeutig, Singulärvektoren nicht."
+    },
+    {
+      "id": "w11-z5",
+      "titel": "Zusammenhang mit Eigenwerten",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 257,
+        "nummer": "Bem. 7.1.42"
+      },
+      "text": "<p>$\\sigma_1^{2}\\ge\\dots\\ge\\sigma_r^{2}&gt;0$ sind die Eigenwerte von $\\mathbf{A}^{H}\\mathbf{A}$ und $\\mathbf{A}\\mathbf{A}^{H}$, zu den Eigenvektoren $\\mathbf{v}_j$ bzw. $\\mathbf{u}_j$. Der Beweis steht in einer Zeile:</p><p>$$\\mathbf{A}\\mathbf{A}^{H}=\\mathbf{U}\\boldsymbol\\Sigma\\mathbf{V}^{H}\\mathbf{V}\\boldsymbol\\Sigma^{H}\\mathbf{U}^{H}=\\mathbf{U}\\boldsymbol\\Sigma\\boldsymbol\\Sigma^{H}\\mathbf{U}^{H}$$</p><p>Auch die Blockmatrix $\\begin{pmatrix}\\mathbf{0}&\\mathbf{A}^{H}\\\\\\mathbf{A}&\\mathbf{0}\\end{pmatrix}$ hat die $\\pm\\sigma_j$ als Eigenwerte, zu den Eigenvektoren $\\binom{\\mathbf{u}_j}{\\mathbf{v}_j}$.</p><p><b>Numerisch darf man daraus kein Rezept machen.</b> Die Singulärwerte über die Eigenwerte von $\\mathbf{A}^{H}\\mathbf{A}$ zu berechnen heisst, mit $\\operatorname{cond}(\\mathbf{A}^{H}\\mathbf{A})=\\operatorname{cond}(\\mathbf{A})^{2}$ zu arbeiten — die Kondition wird quadriert, die halbe Genauigkeit ist weg. Genau dieses Argument kehrt in Woche 12 bei den Normalengleichungen wieder.</p>"
+    },
+    {
+      "id": "w11-z6",
+      "titel": "Was die SVD über die Matrix verrät",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 257,
+        "nummer": "Thm. 7.1.43"
+      },
+      "text": "<p>Gilt $\\sigma_1\\ge\\dots\\ge\\sigma_r&gt;\\sigma_{r+1}=\\dots=\\sigma_p=0$, so ist</p><p>$$\\operatorname{rank}\\mathbf{A}=r,\\qquad \\ker\\mathbf{A}=\\operatorname{span}\\{\\mathbf{v}_{r+1},\\dots,\\mathbf{v}_n\\},\\qquad \\operatorname{Im}\\mathbf{A}=\\operatorname{span}\\{\\mathbf{u}_1,\\dots,\\mathbf{u}_r\\}.$$</p><p>Dazu die Grundrelationen</p><p>$$\\mathbf{A}\\mathbf{v}_j=\\sigma_j\\mathbf{u}_j\\ (j\\le r),\\qquad \\mathbf{A}\\mathbf{v}_j=\\mathbf{0}\\ (j&gt;r),\\qquad \\mathbf{A}^{T}\\mathbf{u}_j=\\sigma_j\\mathbf{v}_j\\ (j\\le r).$$</p><p>Eine einzige Zerlegung liefert also Rang, Kern und Bild — <b>mit Orthonormalbasen</b>. Das ist genau das Programm der PCA aus Punkt 1, und es ist der Grund, warum man für alle diese Fragen zur SVD greift statt zur Gauss-Elimination.</p>"
+    },
+    {
+      "id": "w11-z7",
+      "titel": "Numerischer Rang",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 258,
+        "nummer": "Bem. 7.1.44"
+      },
+      "text": "<p>«Wenn Messfehler oder Rundungsfehler auftreten, dann hat man typischerweise</p><p>$$\\sigma_1\\ge\\sigma_2\\ge\\dots\\ge\\sigma_r\\gg\\sigma_{r+1}\\approx\\dots\\approx\\sigma_p\\approx0.$$</p><p>Der <b>numerische Rang</b> $r$ ist hier gegeben durch den <b>Sprung</b> $\\sigma_r\\gg\\sigma_{r+1}\\approx0$ und ist in den Anwendungen relevant.»</p><p>In echten Daten ist nichts exakt null. Statt «ist dieser Wert null?» fragt man «wo fällt die Kurve der Singulärwerte um Grössenordnungen ab?» — ein Lückenkriterium statt eines Nulltests. Genau deshalb plottet man die Singulärwerte, bevor man über den Rang entscheidet.</p><p>In NumPy macht das <code>np.linalg.matrix_rank(A)</code>, mit der Vorgabetoleranz $\\sigma_1\\cdot\\max(m,n)\\cdot\\varepsilon_{\\text{mach}}$. Man kann sie über <code>tol=</code> selbst setzen — und sollte das tun, wenn man das Rauschniveau der Messung kennt.</p>",
+      "merke": "Rang ist in Gleitkomma keine Ja/Nein-Frage, sondern eine Frage nach der Lücke im Spektrum."
+    },
+    {
+      "id": "w11-z8",
+      "titel": "Das PCA-Experiment des Skripts",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 258,
+        "nummer": "Bsp. 7.1.45, Abb. 7.1.46–7.1.47"
+      },
+      "text": "<p>Zwei Signale $\\sin(\\pi t)$ und $\\cos(\\pi t)$ werden an $m=50$ Orten gemessen, das «Experiment» $n=10$-mal wiederholt — mit simuliertem Messfehler, multiplikativ beim einen, additiv (Dämpfung $0.1$) beim anderen. Das ergibt 20 Vektoren der Länge 50.</p><p>Die Rohdaten (Abb. 7.1.46) sehen nach Rauschen aus. Die SVD beantwortet zwei Fragen:</p><ol><li><i>Wie viele Abhängigkeiten von $t$ existieren?</i> — der Plot der Singulärwerte zeigt <b>zwei dominierende</b>, der Rest fällt ab. Numerischer Rang 2.</li><li><i>Welches sind die wichtigen Komponenten?</i> — die ersten beiden Zeilen von $\\mathbf{V}^{H}$ legen sich im Plot auf die normierten Modellvektoren $\\cos$ und $\\sin$. Die SVD hat die beiden Signale aus dem Rauschen zurückgeholt, ohne dass man ihnen gesagt hätte, wonach sie suchen soll.</li></ol><p>Die Beiträge $|\\mathbf{U}_{:,1}|$ und $|\\mathbf{U}_{:,2}|$ zeigen schliesslich, welche der 20 Messungen zu welcher Komponente gehört.</p><p>Bem. 7.1.48 rät von Spezialmodulen ab: es gibt <code>sklearn.decomposition.PCA</code>, «die bessere Vorgehensweise ist jedoch, keine spezialisierten Module nur deswegen zu importieren, sondern zu wissen, was man tut, und dies effizient mit scipy zu implementieren».</p>"
+    },
+    {
+      "id": "w11-z9",
+      "titel": "Extremaleigenschaften: $\\sigma_1$ und $\\sigma_n$",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 261,
+        "nummer": "Bem. 7.1.49"
+      },
+      "text": "<p>Gesucht ist $\\mathbf{x}$ mit $\\|\\mathbf{x}\\|_2=1$, das $\\|\\mathbf{A}\\mathbf{x}\\|_2$ <b>minimiert</b>. Weil unitäre Matrizen die 2-Norm erhalten, lässt sich alles auf $\\boldsymbol\\Sigma$ zurückführen:</p><p>$$\\min_{\\|\\mathbf{x}\\|_2=1}\\|\\mathbf{A}\\mathbf{x}\\|_2^{2}=\\min_{\\|\\mathbf{y}\\|_2=1}\\|\\boldsymbol\\Sigma\\mathbf{y}\\|_2^{2}=\\min_{\\|\\mathbf{y}\\|_2=1}\\left(\\sigma_1^{2}y_1^{2}+\\dots+\\sigma_n^{2}y_n^{2}\\right)\\ge\\sigma_n^{2}$$</p><p>Das Minimum wird für $\\mathbf{y}=(0,\\dots,0,1)^{T}$ angenommen, also für $\\mathbf{x}=\\mathbf{v}_n$. Analog ist $\\sigma_1=\\max_{\\|\\mathbf{x}\\|_2=1}\\|\\mathbf{A}\\mathbf{x}\\|_2$ mit $\\mathbf{v}_1$ als Maximierer.</p><p>Die $\\sigma_i$ sind also die <b>Streckungsfaktoren</b> der Abbildung: $\\sigma_1$ in die stärkste, $\\sigma_n$ in die schwächste Richtung. Das Problem «minimiere $\\|\\mathbf{A}\\mathbf{x}\\|$ unter $\\|\\mathbf{x}\\|=1$» ist übrigens genau die <b>totale Ausgleichsrechnung</b> aus Abschnitt 8.1.3.</p>"
+    },
+    {
+      "id": "w11-z10",
+      "titel": "Theorem 7.1.50: Norm und Kondition aus der SVD",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 262,
+        "nummer": "Thm. 7.1.50, Bem. 7.1.51"
+      },
+      "text": "<p>$$\\|\\mathbf{A}\\|_2=\\sigma_1(\\mathbf{A}),\\qquad \\operatorname{cond}_2(\\mathbf{A})=\\frac{\\sigma_1}{\\sigma_m}\\ \\text{(falls invertierbar)}$$</p><p>Damit schliesst sich der Kreis zu Woche 10: die abstrakte Definition $\\operatorname{cond}(\\mathbf{A})=\\|\\mathbf{A}^{-1}\\|\\|\\mathbf{A}\\|$ bekommt eine Formel, die man ausrechnen kann — und gleichzeitig eine Anschauung. $\\operatorname{cond}_2$ ist das Verhältnis der längsten zur kürzesten Halbachse des Bildellipsoids. Eine schlecht konditionierte Matrix bildet die Kugel auf eine Zigarre ab.</p><p>Bem. 7.1.51: «Die Python-Funktionen <code>norm(A)</code> und <code>cond(A)</code> verwenden <code>svd(A)</code>.» Wer also <code>np.linalg.cond</code> aufruft, hat die SVD ohnehin schon bezahlt.</p><p>Und für eine <i>singuläre</i> Matrix ist $\\sigma_m=0$, also $\\operatorname{cond}_2=\\infty$ — konsistent mit der Anschauung, dass das Ellipsoid in eine Richtung flachgedrückt ist.</p>",
+      "merke": "$\\|\\mathbf{A}\\|_2=\\sigma_1$ und $\\operatorname{cond}_2=\\sigma_1/\\sigma_{\\min}$."
+    },
+    {
+      "id": "w11-z11",
+      "titel": "Frobenius-Norm",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 262,
+        "nummer": "Def. 7.1.52, (7.1.4)"
+      },
+      "text": "<p>$$\\|\\mathbf{A}\\|_F^{2}:=\\sum_{i=1}^{m}\\sum_{j=1}^{n}|a_{ij}|^{2}=\\sum_{j=1}^{p}\\sigma_j^{2}$$</p><p>Die Frobenius-Norm ist die euklidische Norm der Matrix als «langer Vektor». Sie ist <b>invariant unter unitären Transformationen</b> — das folgt sofort aus der zweiten Darstellung, denn die Singulärwerte ändern sich dabei nicht.</p><p>Der Unterschied zur 2-Norm ist instruktiv: $\\|\\mathbf{A}\\|_2=\\sigma_1$ sieht nur den <i>grössten</i> Singulärwert, $\\|\\mathbf{A}\\|_F=\\sqrt{\\sum\\sigma_j^{2}}$ sieht alle. Für $\\mathbf{I}_n$ ist $\\|\\mathbf{I}\\|_2=1$, aber $\\|\\mathbf{I}\\|_F=\\sqrt n$. Die Frobenius-Norm ist <i>keine</i> induzierte Matrixnorm.</p><p>In NumPy: <code>np.linalg.norm(A)</code> ist voreingestellt die Frobenius-Norm, <code>np.linalg.norm(A, 2)</code> die Spektralnorm. Eine Verwechslung, die leicht passiert.</p>"
+    },
+    {
+      "id": "w11-z12",
+      "titel": "Theorem 7.1.53: Bestapproximation durch Niedrigrangmatrizen",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 262,
+        "nummer": "Thm. 7.1.53 (Eckart–Young)"
+      },
+      "text": "<p>Für $\\mathbf{A}=\\mathbf{U}\\boldsymbol\\Sigma\\mathbf{V}^{H}$ vom Rang $r$ und $k\\in\\{1,\\dots,r\\}$ sei $\\mathbf{A}_k=\\mathbf{U}_k\\boldsymbol\\Sigma_k\\mathbf{V}_k^{H}$ die nach $k$ Termen abgebrochene Summe. Dann gilt <b>für beide Normen</b> $\\|\\cdot\\|_2$ und $\\|\\cdot\\|_F$:</p><p>$$\\|\\mathbf{A}-\\mathbf{A}_k\\|\\le\\|\\mathbf{A}-\\mathbf{B}\\|\\quad \\text{für alle } m\\times n\\text{-Matrizen }\\mathbf{B}\\text{ vom Rang }k$$</p><p>und der Fehler lässt sich exakt angeben:</p><p>$$\\|\\mathbf{A}-\\mathbf{A}_k\\|_2=\\sigma_{k+1},\\qquad \\|\\mathbf{A}-\\mathbf{A}_k\\|_F=\\sqrt{\\sigma_{k+1}^{2}+\\dots+\\sigma_r^{2}}$$</p><p>Das ist eines der nützlichsten Resultate der ganzen Vorlesung: ein <b>Optimierungsproblem über alle Matrizen vom Rang $k$</b> — eine riesige, nicht konvexe Menge — hat eine geschlossene Lösung, und man liest sie einfach aus der SVD ab. Abschneiden ist optimal.</p><p>Und der Fehler ist <i>vorher</i> bekannt: man schaut sich die Singulärwerte an und wählt $k$ so, dass $\\sigma_{k+1}$ klein genug ist. Kein Ausprobieren.</p>",
+      "merke": "Die ersten $k$ Terme der SVD sind die beste Rang-$k$-Näherung, und der Fehler ist $\\sigma_{k+1}$."
+    },
+    {
+      "id": "w11-z13",
+      "titel": "Datenkompression",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 263,
+        "nummer": "Bem. 7.1.54"
+      },
+      "text": "<p>«Die Information, die in einer $m\\times n$-Matrix vom Rang $k$ steckt, kann durch <b>$k(m+n)$ Zahlen</b> dargestellt werden. Die Approximation mittels Matrizen niedrigen Rangs dient zur Datenkomprimierung.»</p><p>Man speichert nicht $\\mathbf{A}_k$, sondern die $k$ Tripel $(\\sigma_j,\\mathbf{u}_j,\\mathbf{v}_j)$ — das sind $k$ Vektoren der Länge $m$ plus $k$ der Länge $n$.</p><p>Beispiel Graustufenbild $1920\\times1080$: voll sind das $2\\,073\\,600$ Zahlen. Eine Rang-$50$-Näherung braucht $50\\cdot3000=150\\,000$, also <b>7.2 %</b>. Ob das reicht, liest man vorher an $\\sigma_{51}$ ab.</p><p>Die Rechnung lohnt sich nur für $k&lt;\\frac{mn}{m+n}$ — bei $1920\\times1080$ also bis $k\\approx691$. Danach speichert man mehr als das Original.</p><p>Dasselbe Prinzip steckt hinter Rang-$k$-Approximationen grosser Matrizen in Gleichungslösern: eine Rang-1-Korrektur kostet $m+n$ statt $mn$ — genau das Argument beim Broyden-Verfahren in Woche 9.</p>"
+    },
+    {
+      "id": "w11-z14",
+      "titel": "Welche SVD-Funktion wann",
+      "ref": {
+        "abschnitt": "7.1.2",
+        "seite": 257,
+        "nummer": "Bem. 7.1.42, Komplexitäten S. 257"
+      },
+      "text": "<p>$$\\texttt{scipy.linalg.svd}\\quad\\texttt{numpy.linalg.svd(A, full\\_matrices=True, compute\\_uv=True)}\\quad\\texttt{scipy.linalg.svdvals}$$</p><p>Die Varianten unterscheiden sich erheblich im Aufwand:</p><table><thead><tr><th>Aufruf</th><th>Komplexität</th></tr></thead><tbody><tr><td><code>s = svdvals(A)</code></td><td>$2mn^{2}+2n^{3}+\\mathcal{O}(n^{2})+\\mathcal{O}(mn)$</td></tr><tr><td><code>U,S,V = svd(A)</code></td><td>$4m^{2}n+22n^{3}+\\mathcal{O}(mn)+\\mathcal{O}(n^{2})$</td></tr><tr><td><code>svd(A, full_matrices=False)</code>, $m\\gg n$</td><td>$\\mathcal{O}(mn^{2})+\\mathcal{O}(n^{3})$</td></tr></tbody></table><p>Drei Regeln folgen daraus:</p><ul><li>Braucht man <b>nur die Singulärwerte</b> (Rang, Norm, Kondition), ist <code>svdvals</code> deutlich billiger — der $4m^{2}n$-Term entfällt ganz.</li><li>Bei $m\\gg n$ ist <code>full_matrices=False</code> Pflicht: die volle Variante baut ein $m\\times m$-$\\mathbf{U}$ auf, von dem nur die ersten $n$ Spalten gebraucht werden.</li><li><code>scipy.linalg.svd</code> hat Optionen zum Überschreiben der Matrix und zum Abschalten der Eingabeprüfung — <code>numpy.linalg.svd</code> «kann das nicht».</li></ul>"
+    },
+    {
+      "id": "w11-z15",
+      "titel": "Ausgewählte Funktionen aus numpy und scipy",
+      "ref": {
+        "abschnitt": "7.1.3",
+        "seite": 263,
+        "nummer": "Abschnitt 7.1.3"
+      },
+      "text": "<p>Der letzte Abschnitt des Kapitels ist eine kommentierte Liste — gedacht zum Nachschlagen an der Prüfung. Unter NumPy (das intern BLAS und LAPACK aufruft):</p><ul><li>Produkte: <code>dot</code>, <code>vdot</code> (komplexes Skalarprodukt, Frobenius-Produkt zweier 2D-Arrays), <code>inner</code>, <code>matmul</code> bzw. <code>@</code>, <code>outer</code></li><li>Struktur: <code>trace</code>, <code>diag</code>, <code>diagonal</code>, <code>sum</code>, <code>transpose</code></li><li>Tensoren: <code>kron</code> (Kronecker-Produkt, siehe Woche 2), <code>tensordot</code>, <code>einsum</code> — das Skript zeigt, dass sich <code>kron(A,B)</code> als <code>einsum('ij,kl-&gt;ikjl',A,B).reshape(4,4)</code> schreiben lässt</li></ul><p>Dazu <code>numpy.linalg</code> und <code>scipy.linalg</code> mit den Zerlegungen aus Woche 10 und 11. Faustregel: <code>scipy.linalg</code> bietet mehr Optionen (<code>overwrite_a</code>, <code>check_finite</code>, <code>pivoting</code>, <code>mode</code>) und ist damit für Rechenzeit-kritischen Code die bessere Wahl; <code>numpy.linalg</code> ist bequemer und arbeitet auf Batches.</p>"
+    }
+  ],
+  "moodle": [
+    {
+      "id": "m-w11-01",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Norm und Kondition aus der SVD",
+      "frageHtml": "<p>Für $\\mathbf{C}=\\begin{pmatrix}4&0\\\\3&-5\\end{pmatrix}$ sind die Singulärwerte $\\sigma_1=2\\sqrt{10}$ und $\\sigma_2=\\sqrt{10}$. Bestimmen Sie $\\|\\mathbf{C}\\|_2$, $\\operatorname{cond}_2(\\mathbf{C})$ und $\\|\\mathbf{C}\\|_F$ (mindestens vier signifikante Ziffern).</p>",
+      "felder": [
+        {
+          "label": "\\|\\mathbf{C}\\|_2",
+          "wert": 6.324555320336759,
+          "tol": 0.0001,
+          "tolTyp": "rel",
+          "anzeige": "2\\sqrt{10}\\approx6.3246"
+        },
+        {
+          "label": "\\operatorname{cond}_2(\\mathbf{C})",
+          "wert": 2.0,
+          "tol": 0.0001,
+          "tolTyp": "rel",
+          "anzeige": "2"
+        },
+        {
+          "label": "\\|\\mathbf{C}\\|_F",
+          "wert": 7.0710678118654755,
+          "tol": 0.0001,
+          "tolTyp": "rel",
+          "anzeige": "\\sqrt{50}=5\\sqrt2\\approx7.0711"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>$\\|\\mathbf{C}\\|_2=\\sigma_1=2\\sqrt{10}\\approx6.3246$ (Thm. 7.1.50) und $\\operatorname{cond}_2=\\sigma_1/\\sigma_2=2$ — eine gut konditionierte Matrix.</p><p>Die Frobenius-Norm lässt sich auf zwei Wegen bestimmen, und beide müssen dasselbe geben:</p><ul><li>direkt aus den Einträgen: $\\sqrt{16+0+9+25}=\\sqrt{50}\\approx7.0711$;</li><li>aus den Singulärwerten (7.1.4): $\\sqrt{\\sigma_1^{2}+\\sigma_2^{2}}=\\sqrt{40+10}=\\sqrt{50}$.</li></ul><p>Der Vergleich $\\|\\mathbf{C}\\|_2=6.32&lt;7.07=\\|\\mathbf{C}\\|_F$ ist kein Zufall: die 2-Norm sieht nur $\\sigma_1$, die Frobenius-Norm summiert alle Singulärwerte quadratisch auf. Es gilt immer $\\|\\mathbf{A}\\|_2\\le\\|\\mathbf{A}\\|_F\\le\\sqrt{r}\\,\\|\\mathbf{A}\\|_2$.</p><p>Vorsicht in NumPy: <code>np.linalg.norm(C)</code> ist voreingestellt die <i>Frobenius</i>-Norm, für die Spektralnorm braucht es <code>np.linalg.norm(C, 2)</code>.</p>",
+      "skriptRef": {
+        "abschnitt": "7.1.2",
+        "seite": 262,
+        "nummer": "Thm. 7.1.50, Def. 7.1.52, (7.1.4)"
+      }
+    },
+    {
+      "id": "m-w11-02",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Eckart–Young",
+      "frageHtml": "<p>Eine Matrix habe die Singulärwerte $\\sigma_1=5$, $\\sigma_2=3$, $\\sigma_3=0{.}5$. Wie gross ist der Fehler der besten Rang-1- bzw. Rang-2-Approximation in der <b>2-Norm</b>, und wie gross ist der Fehler der besten Rang-1-Approximation in der <b>Frobenius-Norm</b>?</p>",
+      "felder": [
+        {
+          "label": "\\|\\mathbf{A}-\\mathbf{A}_1\\|_2",
+          "wert": 3.0,
+          "tol": 1e-06,
+          "tolTyp": "abs",
+          "anzeige": "\\sigma_2 = 3"
+        },
+        {
+          "label": "\\|\\mathbf{A}-\\mathbf{A}_2\\|_2",
+          "wert": 0.5,
+          "tol": 1e-06,
+          "tolTyp": "abs",
+          "anzeige": "\\sigma_3 = 0.5"
+        },
+        {
+          "label": "\\|\\mathbf{A}-\\mathbf{A}_1\\|_F",
+          "wert": 3.0413812651491097,
+          "tol": 0.0001,
+          "tolTyp": "rel",
+          "anzeige": "\\sqrt{3^2+0.5^2}=\\sqrt{9.25}\\approx3.0414"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Theorem 7.1.53 gibt beide Fehler geschlossen an:</p><p>$$\\|\\mathbf{A}-\\mathbf{A}_k\\|_2=\\sigma_{k+1},\\qquad \\|\\mathbf{A}-\\mathbf{A}_k\\|_F=\\sqrt{\\sigma_{k+1}^{2}+\\dots+\\sigma_r^{2}}$$</p><p>Also $\\sigma_2=3$, $\\sigma_3=0{.}5$ und $\\sqrt{3^{2}+0{.}5^{2}}=\\sqrt{9{.}25}\\approx3{.}0414$.</p><p>Zwei Dinge sind bemerkenswert. Erstens: der Fehler ist <b>vorher bekannt</b>. Man muss keine einzige Approximation ausrechnen, um zu wissen, wie gut sie wird — die Singulärwerte genügen. Zweitens: $\\mathbf{A}_k$ ist nicht irgendeine gute Näherung, sondern die <b>beste über alle</b> Matrizen vom Rang $k$, und zwar in beiden Normen gleichzeitig.</p><p>Hier zeigt der Sprung von $3$ auf $0{.}5$ zwischen $\\sigma_2$ und $\\sigma_3$, dass $k=2$ die natürliche Wahl ist — das ist das Lückenkriterium für den numerischen Rang (Bem. 7.1.44).</p>",
+      "skriptRef": {
+        "abschnitt": "7.1.2",
+        "seite": 262,
+        "nummer": "Thm. 7.1.53"
+      }
+    },
+    {
+      "id": "m-w11-03",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Was die SVD leistet",
+      "frageHtml": "<p>Welche Aussage über die Singulärwertzerlegung ist <b>falsch</b>?</p>",
+      "optionen": [
+        "Jede Matrix $\\mathbf{A}\\in\\mathbb{C}^{m\\times n}$ besitzt eine SVD, ohne jede Voraussetzung an Rang, Form oder Symmetrie.",
+        "Die Singulärwerte sind eindeutig bestimmt, die Singulärvektoren im Allgemeinen nicht.",
+        "Die SVD ist eindeutig, sobald $\\mathbf{A}$ vollen Rang hat.",
+        "$\\operatorname{Im}\\mathbf{A}$ wird von den ersten $r$ Spalten von $\\mathbf{U}$ aufgespannt, $\\ker\\mathbf{A}$ von den letzten $n-r$ Spalten von $\\mathbf{V}$."
+      ],
+      "loesung": 2,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Bem. 7.1.41: «Die SVD ist <b>nicht eindeutig</b>, aber die Singulärwerte sind es.» Voller Rang ändert daran nichts — man kann immer noch $\\mathbf{u}_j\\mapsto-\\mathbf{u}_j$ und $\\mathbf{v}_j\\mapsto-\\mathbf{v}_j$ gleichzeitig vorzeichenwechseln, ohne das Produkt zu ändern. Bei mehrfachen Singulärwerten kommt noch eine beliebige unitäre Drehung im zugehörigen Unterraum dazu.</p><p>Die anderen drei Aussagen stehen so im Skript: Thm. 7.1.38 verlangt ausdrücklich «$\\mathbf{A}\\in\\mathbb{C}^{m\\times n}$ <b>beliebig</b>», und Thm. 7.1.43 liefert Rang, Kern und Bild.</p><p>Praktisch heisst das: zwei SVD-Implementierungen dürfen verschiedene $\\mathbf{U}$ und $\\mathbf{V}$ liefern und sind trotzdem beide richtig. Prüfen kann man nur $\\boldsymbol\\Sigma$ und das rekonstruierte Produkt.</p>",
+      "skriptRef": {
+        "abschnitt": "7.1.2",
+        "seite": 256,
+        "nummer": "Thm. 7.1.38, Bem. 7.1.41, Thm. 7.1.43"
+      }
+    },
+    {
+      "id": "m-w11-04",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Numerischer Rang",
+      "frageHtml": "<p>Eine $20\\times50$-Datenmatrix aus einem Messexperiment hat die Singulärwerte $8{.}5$, $0{.}64$, $3{.}1\\cdot10^{-3}$, $2{.}8\\cdot10^{-3}$, $\\dots$ Wie bestimmen Sie den Rang?</p>",
+      "optionen": [
+        "Über die Determinante der Matrix — ist sie ungleich null, ist der Rang voll.",
+        "Über den <b>Sprung</b> im Spektrum: hier liegt er zwischen $\\sigma_2$ und $\\sigma_3$, der numerische Rang ist also 2.",
+        "Über die Anzahl Singulärwerte, die exakt null sind — hier keiner, also Rang 20.",
+        "Über die Anzahl Zeilen der Matrix, hier 20."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Bem. 7.1.44: «Wenn Messfehler oder Rundungsfehler auftreten, dann hat man typischerweise $\\sigma_1\\ge\\dots\\ge\\sigma_r\\gg\\sigma_{r+1}\\approx\\dots\\approx0$. Der <b>numerische Rang</b> $r$ ist hier gegeben durch den <b>Sprung</b> $\\sigma_r\\gg\\sigma_{r+1}\\approx0$.»</p><p>Hier fallen die Singulärwerte von $0{.}64$ auf $3{.}1\\cdot10^{-3}$ um mehr als zwei Grössenordnungen und bleiben danach auf diesem Niveau — das ist das Rauschen. Zwei echte Komponenten, genau wie im PCA-Beispiel 7.1.45 des Skripts, wo ebenfalls «zwei dominierende Singulärwerte» herauskommen.</p><p>Option 3 ist der häufigste Denkfehler: in Gleitkomma ist nichts exakt null. Die Determinante (Option 1) ist noch schlechter — sie ist das Produkt aller Singulärwerte und wird schon durch blosse Skalierung beliebig klein, ohne dass sich am Rang etwas ändert.</p><p>In NumPy: <code>np.linalg.matrix_rank(A)</code>, Vorgabetoleranz $\\sigma_1\\cdot\\max(m,n)\\cdot\\varepsilon_{\\text{mach}}$ — bei bekanntem Rauschniveau setzt man <code>tol=</code> besser selbst.</p>",
+      "skriptRef": {
+        "abschnitt": "7.1.2",
+        "seite": 258,
+        "nummer": "Bem. 7.1.44, Bsp. 7.1.45"
+      }
+    },
+    {
+      "id": "m-w11-05",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Datenkompression",
+      "frageHtml": "<p>Ein Graustufenbild der Grösse $1920\\times1080$ wird durch eine Rang-$50$-Approximation ersetzt. Wie viele Zahlen braucht das Original, wie viele die Approximation, und wie gross ist der Anteil in Prozent?</p>",
+      "felder": [
+        {
+          "label": "\\text{Original}",
+          "wert": 2073600,
+          "tol": 0.5,
+          "tolTyp": "abs",
+          "anzeige": "1920\\cdot1080 = 2\\,073\\,600"
+        },
+        {
+          "label": "\\text{Rang-50-SVD}",
+          "wert": 150000,
+          "tol": 0.5,
+          "tolTyp": "abs",
+          "anzeige": "50\\cdot(1920+1080) = 150\\,000"
+        },
+        {
+          "label": "\\text{Anteil in }\\%",
+          "wert": 7.233796296296297,
+          "tol": 0.01,
+          "tolTyp": "rel",
+          "anzeige": "\\approx 7.234\\,\\%"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Bem. 7.1.54: «Die Information, die in einer $m\\times n$-Matrix vom Rang $k$ steckt, kann durch <b>$k(m+n)$ Zahlen</b> dargestellt werden.»</p><p>Gespeichert wird nicht die Produktmatrix $\\mathbf{A}_k$, sondern die $k$ Tripel $(\\sigma_j,\\mathbf{u}_j,\\mathbf{v}_j)$ — also $k$ Vektoren der Länge $1920$ und $k$ der Länge $1080$. Die $\\sigma_j$ selbst lassen sich in die Vektoren hineinziehen und kosten nichts extra.</p><p>$50\\cdot3000=150\\,000$ gegen $2\\,073\\,600$, also $7{.}23\\,\\%$ — ein Kompressionsfaktor von fast 14.</p><p>Die Grenze: es lohnt sich nur, solange $k(m+n)&lt;mn$, hier also bis $k&lt;\\frac{1920\\cdot1080}{3000}=691{.}2$. Ab $k=692$ speichert man mehr als das Original.</p><p>Wie gut die Näherung ist, verrät $\\sigma_{51}$ — nach Thm. 7.1.53 ist das exakt der Fehler in der 2-Norm.</p>",
+      "skriptRef": {
+        "abschnitt": "7.1.2",
+        "seite": 263,
+        "nummer": "Bem. 7.1.54, Thm. 7.1.53"
+      }
+    },
+    {
+      "id": "m-w11-06",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "svd oder svdvals",
+      "frageHtml": "<p>Sie brauchen nur die Konditionszahl einer grossen $m\\times n$-Matrix mit $m\\gg n$. Welcher Aufruf ist richtig <b>und</b> am billigsten?</p>",
+      "optionen": [
+        "<code>U, S, Vh = scipy.linalg.svd(A)</code>, dann <code>S[0]/S[-1]</code>",
+        "<code>s = scipy.linalg.svdvals(A)</code>, dann <code>s[0]/s[-1]</code>",
+        "<code>np.linalg.det(A.T @ A)</code>",
+        "<code>np.linalg.norm(A) / np.linalg.norm(np.linalg.inv(A))</code>"
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>«Wenn nur die Singulärwerte und nicht auch die Faktoren $\\mathbf{U}$, $\\mathbf{V}^{H}$ gebraucht werden, dann ist es günstiger, <code>scipy.linalg.svdvals</code> zu verwenden.»</p><p>Der Unterschied steht in der Komplexitätstabelle auf Seite 257: <code>svdvals</code> kostet $2mn^{2}+2n^{3}$, die volle <code>svd</code> dagegen $4m^{2}n+22n^{3}$. Bei $m\\gg n$ ist der Term $4m^{2}n$ erdrückend — man berechnet eine $m\\times m$-Matrix $\\mathbf{U}$, die man wegwirft. (Wenigstens <code>full_matrices=False</code> sollte man dann setzen.)</p><p>Option 1 ist korrekt, nur verschwenderisch. Option 3 ist falsch: die Determinante hat mit der Kondition nichts zu tun, und $\\mathbf{A}^{T}\\mathbf{A}$ quadriert zusätzlich die Kondition. Option 4 verwechselt zwei Normen (<code>np.linalg.norm</code> ohne Argument ist die Frobenius-Norm) und berechnet eine Inverse, was Woche 10 ausdrücklich verbietet — für $m\\neq n$ gibt es sie ohnehin nicht.</p><p>Am kürzesten wäre <code>np.linalg.cond(A)</code>; das benutzt intern ebenfalls die SVD (Bem. 7.1.51).</p>",
+      "skriptRef": {
+        "abschnitt": "7.1.2",
+        "seite": 257,
+        "nummer": "Komplexitäten S. 257, Bem. 7.1.51"
+      }
+    },
+    {
+      "id": "m-w11-07",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Singulärwerte und Eigenwerte",
+      "frageHtml": "<p>Warum berechnet man die Singulärwerte von $\\mathbf{A}$ <b>nicht</b> über die Eigenwerte von $\\mathbf{A}^{H}\\mathbf{A}$, obwohl Bem. 7.1.42 genau diesen Zusammenhang herstellt?</p>",
+      "optionen": [
+        "Weil der Zusammenhang nur für quadratische Matrizen gilt.",
+        "Weil $\\operatorname{cond}(\\mathbf{A}^{H}\\mathbf{A})=\\operatorname{cond}(\\mathbf{A})^{2}$ ist — das Quadrieren kostet die halbe Genauigkeit.",
+        "Weil $\\mathbf{A}^{H}\\mathbf{A}$ im Allgemeinen keine Eigenwerte besitzt.",
+        "Weil die Eigenwerte von $\\mathbf{A}^{H}\\mathbf{A}$ negativ sein können."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Bem. 7.1.42 ist richtig: $\\sigma_j^{2}$ sind die Eigenwerte von $\\mathbf{A}^{H}\\mathbf{A}$. Als <i>Rechenweg</i> taugt das trotzdem nicht.</p><p>Das Aufstellen von $\\mathbf{A}^{H}\\mathbf{A}$ <b>quadriert alle Singulärwerte</b> und damit auch ihr Verhältnis. Bei $\\operatorname{cond}(\\mathbf{A})=10^{8}$ — für eine Datenmatrix nichts Ungewöhnliches — wird daraus $10^{16}$, und in doppelter Genauigkeit ist von den kleinen Singulärwerten nichts mehr übrig. Die Information ist weg, bevor der Eigenwertlöser überhaupt startet.</p><p>Ein guter SVD-Algorithmus arbeitet deshalb direkt auf $\\mathbf{A}$, mit orthogonalen Transformationen von links <i>und</i> rechts — die lassen die Kondition unverändert (Bem. 7.1.24).</p><p>Option 3 und 4 sind falsch: $\\mathbf{A}^{H}\\mathbf{A}$ ist hermitesch und positiv <i>semi</i>definit, hat also stets reelle, nichtnegative Eigenwerte. Genau dasselbe Argument begründet in Woche 12, warum man lineare Ausgleichsprobleme nicht über die Normalengleichungen löst.</p>",
+      "skriptRef": {
+        "abschnitt": "7.1.2",
+        "seite": 257,
+        "nummer": "Bem. 7.1.42, Bem. 7.1.24"
+      }
+    },
+    {
+      "id": "m-w11-08",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "Extremaleigenschaft",
+      "frageHtml": "<p>Gesucht ist $\\mathbf{x}$ mit $\\|\\mathbf{x}\\|_2=1$, das $\\|\\mathbf{A}\\mathbf{x}\\|_2$ <b>minimiert</b>. Was ist die Lösung?</p>",
+      "optionen": [
+        "$\\mathbf{x}=\\mathbf{u}_1$, der erste linke Singulärvektor; der Wert ist $\\sigma_1$.",
+        "$\\mathbf{x}=\\mathbf{v}_n$, der <b>letzte</b> rechte Singulärvektor; der Wert ist $\\sigma_n$.",
+        "$\\mathbf{x}=\\mathbf{v}_1$; der Wert ist $\\sigma_1$.",
+        "Das Minimum ist stets $0$ und wird für jedes $\\mathbf{x}$ im Kern angenommen."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Weil unitäre Matrizen die 2-Norm erhalten, lässt sich das Problem auf $\\boldsymbol\\Sigma$ zurückführen (Bem. 7.1.49):</p><p>$$\\min_{\\|\\mathbf{x}\\|_2=1}\\|\\mathbf{A}\\mathbf{x}\\|_2^{2}=\\min_{\\|\\mathbf{y}\\|_2=1}\\left(\\sigma_1^{2}y_1^{2}+\\dots+\\sigma_n^{2}y_n^{2}\\right)\\ge\\sigma_n^{2}$$</p><p>Die rechte Seite ist ein gewichteter Mittelwert der $\\sigma_j^{2}$ mit Gewichten $y_j^{2}$, die sich zu $1$ summieren — minimal wird er, wenn das ganze Gewicht auf dem <i>kleinsten</i> $\\sigma$ liegt, also $\\mathbf{y}=(0,\\dots,0,1)^{T}$ und damit $\\mathbf{x}=\\mathbf{v}_n$.</p><p>Spiegelbildlich ist $\\sigma_1=\\max_{\\|\\mathbf{x}\\|_2=1}\\|\\mathbf{A}\\mathbf{x}\\|_2$ mit $\\mathbf{x}=\\mathbf{v}_1$ — daraus folgt unmittelbar $\\|\\mathbf{A}\\|_2=\\sigma_1$ (Thm. 7.1.50). <b>Rechte</b> Singulärvektoren, weil sie im Urbildraum leben; die $\\mathbf{u}_j$ sind Richtungen im Bildraum.</p><p>Option 4 gilt nur, wenn $\\mathbf{A}$ einen nichttrivialen Kern hat — dann ist $\\sigma_n=0$ und $\\mathbf{v}_n$ liegt genau dort. Der allgemeine Fall ist $\\sigma_n&gt;0$. Dieses Minimierungsproblem ist übrigens die <b>totale Ausgleichsrechnung</b> aus Abschnitt 8.1.3.</p>",
+      "skriptRef": {
+        "abschnitt": "7.1.2",
+        "seite": 261,
+        "nummer": "Bem. 7.1.49, Thm. 7.1.50"
+      }
+    },
+    {
+      "id": "m-w11-09",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "numeric-multi",
+      "thema": "Frobenius-Norm",
+      "frageHtml": "<p>Für $\\mathbf{M}=\\begin{pmatrix}1&2&3\\\\2&4&6\\\\1&1&1\\end{pmatrix}$ sind die Singulärwerte $8{.}5198$, $0{.}6429$ und $2{.}8\\cdot10^{-16}$. Geben Sie den Rang an, dazu $\\|\\mathbf{M}\\|_F$ (direkt aus den Einträgen) und $\\sqrt{\\sigma_1^{2}+\\sigma_2^{2}}$.</p>",
+      "felder": [
+        {
+          "label": "\\operatorname{rank}\\mathbf{M}",
+          "wert": 2,
+          "tol": 1e-09,
+          "tolTyp": "abs"
+        },
+        {
+          "label": "\\|\\mathbf{M}\\|_F",
+          "wert": 8.54400374531753,
+          "tol": 0.0001,
+          "tolTyp": "rel",
+          "anzeige": "\\sqrt{73}\\approx8.5440"
+        },
+        {
+          "label": "\\sqrt{\\sigma_1^2+\\sigma_2^2}",
+          "wert": 8.54400374531753,
+          "tol": 0.001,
+          "tolTyp": "rel",
+          "anzeige": "ebenfalls \\sqrt{73}\\approx8.5440"
+        }
+      ],
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p><b>Rang 2:</b> die zweite Zeile ist das Doppelte der ersten. Entsprechend ist der dritte Singulärwert $2{.}8\\cdot10^{-16}$ — <i>numerisch</i> null, also auf dem Niveau der Maschinengenauigkeit mal $\\sigma_1$. Genau das meint Bem. 7.1.44 mit dem Sprung: von $0{.}64$ auf $10^{-16}$ sind sechzehn Grössenordnungen.</p><p><b>Frobenius-Norm:</b> direkt aus den Einträgen $\\sqrt{1+4+9+4+16+36+1+1+1}=\\sqrt{73}\\approx8{.}5440$. Über die Singulärwerte (7.1.4): $\\sqrt{8{.}5198^{2}+0{.}6429^{2}+0}=\\sqrt{72{.}587+0{.}413}=\\sqrt{73}$. Beide Wege stimmen überein — der dritte Singulärwert trägt nichts bei, weil die Matrix eben Rang 2 hat.</p><p>Das ist zugleich eine brauchbare <b>Probe</b> für jede SVD-Rechnung: die Quadratsumme der Singulärwerte muss die Quadratsumme der Einträge treffen. Stimmt das nicht, ist irgendwo etwas schiefgegangen.</p>",
+      "skriptRef": {
+        "abschnitt": "7.1.2",
+        "seite": 262,
+        "nummer": "Def. 7.1.52, (7.1.4), Bem. 7.1.44"
+      }
+    },
+    {
+      "id": "m-w11-10",
+      "quelle": {
+        "typ": "zusatz"
+      },
+      "typ": "mc-single",
+      "thema": "PCA",
+      "frageHtml": "<p>Im PCA-Beispiel 7.1.45 werden 20 Messvektoren der Länge 50 analysiert und zwei dominierende Singulärwerte gefunden. Wo stehen die beiden <b>Hauptkomponenten</b> — also die zurückgewonnenen Signalverläufe über die 50 Messorte?</p>",
+      "optionen": [
+        "In den ersten beiden Spalten von $\\mathbf{U}$.",
+        "In den ersten beiden Zeilen von $\\mathbf{V}^{H}$.",
+        "In den ersten beiden Einträgen von $\\boldsymbol\\Sigma$.",
+        "Sie lassen sich aus der SVD nicht ablesen und müssen separat durch Regression bestimmt werden."
+      ],
+      "loesung": 1,
+      "loesungsStatus": "eigene",
+      "erklaerung": "<p>Im Code des Skripts steht genau das: <code>plot(r, -Vh[0,:], label=\"First principal component\")</code> und <code>plot(r, Vh[1,:], ...)</code>, jeweils über $r$ — die 50 Messorte.</p><p>Der Grund steckt in der Form der Matrix. $\\mathbf{A}$ ist hier $20\\times50$: eine Zeile pro Messung, eine Spalte pro Messort. In $\\mathbf{A}=\\sum_j\\sigma_j\\mathbf{u}_j\\mathbf{v}_j^{H}$ hat $\\mathbf{v}_j$ also die Länge 50 und beschreibt einen <b>Verlauf über die Orte</b> — das ist die Hauptkomponente. $\\mathbf{u}_j$ hat die Länge 20 und sagt, <b>wie stark jede einzelne Messung</b> zu dieser Komponente beiträgt; genau so wird es im dritten Plot benutzt.</p><p>Wer $\\mathbf{U}$ und $\\mathbf{V}$ verwechselt, bekommt also Vektoren der falschen Länge — ein Fehler, der sich meist schon an der Form bemerkbar macht. Bei transponierter Datenmatrix tauschen die Rollen entsprechend.</p><p>Das Minuszeichen vor <code>Vh[0,:]</code> ist kein Rechenfehler, sondern die Vorzeichenfreiheit aus Bem. 7.1.41 — es dreht die Komponente so, dass sie im Plot auf dem Modellvektor liegt.</p>",
+      "skriptRef": {
+        "abschnitt": "7.1.2",
+        "seite": 258,
+        "nummer": "Bsp. 7.1.45, Bem. 7.1.40/7.1.41"
+      }
+    }
+  ],
   "codeexpert": []
 }
