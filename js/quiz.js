@@ -2,6 +2,7 @@
    quiz.js — Moodle-Training
    Fragetypen aus dem Originalmaterial:
      mc-single      Single-Choice (Moodle "Scoring method SC1/0")
+     mc-multi       Mehrfachauswahl — mehrere Kreuze sind richtig
      numeric-multi  mehrere Zahlenfelder in einer Frage
    ============================================================ */
 
@@ -108,6 +109,73 @@ const Quiz = (() => {
     againBtn.addEventListener('click', () => render(q, host.parentElement, onResult, true));
   }
 
+  /* ---------------- mc-multi ---------------- */
+
+  /**
+   * Mehrfachauswahl. `q.loesung` ist eine Liste von Indizes; richtig ist
+   * nur, wer genau diese Menge ankreuzt (kein Teilpunkt — Moodle wertet
+   * diese Fragen "alles oder nichts").
+   */
+  function renderMcMulti(q, host, onResult) {
+    const soll = new Set(q.loesung);
+    const opts = [];
+
+    host.appendChild(el('p', { class: 'faint' },
+      'Mehrfachauswahl — es sind ' + soll.size + ' Antworten anzukreuzen.'));
+
+    q.optionen.forEach((text, i) => {
+      const input = el('input', { type: 'checkbox' });
+      const label = el('label', { class: 'opt' }, [
+        input,
+        el('span', { class: 'opt-text', html: text })
+      ]);
+      opts.push({ label, input, i });
+      host.appendChild(label);
+    });
+
+    const actions = el('div', { class: 'btn-row' });
+    const checkBtn = el('button', { class: 'btn btn-primary' }, 'Prüfen');
+    const againBtn = el('button', { class: 'btn hidden' }, 'Nochmal versuchen');
+    actions.append(checkBtn, againBtn);
+    host.appendChild(actions);
+
+    const fbHost = el('div');
+    host.appendChild(fbHost);
+
+    checkBtn.addEventListener('click', () => {
+      const picked = opts.filter(o => o.input.checked).map(o => o.i);
+      if (!picked.length) {
+        fbHost.replaceChildren(el('div', { class: 'fb fb-info' },
+          'Bitte zuerst mindestens eine Antwort ankreuzen.'));
+        return;
+      }
+      const correct = picked.length === soll.size && picked.every(i => soll.has(i));
+
+      opts.forEach(o => {
+        o.label.classList.add('locked');
+        o.input.disabled = true;
+        const istSoll = soll.has(o.i);
+        const istGewaehlt = o.input.checked;
+        if (istSoll) {
+          o.label.classList.add('is-correct');
+          o.label.appendChild(el('span', { class: 'opt-mark ok' },
+            istGewaehlt ? '✓' : '✓ fehlte'));
+        } else if (istGewaehlt) {
+          o.label.classList.add('is-wrong');
+          o.label.appendChild(el('span', { class: 'opt-mark err' }, '✗ zu viel'));
+        }
+      });
+
+      checkBtn.classList.add('hidden');
+      againBtn.classList.remove('hidden');
+      fbHost.replaceChildren(feedback(q, correct));
+      math(fbHost);
+      onResult(correct);
+    });
+
+    againBtn.addEventListener('click', () => render(q, host.parentElement, onResult, true));
+  }
+
   /* ---------------- numeric-multi ---------------- */
 
   function renderNumericMulti(q, host, onResult) {
@@ -176,9 +244,10 @@ const Quiz = (() => {
       el('span', { class: 'q-no' }, q.nr ? 'Frage ' + q.nr : ''),
       sourceBadge(q),
       statusPill(Progress.get(q.id).status),
-      q.typ === 'mc-single'
-        ? el('span', { class: 'pill' }, 'Single Choice')
-        : el('span', { class: 'pill' }, 'Zahleneingabe')
+      el('span', { class: 'pill' },
+        q.typ === 'numeric-multi' ? 'Zahleneingabe'
+          : q.typ === 'mc-multi' ? 'Mehrfachauswahl'
+            : 'Single Choice')
     ]);
     card.appendChild(head);
 
@@ -201,6 +270,7 @@ const Quiz = (() => {
     };
 
     if (q.typ === 'numeric-multi') renderNumericMulti(q, body, handle);
+    else if (q.typ === 'mc-multi') renderMcMulti(q, body, handle);
     else renderMcSingle(q, body, handle);
 
     math(card);

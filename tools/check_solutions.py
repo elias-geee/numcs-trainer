@@ -16,6 +16,7 @@ Geprüft wird pro CodeExpert-Aufgabe:
 
 Und pro Moodle-Frage:
   - mc-single: loesung ist ein gültiger Index
+  - mc-multi:  loesung ist eine Liste gültiger, verschiedener Indizes
   - numeric-multi: jedes Feld hat Wert und Toleranz
   - jede ID ist projektweit eindeutig
 
@@ -48,34 +49,10 @@ DATA = ROOT / "data"
 REFPLOTS = ROOT / "assets" / "ref"
 GAP_RE = re.compile(r"«(L\d+)»")
 
-# Muss mit TIMERPRO_SRC in js/pyodide-runner.js übereinstimmen.
-TIMERPRO_SRC = '''
-import time
-
-def time_it_pro(repetitions=1):
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            ts = []
-            result = None
-            for r in range(repetitions):
-                a = [v.copy() if hasattr(v, 'copy') and hasattr(v, 'shape') else v
-                     for v in args]
-                start = time.perf_counter()
-                out = func(*a, **kwargs)
-                ts.append(time.perf_counter() - start)
-                if r == 0:
-                    result = out
-            wrapper.min_time = min(ts)
-            wrapper.ats.append(min(ts))
-            print(f'Min. Time taken: {min(ts):.6f} seconds in ', func.__name__)
-            return result
-        wrapper.ats = []
-        wrapper.min_time = 0.0
-        wrapper.__name__ = func.__name__
-        wrapper.__doc__ = func.__doc__
-        return wrapper
-    return decorator
-'''
+# Ersatzmodule (timerpro, plotstuff, testfuncsCs, …): Module, die in
+# CodeExpert vorhanden sind, dem Kursmaterial aber nicht beiliegen.
+# Gemeinsame Quelle mit js/pyodide-runner.js, damit beide nicht auseinanderlaufen.
+SHIMS = json.loads((DATA / "shims.json").read_text(encoding="utf-8"))["module"]
 
 GREEN, RED, YELLOW, DIM, RESET = "\033[32m", "\033[31m", "\033[33m", "\033[2m", "\033[0m"
 
@@ -106,9 +83,12 @@ def warn(msg: str) -> None:
 #  Ausführung
 # --------------------------------------------------------------------------- #
 
-def setup_timerpro(tmpdir: Path) -> None:
+def setup_shims(tmpdir: Path) -> None:
+    """Legt die Ersatzmodule aus data/shims.json als echte Dateien ab und
+    haengt das Verzeichnis vorne an sys.path."""
     tmpdir.mkdir(parents=True, exist_ok=True)
-    (tmpdir / "timerpro.py").write_text(TIMERPRO_SRC, encoding="utf-8")
+    for name, src in SHIMS.items():
+        (tmpdir / f"{name}.py").write_text(src, encoding="utf-8")
     if str(tmpdir) not in sys.path:
         sys.path.insert(0, str(tmpdir))
 
@@ -262,6 +242,21 @@ def check_moodle(q: dict) -> None:
             bad(f"{qid}: doppelte Antwortoptionen")
         else:
             ok(f"{qid}: Single Choice, Lösung = Option {q['loesung'] + 1} von {len(opts)}")
+    elif q["typ"] == "mc-multi":
+        opts = q.get("optionen", [])
+        sol = q.get("loesung")
+        if not isinstance(sol, list) or len(sol) < 2:
+            bad(f"{qid}: 'loesung' muss bei mc-multi eine Liste mit mindestens "
+                f"zwei Indizes sein")
+        elif len(set(sol)) != len(sol) or any(
+                not isinstance(i, int) or not (0 <= i < len(opts)) for i in sol):
+            bad(f"{qid}: 'loesung' enthält ungültige oder doppelte Indizes")
+        elif len(set(opts)) != len(opts):
+            bad(f"{qid}: doppelte Antwortoptionen")
+        elif len(sol) == len(opts):
+            bad(f"{qid}: alle {len(opts)} Optionen sind richtig — nichts zu entscheiden")
+        else:
+            ok(f"{qid}: Mehrfachauswahl, {len(sol)} von {len(opts)} Optionen richtig")
     elif q["typ"] == "numeric-multi":
         felder = q.get("felder", [])
         if not felder:
@@ -290,7 +285,7 @@ def main() -> int:
     ap.add_argument("--week", type=int, default=None, help="nur diese Woche prüfen")
     args = ap.parse_args()
 
-    setup_timerpro(ROOT / ".cache")
+    setup_shims(ROOT / ".cache")
     os.chdir(ROOT)
     os.makedirs("./cx_out", exist_ok=True)
 

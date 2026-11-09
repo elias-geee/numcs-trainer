@@ -140,6 +140,9 @@ Zwei Typen, beide aus dem Originalmaterial abgeleitet:
 }
 ```
 
+Für Mehrfachauswahl `"typ": "mc-multi"`; `loesung` ist dann eine **Liste**
+von Indizes (mindestens zwei), und gewertet wird alles-oder-nichts.
+
 Für Zahleneingaben `"typ": "numeric-multi"` und statt `optionen`/`loesung`:
 
 ```jsonc

@@ -13,44 +13,21 @@ const Py = (() => {
   let bootPromise = null;
   const loadedPkgs = new Set();
 
-  // Steht in CodeExpert zur Verfügung, nicht aber in Pyodide: Zeitmess-
-  // Dekorator der Vorlesung. Wird als echtes Modul ins Dateisystem gelegt,
-  // damit `from timerpro import *` im Original-Template funktioniert.
-  const TIMERPRO_SRC = `
-import time
+  // Ersatzmodule fuer Module, die CodeExpert mitbringt, Pyodide aber nicht
+  // (timerpro, plotstuff, testfuncsCs, …). Quelle ist data/shims.json —
+  // dieselbe Datei nutzt tools/check_solutions.py, damit Browser und
+  // Offline-Prüfung nicht auseinanderlaufen.
+  let shimNames = [];
 
-def time_it_pro(repetitions=1):
-    """Zeitmess-Dekorator der Vorlesung (in CodeExpert als Modul 'timerpro'
-    vorhanden, in Pyodide nicht). Misst die minimale Laufzeit ueber
-    'repetitions' Laeufe und legt sie auf .min_time bzw. .ats ab.
-
-    Unterschied zum Original: Array-Argumente werden pro Lauf kopiert und
-    zurueckgegeben wird das Ergebnis des ERSTEN Laufs. Sonst wuerden
-    Funktionen, die ihr Argument in-place ueberschreiben (divdiff!), ab dem
-    zweiten Lauf auf bereits transformierten Daten rechnen."""
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            ts = []
-            result = None
-            for r in range(repetitions):
-                a = [v.copy() if hasattr(v, 'copy') and hasattr(v, 'shape') else v
-                     for v in args]
-                start = time.perf_counter()
-                out = func(*a, **kwargs)
-                ts.append(time.perf_counter() - start)
-                if r == 0:
-                    result = out
-            wrapper.min_time = min(ts)
-            wrapper.ats.append(min(ts))
-            print(f'Min. Time taken: {min(ts):.6f} seconds in ', func.__name__)
-            return result
-        wrapper.ats = []
-        wrapper.min_time = 0.0
-        wrapper.__name__ = func.__name__
-        wrapper.__doc__ = func.__doc__
-        return wrapper
-    return decorator
-`;
+  async function writeShims(py) {
+    const res = await fetch('data/shims.json', { cache: 'no-cache' });
+    if (!res.ok) throw new Error('data/shims.json nicht ladbar (' + res.status + ')');
+    const mods = (await res.json()).module || {};
+    shimNames = Object.keys(mods);
+    for (const [name, src] of Object.entries(mods)) {
+      py.FS.writeFile(name + '.py', src, { encoding: 'utf8' });
+    }
+  }
 
   // __name__ wird gesetzt, damit Templates mit
   // `if __name__ == "__main__":` unveraendert laufen.
@@ -110,7 +87,7 @@ _numcs_imgs
         await loadScript(INDEX_URL + 'pyodide.js');
       }
       pyodide = await loadPyodide({ indexURL: INDEX_URL });
-      pyodide.FS.writeFile('timerpro.py', TIMERPRO_SRC, { encoding: 'utf8' });
+      await writeShims(pyodide);
       setStatus('bereit');
       return pyodide;
     })();
@@ -124,10 +101,10 @@ _numcs_imgs
     }
   }
 
-  /** Pakete nachladen. "timerpro" ist ein lokales Shim, kein Pyodide-Paket. */
+  /** Pakete nachladen. Die Ersatzmodule sind lokale Dateien, keine Pakete. */
   async function ensurePackages(pkgs) {
     const want = (pkgs || ['numpy'])
-      .filter(p => p !== 'timerpro')
+      .filter(p => !shimNames.includes(p))
       .filter(p => !loadedPkgs.has(p));
     if (!want.length) return;
     setStatus('lädt ' + want.join(', ') + ' …');

@@ -13,7 +13,8 @@ die man sonst nur im Browser sieht:
   3. referenzPlot zeigt auf eine Datei, die es nicht gibt
   4. Skriptseite liegt ausserhalb des Seitenbereichs der Woche
   5. IDs: eindeutig, und das Wochenpräfix passt zur Datei
-  6. mc-single hat mindestens 3 Optionen; numeric-multi hat tol und tolTyp
+  6. mc-single/mc-multi haben mindestens 3 Optionen und gültige
+     Lösungsindizes; numeric-multi hat tol und tolTyp
   7. Originalfragen: loesungsStatus "eigene" und ein Screenshot-Pfad,
      der existiert
   8. unbekannte Schlüssel (Tippfehler wie "loesungStatus")
@@ -186,6 +187,20 @@ def check_week(path: Path, seen: dict) -> None:
                 fail(w, "loesung ist kein gültiger Index")
             if "damaligeAuswahl" in q and not (0 <= q["damaligeAuswahl"] < len(opts)):
                 fail(w, "damaligeAuswahl ist kein gültiger Index")
+        elif q["typ"] == "mc-multi":
+            opts = q.get("optionen") or []
+            sol = q.get("loesung")
+            if len(opts) < 3:
+                fail(w, f"nur {len(opts)} Optionen")
+            if not isinstance(sol, list) or len(sol) < 2:
+                fail(w, "loesung muss bei mc-multi eine Liste mit mindestens "
+                        "zwei Indizes sein — sonst ist es mc-single")
+            elif len(set(sol)) != len(sol):
+                fail(w, "loesung enthält einen Index doppelt")
+            elif any(not isinstance(i, int) or not (0 <= i < len(opts)) for i in sol):
+                fail(w, "loesung enthält einen ungültigen Index")
+            elif len(sol) == len(opts):
+                fail(w, "alle Optionen sind richtig — die Frage ist trivial")
         elif q["typ"] == "numeric-multi":
             for i, f_ in enumerate(q.get("felder") or []):
                 if "wert" not in f_:

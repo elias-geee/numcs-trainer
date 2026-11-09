@@ -32,7 +32,8 @@ const Summary = (() => {
     (week.moodle || []).forEach((q, i) => rows.push([
       'Moodle ' + (i + 1),
       q.quelle && q.quelle.typ === 'original' ? 'Original' : 'Eigene',
-      q.thema || (q.typ === 'numeric-multi' ? 'Zahleneingabe' : 'Single Choice'),
+      q.thema || (q.typ === 'numeric-multi' ? 'Zahleneingabe'
+        : q.typ === 'mc-multi' ? 'Mehrfachauswahl' : 'Single Choice'),
       Progress.get(q.id).status
     ]));
     (week.codeexpert || []).forEach(t => {
